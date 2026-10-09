@@ -48,7 +48,15 @@ export default defineConfig(
       'import/order': [
         'error',
         {
-          groups: ['builtin', 'external', 'internal', ['parent', 'sibling'], 'index', 'object', 'type'],
+          groups: [
+            'builtin',
+            'external',
+            'internal',
+            ['parent', 'sibling'],
+            'index',
+            'object',
+            'type',
+          ],
           pathGroups: [{ pattern: 'react', group: 'external', position: 'before' }],
           pathGroupsExcludedImportTypes: ['react'],
           'newlines-between': 'always',
