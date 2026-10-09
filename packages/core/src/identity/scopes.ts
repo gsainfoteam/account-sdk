@@ -1,22 +1,10 @@
 import { isString } from 'es-toolkit';
 import * as z from 'zod/mini';
 
-/**
- * Scopes that grant access to user information.
- *
- * @remarks
- * account-be fixes its scopes in source (`src/client/types/clientScopes.type.ts` and
- * `src/oauth/types/scope.type.ts`), so they are a closed set that changes only with a deploy.
- * Tests check this copy against the discovery fixture and against the live IdPs.
- */
-export const ClientScopeSchema = z.enum([
-  'name',
-  'profile',
-  'picture',
-  'email',
-  'phone_number',
-  'student_id',
-]);
+import { ClientScopeSchema } from './client-scopes.generated';
+
+export { ClientScopeSchema };
+
 /** OpenID Connect scope that adds an id_token, and with it a `nonce`. */
 export const OPENID_SCOPE = 'openid';
 /** OpenID Connect scope that adds a refresh token, and with it `prompt=consent`. */

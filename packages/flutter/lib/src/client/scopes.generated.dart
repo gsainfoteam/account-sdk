@@ -1,10 +1,12 @@
 /// Scopes the IdP accepts, except `openid`.
 ///
 /// This package does not verify id_tokens, so it does not ask for one.
-/// A test checks this list against the scopes the IdP advertises.
+///
+/// Generated from the production IdP's `scopes_supported` by `pnpm sync:scopes`. Do not edit by
+/// hand: when account-be adds or removes a scope, run the script again and release the package.
 enum AccountScope {
-  name('name'),
   profile('profile'),
+  name('name'),
   picture('picture'),
   email('email'),
   phoneNumber('phone_number'),

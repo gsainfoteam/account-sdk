@@ -19,7 +19,7 @@ import '../storage/secure_token_store.dart';
 import '../storage/token_store.dart';
 import 'account_prompt.dart';
 import 'account_state.dart';
-import 'scopes.dart';
+import 'scopes.generated.dart';
 
 /// Opens [url] in a browser session and completes with the callback URL. Replaceable in tests.
 typedef BrowserAuthenticator = Future<String> Function(Uri url, String callbackUrlScheme);

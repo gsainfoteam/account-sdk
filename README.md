@@ -53,9 +53,10 @@ IdP 가 발급한 authorization code 를 누가 교환하느냐에 따라 두 �
 - 언어를 넘어 공유하는 값(IdP 주소, 경로, 저장소 키 namespace)은
   [`packages/core/src/constants/idp.json`](packages/core/src/constants/idp.json) 하나에 둔다. Flutter 패키지는 테스트로
   이 파일과 값이 같은지 확인한다.
-- account-be 의 scope 는 소스에 고정된 닫힌 집합이라, SDK 도 TypeScript 유니온과 Dart enum 으로 둔다. 두 레포에 같은
-  목록이 있으므로 discovery fixture 와 실제 IdP 응답에 대고 테스트로 대조한다. account-be 에 scope 가 추가되면 SDK 도 같이
-  배포한다. 그래도 어긋나면 `login()` 이 브라우저를 열기 전에 discovery 와 대조해 `invalid_scope` 로 실패한다.
+- account-be 의 scope 는 소스에 고정된 닫힌 집합이라, SDK 도 TypeScript 유니온과 Dart enum 으로 둔다. 이 목록은 손으로
+  적지 않고 `pnpm sync:scopes` 가 운영 IdP discovery 의 `scopes_supported` 에서 생성한다(`*.generated.*`).
+  account-be 에 scope 가 추가되면 스크립트를 돌리고 SDK 를 배포한다. 생성한 목록이 IdP 와 어긋나면 live 테스트가 실패하고,
+  실행 중에는 `login()` 이 브라우저를 열기 전에 discovery 와 대조해 `invalid_scope` 로 실패한다.
 
 ## 개발
 
@@ -76,6 +77,7 @@ pnpm examples:build # examples 빌드
 
 mise run check      # 위 검사를 CI 와 같은 순서로 실행
 mise run test:live  # 운영과 스테이징 IdP 에 실제로 요청하는 테스트
+pnpm sync:scopes    # 운영 IdP discovery 에서 scope 목록(TS, Dart) 다시 생성
 ```
 
 Flutter 패키지는 `packages/flutter` 에서 `flutter analyze` 와 `flutter test` 로 검사한다.

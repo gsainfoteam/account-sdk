@@ -2,7 +2,7 @@ export 'src/client/account_client.dart';
 export 'src/client/account_prompt.dart';
 export 'src/constants.dart';
 export 'src/client/account_state.dart';
-export 'src/client/scopes.dart';
+export 'src/client/scopes.generated.dart';
 export 'src/discovery/account_issuer.dart';
 export 'src/discovery/account_metadata.dart';
 export 'src/discovery/discover.dart';

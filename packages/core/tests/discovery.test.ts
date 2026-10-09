@@ -89,7 +89,9 @@ describe('normalizeDiscovery', () => {
 
 describe('scopes', () => {
   it('match what the IdP advertises', () => {
-    expect([...SCOPES].sort()).toEqual([...production.scope_supported].sort());
+    expect([...SCOPES].sort(), 'run pnpm sync:scopes').toEqual(
+      [...production.scope_supported].sort(),
+    );
   });
 });
 
