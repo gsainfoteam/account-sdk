@@ -45,11 +45,17 @@ export {
   type VerifyIdTokenOptions,
 } from './identity/id-token';
 export {
+  ClientScopeSchema,
+  isScope,
   OFFLINE_ACCESS_SCOPE,
   OPENID_SCOPE,
   parseScopes,
+  SCOPES,
   ScopeSchema,
+  TokenScopeSchema,
+  type ClientScope,
   type Scope,
+  type TokenScope,
 } from './identity/scopes';
 export {
   fetchUserInfo,

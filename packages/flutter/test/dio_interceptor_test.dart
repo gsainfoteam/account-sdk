@@ -49,7 +49,7 @@ void main() {
       issuer: AccountIssuer.production,
       clientId: 'pot-g',
       redirectUri: Uri.parse('pot-g://callback'),
-      scopes: const ['name'],
+      scopes: const [AccountScope.name],
       session: BodySession(dio: dio),
       store: store,
     );

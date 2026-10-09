@@ -12,6 +12,7 @@ import {
   readCallbackState,
   type Fetch,
   type Prompt,
+  type Scope,
 } from '@gsainfoteam/account-core';
 import { Mutex } from 'es-toolkit';
 import * as z from 'zod/mini';
@@ -120,7 +121,9 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
 
   const options = parsed.data;
   const { clientId, session, fetch } = options;
-  const scopes = options.offlineAccess ? [...options.scopes, OFFLINE_ACCESS_SCOPE] : options.scopes;
+  const scopes: Scope[] = options.offlineAccess
+    ? [...options.scopes, OFFLINE_ACCESS_SCOPE]
+    : options.scopes;
   const transactions = options.transactionStorage ?? globalThis.sessionStorage;
   const redirect = options.redirect ?? ((url: string) => window.location.assign(url));
 

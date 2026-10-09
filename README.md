@@ -53,9 +53,9 @@ IdP 가 발급한 authorization code 를 누가 교환하느냐에 따라 두 �
 - 언어를 넘어 공유하는 값(IdP 주소, 경로, 저장소 키 namespace)은
   [`packages/core/src/constants/idp.json`](packages/core/src/constants/idp.json) 하나에 둔다. Flutter 패키지는 테스트로
   이 파일과 값이 같은지 확인한다.
-- SDK 는 IdP 의 scope 목록을 따로 들고 있지 않다. 요청한 scope 는 discovery 의 `scopes_supported` 와 대조하므로,
-  IdP 에 scope 가 추가되어도 SDK 를 새로 배포할 필요가 없다. SDK 가 동작을 바꾸는 OIDC 표준 scope(`openid`,
-  `offline_access`)만 상수로 둔다.
+- account-be 의 scope 는 소스에 고정된 닫힌 집합이라, SDK 도 TypeScript 유니온과 Dart enum 으로 둔다. 두 레포에 같은
+  목록이 있으므로 discovery fixture 와 실제 IdP 응답에 대고 테스트로 대조한다. account-be 에 scope 가 추가되면 SDK 도 같이
+  배포한다. 그래도 어긋나면 `login()` 이 브라우저를 열기 전에 discovery 와 대조해 `invalid_scope` 로 실패한다.
 
 ## 개발
 

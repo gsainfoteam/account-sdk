@@ -2,7 +2,7 @@ import { clearDiscoveryCache } from '@gsainfoteam/account-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import production from '../../core/tests/fixtures/discovery.production.json' with { type: 'json' };
-import { createAccountServer } from '../src';
+import { AccountServerOptionsSchema, createAccountServer } from '../src';
 
 type Route = (request: {
   url: URL;
@@ -46,14 +46,13 @@ describe('createAccountServer', () => {
     ).toThrow(expect.objectContaining({ code: 'invalid_request' }));
   });
 
-  it('rejects a malformed scope for client credentials', () => {
-    expect(() =>
-      createAccountServer({
-        issuer: 'production',
-        clientId: 'c',
-        clientCredentialsScopes: ['name email'],
-      }),
-    ).toThrow(expect.objectContaining({ code: 'invalid_request' }));
+  it('rejects a scope the IdP does not define for client credentials', () => {
+    const input: unknown = {
+      issuer: 'production',
+      clientId: 'c',
+      clientCredentialsScopes: ['nickname'],
+    };
+    expect(AccountServerOptionsSchema.safeParse(input).success).toBe(false);
   });
 });
 

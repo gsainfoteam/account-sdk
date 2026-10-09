@@ -27,6 +27,15 @@ void main() {
     }, idp['sessionPaths']);
   });
 
+  test('knows every scope the IdP advertises except openid', () {
+    final discovery =
+        jsonDecode(File('../core/tests/fixtures/discovery.production.json').readAsStringSync())
+            as Map<String, Object?>;
+    final advertised = (discovery['scope_supported']! as List<Object?>).whereType<String>().toSet()
+      ..remove('openid');
+    expect(AccountScope.values.map((scope) => scope.value).toSet(), advertised);
+  });
+
   test('parses OAuth error codes and denial reasons from their wire values', () {
     expect(OAuthErrorCode.parse('invalid_grant'), OAuthErrorCode.invalidGrant);
     expect(OAuthErrorCode.parse('something_new'), OAuthErrorCode.unknown);

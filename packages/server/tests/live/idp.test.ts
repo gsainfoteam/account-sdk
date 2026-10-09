@@ -1,9 +1,4 @@
-import {
-  discover,
-  OFFLINE_ACCESS_SCOPE,
-  OPENID_SCOPE,
-  type Environment,
-} from '@gsainfoteam/account-core';
+import { discover, SCOPES, type Environment } from '@gsainfoteam/account-core';
 import { describe, expect, it } from 'vitest';
 
 import { createAccountServer } from '../../src';
@@ -11,11 +6,9 @@ import { createAccountServer } from '../../src';
 const environments: Environment[] = ['production', 'staging'];
 
 describe.each(environments)('%s IdP', (environment) => {
-  it('advertises the OpenID Connect scopes the SDK branches on', async () => {
+  it('advertises exactly the scopes the SDK knows', async () => {
     const metadata = await discover(environment);
-    expect(metadata.scopesSupported).toEqual(
-      expect.arrayContaining([OPENID_SCOPE, OFFLINE_ACCESS_SCOPE]),
-    );
+    expect([...metadata.scopesSupported].sort()).toEqual([...SCOPES].sort());
   });
 
   it('serves JWKS and the token endpoint where the normalized metadata points', async () => {
