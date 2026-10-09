@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createRemoteJwks, verifyIdToken } from '../src';
+import { verifyIdToken } from '../src';
 import { createSigner, jsonResponse, metadata } from './helpers';
 
 const now = new Date('2027-01-15T00:00:00Z');
@@ -18,9 +18,8 @@ const claims = {
 describe('verifyIdToken', async () => {
   const signer = await createSigner();
   const fetch = vi.fn(async () => jsonResponse(signer.jwks));
-  const jwks = createRemoteJwks(metadata, { fetch });
   const verify = (token: string) =>
-    verifyIdToken(metadata, token, { jwks, audience: 'client-1', nonce: 'n-1', currentDate: now });
+    verifyIdToken(metadata, token, { fetch, audience: 'client-1', nonce: 'n-1', currentDate: now });
 
   it('returns the claims of a valid token, with keys from the API host', async () => {
     await expect(verify(await signer.sign(claims))).resolves.toMatchObject({

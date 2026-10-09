@@ -2,6 +2,7 @@ import * as z from 'zod/mini';
 
 import { AccountError } from './errors';
 import { parseScopes, type Scope } from './scopes';
+import { parse } from './validate';
 
 export type Environment = 'production' | 'staging';
 
@@ -66,14 +67,7 @@ export function discoveryUrlOf(issuer: IssuerInput): string {
 // 같은 이유로 oauth4webapi 의 processDiscoveryResponse 는 쓸 수 없다. 문서의 issuer 가 요청한 URL 과
 // 같아야 통과하기 때문이다.
 export function normalizeDiscovery(input: unknown, fetchedFrom: string): AccountMetadata {
-  const parsed = DiscoveryDocumentSchema.safeParse(input);
-  if (!parsed.success) {
-    throw new AccountError('discovery_failed', {
-      description: 'invalid discovery document',
-      cause: parsed.error,
-    });
-  }
-  const doc = parsed.data;
+  const doc = parse(DiscoveryDocumentSchema, input, 'discovery_failed', 'discovery document');
 
   const apiOrigin = new URL(fetchedFrom).origin;
   const frontOrigin = apiOrigin.replace('://api.', '://');

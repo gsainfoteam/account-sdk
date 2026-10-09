@@ -221,6 +221,16 @@ describe('fetchUserInfo', () => {
     );
   });
 
+  it('rejects a body that does not match the account-be shape', async () => {
+    const fetch = mockFetch(jsonResponse({ sub: 'user-1', is_student_id_verified: 'yes' }));
+    await expect(
+      fetchUserInfo(metadata, { clientId: 'client-1' }, 'at-1', { fetch }),
+    ).rejects.toMatchObject({
+      code: 'server_error',
+      description: expect.stringContaining('is_student_id_verified'),
+    });
+  });
+
   it('reports an unknown token as invalid_token', async () => {
     const fetch = mockFetch(jsonResponse({ statusCode: 401, message: 'Unauthorized' }, 401));
     await expect(

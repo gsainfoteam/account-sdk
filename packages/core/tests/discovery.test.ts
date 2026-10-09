@@ -54,6 +54,12 @@ describe('normalizeDiscovery', () => {
     expect(metadata.issuers).toContain('https://api.stg.account.gistory.me');
   });
 
+  it('rejects a document without endpoints', () => {
+    expect(() => normalizeDiscovery({ issuer: 'x' }, discoveryUrlOf('production'))).toThrow(
+      expect.objectContaining({ code: 'discovery_failed' }),
+    );
+  });
+
   it('reads the misspelled scope_supported', () => {
     const metadata = normalizeDiscovery(production, discoveryUrlOf('production'));
     expect(metadata.scopesSupported).toContain('student_id');

@@ -1,8 +1,9 @@
 import { decodeJwt } from 'jose';
 import * as oauth from 'oauth4webapi';
+import * as z from 'zod/mini';
 
 import { type AccountMetadata } from './discovery';
-import { type IdTokenClaims } from './id-token';
+import { parseIdTokenClaims, type IdTokenClaims } from './id-token';
 import {
   authorizationServer,
   clientAuthentication,
@@ -177,16 +178,15 @@ async function asForIdTokenOf(
 
 function toTokenResponse(result: oauth.TokenEndpointResponse): TokenResponse {
   const claims = oauth.getValidatedIdTokenClaims(result);
-  const refreshTokenExpiresIn = result.refresh_token_expires_in;
+  const refreshTokenExpiresIn = z.optional(z.number()).safeParse(result.refresh_token_expires_in);
   return {
     accessToken: result.access_token,
     tokenType: result.token_type,
     expiresIn: result.expires_in,
     refreshToken: result.refresh_token,
-    refreshTokenExpiresIn:
-      typeof refreshTokenExpiresIn === 'number' ? refreshTokenExpiresIn : undefined,
+    refreshTokenExpiresIn: refreshTokenExpiresIn.success ? refreshTokenExpiresIn.data : undefined,
     idToken: result.id_token,
-    idTokenClaims: claims as IdTokenClaims | undefined,
+    idTokenClaims: claims ? parseIdTokenClaims(claims) : undefined,
     scopes: parseScopes(result.scope),
   };
 }

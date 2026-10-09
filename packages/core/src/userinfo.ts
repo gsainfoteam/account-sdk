@@ -1,4 +1,5 @@
 import * as oauth from 'oauth4webapi';
+import * as z from 'zod/mini';
 
 import { type AccountMetadata } from './discovery';
 import {
@@ -9,6 +10,7 @@ import {
   type RequestOptions,
 } from './oauth';
 import { type ClientCredentials } from './token';
+import { parse } from './validate';
 
 export interface UserInfoResponse {
   sub: string;
@@ -21,6 +23,19 @@ export interface UserInfoResponse {
   phone_number?: string;
   is_phone_number_verified?: boolean;
 }
+
+// account-be User 모델에서 profile 과 picture 만 nullable 이다.
+const UserInfoResponseSchema: z.ZodMiniType<UserInfoResponse> = z.looseObject({
+  sub: z.string().check(z.minLength(1)),
+  name: z.optional(z.string()),
+  profile: z.optional(z.nullable(z.string())),
+  picture: z.optional(z.nullable(z.string())),
+  email: z.optional(z.string()),
+  student_id: z.optional(z.string()),
+  is_student_id_verified: z.optional(z.boolean()),
+  phone_number: z.optional(z.string()),
+  is_phone_number_verified: z.optional(z.boolean()),
+});
 
 export interface UserInfo {
   sub: string;
@@ -78,7 +93,7 @@ export async function fetchUserInfo(
       options.sub ?? oauth.skipSubjectCheck,
       response,
     );
-    return toUserInfo(body as unknown as UserInfoResponse);
+    return toUserInfo(parse(UserInfoResponseSchema, body, 'server_error', 'userinfo response'));
   } catch (error) {
     throw toAccountError(error);
   }
