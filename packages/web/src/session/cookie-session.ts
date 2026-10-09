@@ -37,16 +37,19 @@ export function cookieSession({
           description: "cookieSession needs exchange: 'browser'",
         });
       }
-      return readTokens(
-        await request({ path: login, accessToken: credential.accessToken, body }),
-        login,
-      );
+
+      const response = await request({ path: login, accessToken: credential.accessToken, body });
+
+      return readTokens(response, login);
     },
+
     async refresh() {
       const response = await request({ path: refresh });
       if (isAuthFailure(response.status)) return null;
+
       return readTokens(response, refresh);
     },
+
     async logout(accessToken) {
       await request({ path: logout, accessToken: accessToken ?? undefined });
     },

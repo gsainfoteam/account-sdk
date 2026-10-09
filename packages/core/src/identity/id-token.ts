@@ -37,11 +37,13 @@ const jwksByFetch = new Map<Fetch | undefined, Map<string, JWTVerifyGetKey>>();
 function jwksOf(metadata: AccountMetadata, fetch: Fetch | undefined): JWTVerifyGetKey {
   let byUri = jwksByFetch.get(fetch);
   if (!byUri) jwksByFetch.set(fetch, (byUri = new Map()));
+
   let jwks = byUri.get(metadata.jwksUri);
   if (!jwks) {
     jwks = createRemoteJWKSet(new URL(metadata.jwksUri), fetch ? { [customFetch]: fetch } : {});
     byUri.set(metadata.jwksUri, jwks);
   }
+
   return jwks;
 }
 
@@ -85,9 +87,11 @@ export async function verifyIdToken(
       cause,
     });
   }
+
   const claims = parseIdTokenClaims(payload);
   if (options.nonce !== undefined && claims.nonce !== options.nonce) {
     throw new AccountError('invalid_id_token', { description: 'nonce mismatch' });
   }
+
   return claims;
 }

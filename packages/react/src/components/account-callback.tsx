@@ -30,15 +30,18 @@ export function AccountCallback({
   fallback = null,
 }: AccountCallbackProps): ReactNode {
   const client = useAccountClient();
+
   const succeed = useEffectEvent(onSuccess);
   const fail = useEffectEvent(onError);
 
   useEffect(() => {
     let active = true;
+
     client.handleCallback().then(
       (result) => active && succeed(result),
       (error: AccountError) => active && fail(error),
     );
+
     return () => {
       active = false;
     };

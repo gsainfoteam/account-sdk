@@ -18,19 +18,24 @@ export function attachAccount(instance: AxiosInstance, client: AccountClient): (
 
   const request = instance.interceptors.request.use(async (config) => {
     await client.ready();
+
     const token = client.getAccessToken();
     if (token) config.headers.set(AUTHORIZATION_HEADER, bearer(token));
+
     return config;
   });
 
   const response = instance.interceptors.response.use(undefined, async (error: AxiosError) => {
     const config = error.config;
     if (!isUnauthorized(error.response?.status) || !config || retried.has(config)) throw error;
+
     const stale = readBearer(String(config.headers.get(AUTHORIZATION_HEADER) ?? ''));
     const token = await client.refresh(stale);
     if (!token) throw error;
+
     retried.add(config);
     config.headers.set(AUTHORIZATION_HEADER, bearer(token));
+
     return instance.request(config);
   });
 

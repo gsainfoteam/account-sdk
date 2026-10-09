@@ -114,6 +114,7 @@ export class AccountError extends Error {
    */
   static is(value: unknown, code?: AccountErrorCode): value is AccountError {
     if (!isError(value)) return false;
+
     const shape = AccountErrorShapeSchema.safeParse(value);
     return shape.success && (code === undefined || shape.data.code === code);
   }
@@ -134,6 +135,7 @@ export function fromOAuthError(
   if (error === 'access_denied' && denial.success) {
     return new AccountError(denial.data, { status });
   }
+
   const known = OAuthErrorCodeSchema.safeParse(error);
   return known.success
     ? new AccountError(known.data, { description: description ?? undefined, status })

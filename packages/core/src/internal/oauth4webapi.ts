@@ -22,6 +22,7 @@ export function authorizationServer(
   if (issuer !== undefined && !metadata.issuers.includes(issuer)) {
     throw new AccountError('issuer_mismatch', { description: issuer });
   }
+
   return {
     issuer: issuer ?? metadata.issuer,
     authorization_endpoint: metadata.authorizationEndpoint,
@@ -66,29 +67,37 @@ export function httpOptions<Method extends string, Body extends BodyInit | undef
  */
 export function toAccountError(error: unknown): AccountError {
   if (AccountError.is(error)) return error;
+
   if (error instanceof oauth.AuthorizationResponseError) {
     return fromOAuthError(error.error, error.error_description);
   }
+
   if (error instanceof oauth.ResponseBodyError) {
     return fromOAuthError(error.error, error.error_description, error.status);
   }
+
   if (error instanceof oauth.WWWAuthenticateChallengeError) {
     return new AccountError('invalid_token', { status: error.response.status, cause: error });
   }
+
   if (error instanceof oauth.OperationProcessingError) {
     const status = error.cause instanceof Response ? error.cause.status : undefined;
     if (isAuthFailure(status)) return new AccountError('invalid_token', { status, cause: error });
+
     if (error.code === oauth.JWT_CLAIM_COMPARISON || error.code === oauth.JWT_TIMESTAMP_CHECK) {
       return new AccountError('invalid_id_token', { description: error.message, cause: error });
     }
+
     return new AccountError(status && status >= 500 ? 'server_error' : 'unknown', {
       description: error.message,
       status,
       cause: error,
     });
   }
+
   if (error instanceof TypeError && !ArgumentErrorSchema.safeParse(error).success) {
     return new AccountError('network_error', { description: error.message, cause: error });
   }
+
   return new AccountError('unknown', { cause: error });
 }

@@ -50,6 +50,7 @@ export async function exchangeCode(
   try {
     const callback = new URLSearchParams({ code: params.code });
     if (params.iss) callback.set('iss', params.iss);
+
     const validated = oauth.validateAuthResponse(
       authorizationServer(metadata, params.iss),
       oauthClient(client.clientId),
@@ -66,12 +67,14 @@ export async function exchangeCode(
       params.codeVerifier,
       httpOptions(options),
     );
+
     const result = await oauth.processAuthorizationCodeResponse(
       await asForIdTokenOf(metadata, response),
       oauthClient(client.clientId),
       response,
       { expectedNonce: params.nonce ?? oauth.expectNoNonce },
     );
+
     return toTokenResponse(result);
   } catch (error) {
     throw toAccountError(error);

@@ -69,21 +69,24 @@ export async function fetchUserInfo(
 ): Promise<UserInfo> {
   const endpoint = new URL(metadata.userinfoEndpoint);
   if (options.sub) endpoint.searchParams.set('sub', options.sub);
+
   const as = { ...authorizationServer(metadata), userinfo_endpoint: endpoint.toString() };
-  const oauthClientOf = oauthClient(client.clientId);
+
   try {
     const response = await oauth.userInfoRequest(
       as,
-      oauthClientOf,
+      oauthClient(client.clientId),
       accessToken,
       httpOptions(options),
     );
+
     const body = await oauth.processUserInfoResponse(
       as,
-      oauthClientOf,
+      oauthClient(client.clientId),
       options.sub ?? oauth.skipSubjectCheck,
       response,
     );
+
     return parse(UserInfoSchema, body, 'server_error', 'userinfo response');
   } catch (error) {
     throw toAccountError(error);

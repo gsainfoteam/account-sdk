@@ -1,4 +1,5 @@
 import { isAuthFailure, SESSION_PATHS, type Fetch } from '@gsainfoteam/account-core';
+import { isPlainObject } from 'es-toolkit';
 
 import { createRequester, readTokens } from './request';
 import { type SessionAdapter, type SessionPaths, type SessionTokens } from './session-adapter';
@@ -37,6 +38,8 @@ export function bodySession({
 
   return {
     async login(credential, body) {
+      const extra = isPlainObject(body) ? body : {};
+
       const response =
         credential.type === 'code'
           ? await request({
@@ -45,27 +48,33 @@ export function bodySession({
                 code: credential.code,
                 code_verifier: credential.codeVerifier,
                 redirect_uri: credential.redirectUri,
-                ...(credential.nonce ? { nonce: credential.nonce } : {}),
-                ...(credential.iss ? { iss: credential.iss } : {}),
-                ...(body as object | undefined),
+                nonce: credential.nonce,
+                iss: credential.iss,
+                ...extra,
               },
             })
           : await request({ path: login, accessToken: credential.accessToken, body });
+
       return keep(await readTokens(response, login));
     },
+
     async refresh() {
       const refreshToken = storage.getItem(storageKey);
       if (!refreshToken) return null;
+
       const response = await request({ path: refresh, body: { refresh_token: refreshToken } });
       if (isAuthFailure(response.status)) {
         storage.removeItem(storageKey);
         return null;
       }
+
       return keep(await readTokens(response, refresh));
     },
+
     async logout(accessToken) {
       const refreshToken = storage.getItem(storageKey);
       storage.removeItem(storageKey);
+
       await request({
         path: logout,
         accessToken: accessToken ?? undefined,

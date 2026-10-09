@@ -8,27 +8,38 @@ export interface ClientTokenCache {
 
 /** Caches a client credentials token until shortly before it expires. Concurrent callers share one request. */
 export function createClientTokenCache(request: () => Promise<TokenResponse>): ClientTokenCache {
-  let token: { value: string; expiresAt: number } | undefined;
   const mutex = new Mutex();
+  let token: CachedToken | undefined;
 
   return {
     async get() {
       await mutex.acquire();
       try {
-        if (token && token.expiresAt - CLIENT_TOKEN_REFRESH_MARGIN_MS > Date.now())
-          return token.value;
+        if (isFresh(token)) return token.value;
+
         const tokens = await request();
         token = {
           value: tokens.accessToken,
           expiresAt: Date.now() + (tokens.expiresIn ?? 0) * 1000,
         };
+
         return token.value;
       } finally {
         mutex.release();
       }
     },
+
     invalidate() {
       token = undefined;
     },
   };
+}
+
+interface CachedToken {
+  value: string;
+  expiresAt: number;
+}
+
+function isFresh(token: CachedToken | undefined): token is CachedToken {
+  return token !== undefined && token.expiresAt - CLIENT_TOKEN_REFRESH_MARGIN_MS > Date.now();
 }

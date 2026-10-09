@@ -1,4 +1,4 @@
-import { AUTH_FAILURE_STATUSES } from '../constants';
+import { AUTH_FAILURE_STATUSES, UNAUTHORIZED_STATUS } from '../constants';
 
 const SCHEME = 'Bearer ';
 
@@ -16,7 +16,7 @@ export function readBearer(header: string | null | undefined): string | null {
 
 /** Tells whether a status means the access token was rejected, so refreshing it may help. */
 export function isUnauthorized(status: number | undefined): boolean {
-  return status === 401;
+  return status === UNAUTHORIZED_STATUS;
 }
 
 /** Tells whether a status means the request was not authenticated or not allowed (401 or 403). */

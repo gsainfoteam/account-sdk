@@ -25,6 +25,7 @@ export function readCallbackState(url: string | URL): string | null {
 /** Tells whether a URL carries an authorization response, successful or not. */
 export function isCallbackUrl(url: string | URL): boolean {
   const params = new URL(url).searchParams;
+
   return params.has('code') || params.has('error');
 }
 
@@ -55,12 +56,16 @@ export function parseCallback(
       params,
       options.state,
     );
+
     const code = validated.get('code');
     if (!code) throw new AccountError('missing_code');
+
     return { code, state: options.state, iss };
   } catch (error) {
-    if (error instanceof oauth.OperationProcessingError)
+    if (error instanceof oauth.OperationProcessingError) {
       throw new AccountError('state_mismatch', { cause: error });
+    }
+
     throw toAccountError(error);
   }
 }

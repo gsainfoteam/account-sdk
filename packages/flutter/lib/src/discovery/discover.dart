@@ -13,9 +13,11 @@ final _cache = <String, Future<AccountMetadata>>{};
 /// A failure is not cached, so a transient network error does not stick until the app restarts.
 Future<AccountMetadata> discover(AccountIssuer issuer, {http.Client? client}) {
   final url = issuer.discoveryUrl;
+
   return _cache.putIfAbsent(url.toString(), () {
     final pending = _fetch(url, client ?? http.Client());
     unawaited(pending.then<void>((_) {}, onError: (Object _) => _cache.remove(url.toString())));
+
     return pending;
   });
 }
@@ -30,14 +32,17 @@ Future<AccountMetadata> _fetch(Uri url, http.Client client) async {
   } on Exception catch (cause) {
     throw AccountNetworkException(cause);
   }
+
   if (response.statusCode != 200) {
     throw AccountDiscoveryException('GET $url -> ${response.statusCode}');
   }
+
   final Object? json;
   try {
     json = jsonDecode(response.body);
   } on FormatException {
     throw AccountDiscoveryException('$url is not JSON');
   }
+
   return normalizeDiscovery(json, url);
 }

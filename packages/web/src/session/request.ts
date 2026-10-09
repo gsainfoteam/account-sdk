@@ -12,10 +12,12 @@ interface Request {
 
 export function createRequester(baseUrl: string, fetch: Fetch | undefined) {
   const base = trimEnd(baseUrl, '/');
+
   return async ({ path, accessToken, body }: Request): Promise<Response> => {
     const headers = new Headers({ accept: 'application/json' });
     if (accessToken) headers.set(AUTHORIZATION_HEADER, bearer(accessToken));
     if (body !== undefined) headers.set('content-type', 'application/json');
+
     const [error, response] = await attemptAsync(() =>
       (fetch ?? globalThis.fetch)(`${base}${path}`, {
         method: 'POST',
@@ -27,12 +29,14 @@ export function createRequester(baseUrl: string, fetch: Fetch | undefined) {
     if (!response) {
       throw new AccountError('network_error', { description: `POST ${path}`, cause: error });
     }
+
     return response;
   };
 }
 
 export async function readTokens(response: Response, path: string): Promise<SessionTokens> {
   const [, body] = await attemptAsync<unknown>(() => response.json());
+
   if (!response.ok) {
     throw new AccountError('session_rejected', {
       description: `POST ${path}`,
@@ -40,6 +44,7 @@ export async function readTokens(response: Response, path: string): Promise<Sess
       details: body,
     });
   }
+
   const parsed = SessionTokensSchema.safeParse(body);
   if (!parsed.success) {
     throw new AccountError('server_error', {
@@ -47,5 +52,6 @@ export async function readTokens(response: Response, path: string): Promise<Sess
       cause: parsed.error,
     });
   }
+
   return parsed.data;
 }

@@ -55,23 +55,28 @@ export async function createAuthorization(
   if (unsupported.length) {
     throw new AccountError('invalid_scope', { description: unsupported.join(' ') });
   }
-  const codeVerifier = oauth.generateRandomCodeVerifier();
+
   const state = oauth.generateRandomState();
+  const codeVerifier = oauth.generateRandomCodeVerifier();
+  const codeChallenge = await oauth.calculatePKCECodeChallenge(codeVerifier);
   const nonce = scopes.includes('openid') ? oauth.generateRandomNonce() : undefined;
 
-  let prompt = params.prompt;
-  if (scopes.includes('offline_access') && prompt !== 'login' && prompt !== 'consent') {
-    prompt = 'consent';
-  }
+  const asksForRefreshToken = scopes.includes('offline_access');
+  const prompt =
+    asksForRefreshToken && params.prompt !== 'login' && params.prompt !== 'consent'
+      ? 'consent'
+      : params.prompt;
 
   const url = new URL(metadata.authorizationEndpoint);
+
   url.searchParams.set('response_type', 'code');
   url.searchParams.set('client_id', params.clientId);
   url.searchParams.set('redirect_uri', params.redirectUri);
   url.searchParams.set('scope', scopes.join(' '));
   url.searchParams.set('state', state);
-  url.searchParams.set('code_challenge', await oauth.calculatePKCECodeChallenge(codeVerifier));
+  url.searchParams.set('code_challenge', codeChallenge);
   url.searchParams.set('code_challenge_method', CODE_CHALLENGE_METHOD);
+
   if (nonce) url.searchParams.set('nonce', nonce);
   if (prompt) url.searchParams.set('prompt', prompt);
 

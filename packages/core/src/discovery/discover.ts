@@ -32,6 +32,7 @@ export function discover(
   const pending = fetchDiscovery(url, options);
   cache.set(url, pending);
   pending.catch(() => cache.delete(url));
+
   return pending;
 }
 
@@ -47,15 +48,18 @@ async function fetchDiscovery(
   const [networkError, response] = await attemptAsync(() =>
     fetch(url, { headers: { accept: 'application/json' }, signal }),
   );
+
   if (!response) {
     throw new AccountError('network_error', { description: `GET ${url}`, cause: networkError });
   }
+
   if (!response.ok) {
     throw new AccountError('discovery_failed', {
       description: `GET ${url}`,
       status: response.status,
     });
   }
+
   const [parseError, doc] = await attemptAsync<unknown>(() => response.json());
   if (parseError) {
     throw new AccountError('discovery_failed', {
@@ -63,5 +67,6 @@ async function fetchDiscovery(
       cause: parseError,
     });
   }
+
   return normalizeDiscovery(doc, url);
 }

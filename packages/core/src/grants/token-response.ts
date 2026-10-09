@@ -50,10 +50,13 @@ export async function asForIdTokenOf(
   response: Response,
 ): Promise<oauth.AuthorizationServer> {
   if (!response.ok) return authorizationServer(metadata);
+
   const [, body] = await attemptAsync<unknown>(() => response.clone().json());
   const parsed = WithIdTokenSchema.safeParse(body);
   if (!parsed.success) return authorizationServer(metadata);
+
   const iss = decodeJwt(parsed.data.id_token).iss;
+
   return authorizationServer(metadata, iss && metadata.issuers.includes(iss) ? iss : undefined);
 }
 
@@ -61,6 +64,7 @@ export async function asForIdTokenOf(
 export function toTokenResponse(result: oauth.TokenEndpointResponse): TokenResponse {
   const claims = oauth.getValidatedIdTokenClaims(result);
   const refreshTokenExpiresIn = z.optional(z.number()).safeParse(result.refresh_token_expires_in);
+
   return {
     accessToken: result.access_token,
     tokenType: result.token_type,

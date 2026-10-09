@@ -14,8 +14,10 @@ export interface UseAccountResult extends AccountState {
 export function useAccount(): UseAccountResult {
   const client = useAccountClient();
   const state = useStore(client.store);
+
   return {
     ...state,
+
     signIn: client.signIn,
     signOut: client.signOut,
     retryLogin: client.retryLogin,

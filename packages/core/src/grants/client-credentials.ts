@@ -31,11 +31,13 @@ export async function requestClientCredentials(
       { scope: scopes.join(' ') },
       httpOptions(options),
     );
+
     const result = await oauth.processClientCredentialsResponse(
       authorizationServer(metadata),
       oauthClient(client.clientId),
       response,
     );
+
     return toTokenResponse(result);
   } catch (error) {
     throw toAccountError(error);

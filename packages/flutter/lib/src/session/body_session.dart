@@ -26,13 +26,16 @@ class BodySession implements SessionAdapter {
   @override
   Future<SessionTokens> login(String idpAccessToken) async {
     final extra = await loginBody?.call() ?? const {};
-    return SessionTokens.fromJson(await _post(paths.login, {'token': idpAccessToken, ...extra}));
+
+    final response = await _post(paths.login, {'token': idpAccessToken, ...extra});
+    return SessionTokens.fromJson(response);
   }
 
   @override
   Future<SessionTokens?> refresh(String refreshToken) async {
     try {
-      return SessionTokens.fromJson(await _post(paths.refresh, {'refresh_token': refreshToken}));
+      final response = await _post(paths.refresh, {'refresh_token': refreshToken});
+      return SessionTokens.fromJson(response);
     } on AccountSessionRejectedException catch (error) {
       if (AccountConstants.authFailureStatuses.contains(error.statusCode)) return null;
       rethrow;
@@ -59,10 +62,12 @@ class BodySession implements SessionAdapter {
         data: body,
         options: Options(headers: headers, extra: SkipAccountAuth.extra),
       );
+
       return response.data;
     } on DioException catch (error) {
       final response = error.response;
       if (response == null) throw AccountNetworkException(error);
+
       throw AccountSessionRejectedException(response.statusCode, response.data);
     }
   }

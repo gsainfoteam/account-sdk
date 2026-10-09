@@ -19,6 +19,7 @@ class SecureTokenStore implements TokenStore {
   Future<StoredSession?> read() async {
     final accessToken = await _storage.read(key: _access);
     if (accessToken == null) return null;
+
     return StoredSession(
       accessToken: accessToken,
       refreshToken: await _storage.read(key: _refresh),

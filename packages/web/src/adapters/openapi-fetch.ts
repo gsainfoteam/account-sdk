@@ -22,17 +22,23 @@ export function createAccountMiddleware(client: AccountClient): Middleware {
   return {
     async onRequest({ request }) {
       await client.ready();
+
       const token = client.getAccessToken();
       if (token) request.headers.set(AUTHORIZATION_HEADER, bearer(token));
+
       return request;
     },
+
     async onResponse({ request, response, options }) {
       if (!isUnauthorized(response.status)) return response;
+
       const stale = readBearer(request.headers.get(AUTHORIZATION_HEADER));
       const token = await client.refresh(stale);
       if (!token) return response;
+
       const retry = new Request(request);
       retry.headers.set(AUTHORIZATION_HEADER, bearer(token));
+
       return options.fetch(retry);
     },
   };

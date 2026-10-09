@@ -67,15 +67,18 @@ export function createAccountServer(input: AccountServerOptions): AccountServer 
       description: `createAccountServer options: ${z.prettifyError(parsed.error)}`,
     });
   }
+
   const options = parsed.data;
   const { issuer, clientId, clientSecret, fetch } = options;
   const client = { clientId, clientSecret };
+
   const metadata = (): Promise<AccountMetadata> => discover(issuer, { fetch });
 
   const requireSecret = (operation: string): string => {
     if (!clientSecret) {
       throw new AccountError('invalid_client', { description: `${operation} needs clientSecret` });
     }
+
     return clientSecret;
   };
 
@@ -97,24 +100,30 @@ export function createAccountServer(input: AccountServerOptions): AccountServer 
 
     async exchangeCode(params) {
       requireSecret('exchangeCode');
+
       return exchangeCode(await metadata(), client, params, { fetch });
     },
 
     async signInWithCode(params) {
       const tokens = await server.exchangeCode(params);
       const user = await server.getUserInfo(tokens.accessToken);
+
       return { tokens, user };
     },
 
     async getUserInfoBySub(sub) {
-      const token = await clientToken.get();
+      const lookup = async (token: string) =>
+        fetchUserInfo(await metadata(), client, token, { fetch, sub });
+
       try {
-        return await fetchUserInfo(await metadata(), client, token, { fetch, sub });
+        return await lookup(await clientToken.get());
       } catch (error) {
-        if (!AccountError.is(error, 'invalid_token') && !AccountError.is(error, 'server_error'))
-          throw error;
+        const tokenLost =
+          AccountError.is(error, 'invalid_token') || AccountError.is(error, 'server_error');
+        if (!tokenLost) throw error;
+
         clientToken.invalidate();
-        return fetchUserInfo(await metadata(), client, await clientToken.get(), { fetch, sub });
+        return lookup(await clientToken.get());
       }
     },
 
@@ -130,5 +139,6 @@ export function createAccountServer(input: AccountServerOptions): AccountServer 
       return revokeToken(await metadata(), client, params, { fetch });
     },
   };
+
   return server;
 }

@@ -35,11 +35,13 @@ export async function refreshTokens(
       refreshToken,
       httpOptions(options),
     );
+
     const result = await oauth.processRefreshTokenResponse(
       await asForIdTokenOf(metadata, response),
       oauthClient(client.clientId),
       response,
     );
+
     return toTokenResponse(result);
   } catch (error) {
     throw toAccountError(error);

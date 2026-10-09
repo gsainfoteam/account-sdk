@@ -31,6 +31,7 @@ export async function revokeToken(
 ): Promise<void> {
   const base = httpOptions(options);
   const fetch = options.fetch ?? globalThis.fetch;
+
   try {
     const response = await oauth.revocationRequest(
       { ...authorizationServer(metadata), revocation_endpoint: metadata.revocation.endpoint },
@@ -44,6 +45,7 @@ export async function revokeToken(
           fetch(url, { ...init, method: metadata.revocation.method }),
       },
     );
+
     await oauth.processRevocationResponse(response);
   } catch (error) {
     throw toAccountError(error);

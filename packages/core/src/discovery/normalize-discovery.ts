@@ -69,27 +69,25 @@ export function normalizeDiscovery(input: unknown, fetchedFrom: string): Account
 
   const apiOrigin = new URL(fetchedFrom).origin;
   const frontOrigin = apiOrigin.replace(`://${API_HOST_PREFIX}`, '://');
-  const onApi = (endpoint: string): string =>
-    new URL(new URL(endpoint).pathname, apiOrigin).toString();
+
+  const pathOf = (endpoint: string): string => new URL(endpoint).pathname;
+  const onApi = (path: string): string => new URL(path, apiOrigin).toString();
+  const onFront = (path: string): string => new URL(path, frontOrigin).toString();
 
   return {
     issuer: doc.issuer,
     issuers: uniq([doc.issuer, frontOrigin, apiOrigin]),
-    authorizationEndpoint: new URL(
-      new URL(doc.authorization_endpoint).pathname,
-      frontOrigin,
-    ).toString(),
-    tokenEndpoint: onApi(doc.token_endpoint),
+
+    authorizationEndpoint: onFront(pathOf(doc.authorization_endpoint)),
+    tokenEndpoint: onApi(pathOf(doc.token_endpoint)),
     userinfoEndpoint: onApi(
-      doc.userinfo_endpoint ?? new URL(FALLBACK_ENDPOINTS.userinfo, apiOrigin).toString(),
+      doc.userinfo_endpoint ? pathOf(doc.userinfo_endpoint) : FALLBACK_ENDPOINTS.userinfo,
     ),
-    jwksUri: onApi(doc.jwks_uri),
+    jwksUri: onApi(pathOf(doc.jwks_uri)),
     revocation: doc.revocation_endpoint
-      ? { endpoint: onApi(doc.revocation_endpoint), method: 'POST' }
-      : {
-          endpoint: new URL(FALLBACK_ENDPOINTS.revocation, apiOrigin).toString(),
-          method: 'DELETE',
-        },
+      ? { endpoint: onApi(pathOf(doc.revocation_endpoint)), method: 'POST' }
+      : { endpoint: onApi(FALLBACK_ENDPOINTS.revocation), method: 'DELETE' },
+
     scopesSupported: doc.scopes_supported ?? doc.scope_supported ?? [],
     idTokenSigningAlgs: doc.id_token_signing_alg_values_supported ?? DEFAULT_ID_TOKEN_SIGNING_ALGS,
   };

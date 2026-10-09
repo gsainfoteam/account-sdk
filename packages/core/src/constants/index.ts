@@ -26,4 +26,5 @@ export const ID_TOKEN_CLOCK_TOLERANCE_SEC = 60;
 export const CLIENT_TOKEN_REFRESH_MARGIN_MS = 60_000;
 /** Scopes requested for a client credentials token when none are configured. */
 export const DEFAULT_CLIENT_CREDENTIALS_SCOPES = ['name', 'email'] as const;
-export const AUTH_FAILURE_STATUSES: readonly number[] = [401, 403];
+export const UNAUTHORIZED_STATUS = 401;
+export const AUTH_FAILURE_STATUSES: readonly number[] = [UNAUTHORIZED_STATUS, 403];
