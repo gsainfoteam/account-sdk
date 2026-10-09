@@ -1,0 +1,30 @@
+import { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
+
+import { type AccountClient } from './client';
+
+export function attachAccount(instance: AxiosInstance, client: AccountClient): () => void {
+  const retried = new WeakSet<InternalAxiosRequestConfig>();
+
+  const request = instance.interceptors.request.use(async (config) => {
+    await client.ready();
+    const token = client.getAccessToken();
+    if (token) config.headers.set('authorization', `Bearer ${token}`);
+    return config;
+  });
+
+  const response = instance.interceptors.response.use(undefined, async (error: AxiosError) => {
+    const config = error.config;
+    if (error.response?.status !== 401 || !config || retried.has(config)) throw error;
+    const stale = String(config.headers.get('authorization') ?? '').replace(/^Bearer /, '') || null;
+    const token = await client.refresh(stale);
+    if (!token) throw error;
+    retried.add(config);
+    config.headers.set('authorization', `Bearer ${token}`);
+    return instance.request(config);
+  });
+
+  return () => {
+    instance.interceptors.request.eject(request);
+    instance.interceptors.response.eject(response);
+  };
+}

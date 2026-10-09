@@ -1,0 +1,61 @@
+import { ScopeSchema, type AuthorizationTransaction } from '@gsainfoteam/account-core';
+import * as z from 'zod/mini';
+
+const PREFIX = 'gsainfoteam-account:tx:';
+// account-be 의 authorization code 수명과 같다. 그보다 오래된 트랜잭션으로는 어차피 교환할 수 없다.
+const TTL_MS = 10 * 60 * 1000;
+
+export const StoredTransactionSchema = z.object({
+  state: z.string(),
+  codeVerifier: z.string(),
+  nonce: z.optional(z.string()),
+  redirectUri: z.string(),
+  scopes: z.array(ScopeSchema),
+  createdAt: z.number(),
+  returnTo: z.optional(z.string()),
+});
+
+export type StoredTransaction = z.infer<typeof StoredTransactionSchema>;
+
+// state 를 키로 따로 저장해서, 여러 탭에서 동시에 로그인을 시작해도 서로의 verifier 를 덮어쓰지 않는다.
+export function saveTransaction(
+  storage: Storage,
+  transaction: AuthorizationTransaction,
+  returnTo?: string,
+): void {
+  pruneExpired(storage);
+  const stored: StoredTransaction = { ...transaction, returnTo };
+  storage.setItem(PREFIX + transaction.state, JSON.stringify(stored));
+}
+
+export function takeTransaction(storage: Storage, state: string | null): StoredTransaction | null {
+  if (!state) return null;
+  const raw = storage.getItem(PREFIX + state);
+  storage.removeItem(PREFIX + state);
+  if (!raw) return null;
+  const parsed = StoredTransactionSchema.safeParse(safeJson(raw));
+  if (!parsed.success || parsed.data.state !== state || isExpired(parsed.data)) return null;
+  return parsed.data;
+}
+
+function pruneExpired(storage: Storage): void {
+  for (let i = storage.length - 1; i >= 0; i--) {
+    const key = storage.key(i);
+    if (!key?.startsWith(PREFIX)) continue;
+    const parsed = StoredTransactionSchema.safeParse(safeJson(storage.getItem(key)));
+    if (!parsed.success || isExpired(parsed.data)) storage.removeItem(key);
+  }
+}
+
+function isExpired(transaction: StoredTransaction): boolean {
+  return Date.now() - transaction.createdAt > TTL_MS;
+}
+
+function safeJson(raw: string | null): unknown {
+  if (raw === null) return undefined;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return undefined;
+  }
+}

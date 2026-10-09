@@ -1,0 +1,57 @@
+{
+  "name": "@gsainfoteam/account-web",
+  "version": "0.0.0",
+  "description": "Browser client for the Infoteam account IdP: sign-in redirect, callback handling and service sessions",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gsainfoteam/account-sdk.git",
+    "directory": "packages/web"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": "./dist/index.js",
+    "./openapi-fetch": "./dist/openapi-fetch.js",
+    "./axios": "./dist/axios.js",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@gsainfoteam/account-core": "workspace:^",
+    "es-toolkit": "^1.52.0",
+    "zod": "^4.6.5",
+    "zustand": "^5.0.15"
+  },
+  "peerDependencies": {
+    "axios": "^1.0.0",
+    "openapi-fetch": ">=0.13.0"
+  },
+  "peerDependenciesMeta": {
+    "axios": {
+      "optional": true
+    },
+    "openapi-fetch": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "axios": "^1.20.0",
+    "happy-dom": "^20.14.5",
+    "openapi-fetch": "^0.17.0",
+    "tsdown": "^0.23.0",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.3"
+  }
+}
