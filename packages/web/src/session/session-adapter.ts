@@ -2,8 +2,8 @@ import { type IdTokenClaims } from '@gsainfoteam/account-core';
 import * as z from 'zod/mini';
 
 /**
- * What the client hands to {@link SessionAdapter.start}, depending on the `exchange` option:
- * the IdP tokens, or the authorization code with its PKCE verifier.
+ * client 가 {@link SessionAdapter.start} 에 넘기는 값. `exchange` 옵션에 따라 IdP 토큰이거나,
+ * authorization code 와 PKCE verifier 다.
  */
 export type LoginCredential =
   | { type: 'idp_token'; accessToken: string; idToken?: string; idTokenClaims?: IdTokenClaims }
@@ -16,7 +16,7 @@ export type LoginCredential =
       iss?: string;
     };
 
-/** Tokens a service backend returns from login and refresh. */
+/** 서비스 백엔드가 로그인과 refresh 에서 돌려주는 토큰. */
 export const SessionTokensSchema = z.pipe(
   z.looseObject({
     access_token: z.string().check(z.minLength(1)),
@@ -33,20 +33,20 @@ export const SessionTokensSchema = z.pipe(
 export type SessionTokens = z.output<typeof SessionTokensSchema>;
 
 /**
- * Starts, refreshes and ends a service backend's session.
+ * 서비스 백엔드의 세션을 시작하고, 갱신하고, 끝낸다.
  *
- * Use {@link cookieSession} or {@link bodySession}, or implement this interface for a backend whose
- * requests or responses look different.
+ * {@link cookieSession} 이나 {@link bodySession} 을 쓴다. 요청이나 응답 모양이 다른 백엔드라면 이 인터페이스를
+ * 직접 구현한다.
  */
 export interface SessionAdapter {
-  /** @throws {@link AccountError} `session_rejected` with the backend's body in `details` when it refuses. */
+  /** @throws {@link AccountError} 백엔드가 거절하면 `session_rejected`. 백엔드의 body 는 `details` 에 담긴다. */
   start(credential: LoginCredential, body?: unknown): Promise<SessionTokens>;
-  /** @returns `null` when there is no session to restore. */
+  /** @returns 복구할 세션이 없으면 `null`. */
   refresh(): Promise<SessionTokens | null>;
   end(accessToken: string | null): Promise<void>;
 }
 
-/** Paths of the session endpoints. Any path left out uses {@link SESSION_PATHS}. */
+/** 세션 endpoint 의 경로. 빠진 경로는 {@link SESSION_PATHS} 를 쓴다. */
 export interface SessionPaths {
   login?: string;
   refresh?: string;

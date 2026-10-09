@@ -17,9 +17,9 @@ import {
 } from '../internal/oauth4webapi';
 
 /**
- * Trades a refresh token for new tokens. account-be rotates the refresh token, so store the new one.
+ * refresh token 으로 새 토큰을 받는다. account-be 는 refresh token 을 교체하므로 새로 받은 값을 저장해야 한다.
  *
- * @throws {@link AccountError} `invalid_grant` when the refresh token is unknown, used or expired.
+ * @throws {@link AccountError} refresh token 이 없거나, 이미 쓰였거나, 만료됐으면 `invalid_grant`.
  */
 export async function refreshTokens(
   metadata: AccountMetadata,

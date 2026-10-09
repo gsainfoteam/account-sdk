@@ -2,10 +2,10 @@ import { isError } from 'es-toolkit';
 import * as z from 'zod/mini';
 
 /**
- * Reasons account-fe gives for turning a user away.
+ * account-fe 가 사용자를 돌려보낼 때 알려 주는 사유.
  *
- * account-fe redirects back with `error=access_denied` and puts the reason in `error_description`.
- * The SDK lifts that reason into {@link AccountError.code} so an app can react to each case.
+ * account-fe 는 `error=access_denied` 로 redirect 하고 사유를 `error_description` 에 담는다.
+ * SDK 는 그 사유를 {@link AccountError.code} 로 올려서, 앱이 경우마다 다르게 대응할 수 있게 한다.
  */
 export const DenialReasonSchema = z.enum([
   'user_cancelled',
@@ -14,7 +14,7 @@ export const DenialReasonSchema = z.enum([
   'login_required',
 ]);
 
-/** Error codes defined by OAuth 2.0 (RFC 6749) that the IdP returns. */
+/** IdP 가 돌려주는 OAuth 2.0(RFC 6749) 에러 코드. */
 export const OAuthErrorCodeSchema = z.enum([
   'access_denied',
   'invalid_request',
@@ -28,7 +28,7 @@ export const OAuthErrorCodeSchema = z.enum([
   'unsupported_grant_type',
 ]);
 
-/** Errors the SDK raises itself while validating responses or talking to a service backend. */
+/** 응답을 검증하거나 서비스 백엔드와 통신하다가 SDK 가 직접 내는 에러. */
 export const SdkErrorCodeSchema = z.enum([
   'state_mismatch',
   'issuer_mismatch',
@@ -42,7 +42,7 @@ export const SdkErrorCodeSchema = z.enum([
   'unknown',
 ]);
 
-/** Every code an {@link AccountError} can carry. */
+/** {@link AccountError} 가 가질 수 있는 모든 코드. */
 export const AccountErrorCodeSchema = z.union([
   DenialReasonSchema,
   OAuthErrorCodeSchema,
@@ -60,23 +60,23 @@ const AccountErrorShapeSchema = z.object({
 });
 
 export interface AccountErrorOptions {
-  /** Human-readable detail, such as the IdP's `error_description`. */
+  /** 사람이 읽을 상세 설명. IdP 의 `error_description` 같은 것이다. */
   description?: string;
-  /** HTTP status of the response that caused the error, if any. */
+  /** 에러를 일으킨 응답의 HTTP status. 응답이 없었으면 비어 있다. */
   status?: number;
   /**
-   * Body a service backend sent when it rejected a login.
+   * 서비스 백엔드가 로그인을 거절하며 보낸 body.
    *
-   * For example house-moving-out-be answers `403` with `requiredConsents`, which the app needs to show the consent form.
+   * 예를 들어 house-moving-out-be 는 `403` 과 함께 `requiredConsents` 를 보내고, 앱은 이걸로 동의 화면을 띄운다.
    */
   details?: unknown;
   cause?: unknown;
 }
 
 /**
- * The single error type every package in the SDK throws.
+ * SDK 의 모든 패키지가 던지는 단 하나의 에러 타입.
  *
- * Branch on {@link AccountError.code} rather than on the message.
+ * 메시지가 아니라 {@link AccountError.code} 로 분기한다.
  *
  * @example
  * ```ts
@@ -106,11 +106,11 @@ export class AccountError extends Error {
   }
 
   /**
-   * Tells whether `value` is an {@link AccountError}, optionally with a given code.
+   * `value` 가 {@link AccountError} 인지 알려 준다. `code` 를 주면 그 코드인지도 확인한다.
    *
    * @remarks
-   * Checks the shape instead of using `instanceof`, because a bundler that duplicates this module
-   * would make `instanceof` fail for errors thrown by the other copy.
+   * `instanceof` 대신 모양을 확인한다. 번들러가 이 모듈을 중복으로 넣으면, 다른 사본이 던진 에러에는
+   * `instanceof` 가 실패하기 때문이다.
    */
   static is(value: unknown, code?: AccountErrorCode): value is AccountError {
     if (!isError(value)) return false;
@@ -121,10 +121,10 @@ export class AccountError extends Error {
 }
 
 /**
- * Turns an OAuth error response into an {@link AccountError}.
+ * OAuth 에러 응답을 {@link AccountError} 로 바꾼다.
  *
- * `access_denied` with a {@link DenialReason} as its description becomes that reason.
- * Unknown codes become `unknown` and keep the original code in `description`.
+ * description 이 {@link DenialReason} 인 `access_denied` 는 그 사유가 코드가 된다.
+ * 모르는 코드는 `unknown` 이 되고, 원래 코드는 `description` 에 남긴다.
  */
 export function fromOAuthError(
   error: string,

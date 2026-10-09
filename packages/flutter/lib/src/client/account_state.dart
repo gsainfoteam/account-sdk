@@ -1,12 +1,12 @@
-/// `loading` until [AccountClient.restore] has run.
+/// [AccountClient.restore] 가 돌기 전까지는 `loading` 이다.
 enum AccountStatus { loading, authenticated, unauthenticated }
 
-/// Snapshot of an [AccountClient].
+/// [AccountClient] 의 상태 스냅샷.
 class AccountState {
   const AccountState(this.status, [this.accessToken]);
 
   final AccountStatus status;
 
-  /// The service backend's access token.
+  /// 서비스 백엔드의 access token.
   final String? accessToken;
 }

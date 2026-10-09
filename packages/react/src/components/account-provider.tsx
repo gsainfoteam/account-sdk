@@ -9,7 +9,7 @@ export interface AccountProviderProps {
   children?: ReactNode;
 }
 
-/** Makes the client available to the hooks and components below and restores the session on mount. */
+/** 아래의 hook 과 컴포넌트에 client 를 제공하고, mount 될 때 세션을 복구한다. */
 export function AccountProvider({ client, children }: AccountProviderProps): ReactNode {
   useEffect(() => {
     void client.ready();

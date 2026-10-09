@@ -9,9 +9,9 @@ import { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } 
 import { type AccountClient } from '../client/create-account-client';
 
 /**
- * Adds axios interceptors that send the access token and retry once after refreshing on 401.
+ * access token 을 보내고, 401 이면 refresh 한 뒤 한 번 다시 시도하는 axios interceptor 를 단다.
  *
- * @returns A function that removes the interceptors.
+ * @returns interceptor 를 떼는 함수.
  */
 export function attachAccount(instance: AxiosInstance, client: AccountClient): () => void {
   const retried = new WeakSet<InternalAxiosRequestConfig>();

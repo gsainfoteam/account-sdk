@@ -4,22 +4,22 @@ const SCHEME = 'Bearer ';
 
 export const AUTHORIZATION_HEADER = 'authorization';
 
-/** Formats an `Authorization` header value for `token`. */
+/** `token` 으로 `Authorization` 헤더 값을 만든다. */
 export function bearer(token: string): string {
   return SCHEME + token;
 }
 
-/** Reads the token out of an `Authorization` header value, or `null` when it is not a bearer token. */
+/** `Authorization` 헤더 값에서 토큰을 꺼낸다. bearer 토큰이 아니면 `null` 이다. */
 export function readBearer(header: string | null | undefined): string | null {
   return header?.startsWith(SCHEME) ? header.slice(SCHEME.length) || null : null;
 }
 
-/** Tells whether a status means the access token was rejected, so refreshing it may help. */
+/** status 가 access token 거절, 즉 refresh 하면 나아질 수 있는 경우인지 알려 준다. */
 export function isUnauthorized(status: number | undefined): boolean {
   return status === UNAUTHORIZED_STATUS;
 }
 
-/** Tells whether a status means the request was not authenticated or not allowed (401 or 403). */
+/** status 가 인증 실패나 권한 없음(401, 403)인지 알려 준다. */
 export function isAuthFailure(status: number | undefined): boolean {
   return status !== undefined && AUTH_FAILURE_STATUSES.includes(status);
 }

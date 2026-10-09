@@ -8,19 +8,19 @@ import 'session_adapter.dart';
 import 'session_paths.dart';
 import 'session_tokens.dart';
 
-/// Session for backends that exchange tokens in request and response bodies, as pot-g-be does.
-/// Apps have no cookies to keep a refresh token in.
+/// 요청과 응답 body 로 토큰을 주고받는 백엔드용 세션. pot-g-be 가 이 방식이다.
+/// 앱에는 refresh token 을 넣어 둘 쿠키가 없다.
 ///
-/// Login posts `{token: <IdP access token>, ...loginBody()}`, refresh posts `{refresh_token}`, and logout
-/// posts `{refresh_token}` with the service token as a bearer token. Paths default to
-/// [SessionPaths].
+/// 로그인은 `{token: <IdP access token>, ...loginBody()}` 를, refresh 는 `{refresh_token}` 을 POST 한다.
+/// 로그아웃은 서비스 토큰을 bearer 토큰으로 붙여 `{refresh_token}` 을 POST 한다. 경로 기본값은
+/// [SessionPaths] 다.
 class BodySession implements SessionAdapter {
   BodySession({required this.dio, this.paths = const SessionPaths(), this.loginBody});
 
   final Dio dio;
   final SessionPaths paths;
 
-  /// Extra login fields, such as pot-g-be's `device_id`.
+  /// 로그인에 더할 필드. pot-g-be 의 `device_id` 같은 것이다.
   final Future<Map<String, Object?>> Function()? loginBody;
 
   @override

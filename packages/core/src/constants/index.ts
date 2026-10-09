@@ -1,28 +1,28 @@
 import idp from './idp.json' with { type: 'json' };
 
 /**
- * API origins of the IdP deployments.
+ * IdP 배포별 API origin.
  *
- * Values shared with the Flutter package come from `idp.json`, and a Flutter test keeps the two in sync.
+ * Flutter 패키지와 함께 쓰는 값은 `idp.json` 에서 가져오고, 둘이 같은지는 Flutter 테스트가 확인한다.
  */
 export const ENVIRONMENTS: Readonly<typeof idp.environments> = idp.environments;
-/** The IdP serves its API on `api.<host>` and its login page on `<host>`. */
+/** IdP 는 API 를 `api.<host>` 에서, 로그인 페이지를 `<host>` 에서 제공한다. */
 export const API_HOST_PREFIX: string = idp.apiHostPrefix;
 export const DISCOVERY_PATH: string = idp.discoveryPath;
-/** Endpoints used when the discovery document leaves them out. */
+/** discovery 문서에 빠져 있을 때 쓰는 endpoint. */
 export const FALLBACK_ENDPOINTS: Readonly<typeof idp.fallbackEndpoints> = idp.fallbackEndpoints;
 export const DEFAULT_ID_TOKEN_SIGNING_ALGS: readonly string[] = idp.idTokenSigningAlgs;
-/** Lifetime of an authorization code in account-be. A transaction older than this cannot be exchanged. */
+/** account-be 의 authorization code 수명. 이보다 오래된 트랜잭션은 교환할 수 없다. */
 export const AUTHORIZATION_CODE_TTL_MS: number = idp.authorizationCodeTtlSeconds * 1000;
-/** Default paths of a service backend's session endpoints, following ziggle-be and house-moving-out-be. */
+/** 서비스 백엔드 세션 endpoint 의 기본 경로. ziggle-be 와 house-moving-out-be 를 따른다. */
 export const SESSION_PATHS: Readonly<typeof idp.sessionPaths> = idp.sessionPaths;
-/** Prefix of every key the SDK writes to storage. */
+/** SDK 가 저장소에 쓰는 모든 키의 접두어. */
 export const STORAGE_NAMESPACE: string = idp.storageNamespace;
 
 export const CODE_CHALLENGE_METHOD = 'S256';
-/** Clock skew allowed when checking id_token times. */
+/** id_token 의 시각을 확인할 때 허용하는 시계 오차. */
 export const ID_TOKEN_CLOCK_TOLERANCE_SEC = 60;
-/** How long before expiry a cached client credentials token is replaced. */
+/** 캐시한 client credentials 토큰을 만료 몇 밀리초 전에 교체할지. */
 export const CLIENT_TOKEN_REFRESH_MARGIN_MS = 60_000;
 export const UNAUTHORIZED_STATUS = 401;
 export const AUTH_FAILURE_STATUSES: readonly number[] = [UNAUTHORIZED_STATUS, 403];

@@ -4,35 +4,35 @@ import * as z from 'zod/mini';
 import { API_HOST_PREFIX, DEFAULT_ID_TOKEN_SIGNING_ALGS, FALLBACK_ENDPOINTS } from '../constants';
 import { parse } from '../internal/validate';
 
-/** IdP endpoints and capabilities, normalized from its OpenID discovery document. */
+/** OpenID discovery 문서에서 정규화한 IdP 의 endpoint 와 기능. */
 export interface AccountMetadata {
-  /** The `issuer` the discovery document states. */
+  /** discovery 문서에 적힌 `issuer`. */
   issuer: string;
   /**
-   * Issuer values accepted in a callback `iss` parameter and in an id_token `iss` claim.
+   * callback 의 `iss` 파라미터와 id_token 의 `iss` claim 으로 받아들이는 issuer 값.
    *
-   * account-be signs id_tokens with a different setting than the one it advertises, so the SDK accepts
-   * every host the IdP owns: the advertised issuer, the login host and the API host.
+   * account-be 는 광고하는 값과 다른 설정으로 id_token 에 서명한다. 그래서 SDK 는 IdP 가 가진 호스트를
+   * 모두 받아들인다. 광고된 issuer, 로그인 호스트, API 호스트다.
    */
   issuers: readonly string[];
-  /** Login page on account-fe that starts the authorization code flow. */
+  /** authorization code 흐름을 시작하는 account-fe 의 로그인 페이지. */
   authorizationEndpoint: string;
   tokenEndpoint: string;
   userinfoEndpoint: string;
   jwksUri: string;
   /**
-   * Where and how to revoke a token.
+   * 토큰을 폐기할 위치와 방법.
    *
-   * account-be revokes with `DELETE /oauth/token` instead of the RFC 7009 `POST` to a revocation endpoint.
-   * Once the IdP advertises `revocation_endpoint` this switches to the standard request.
+   * account-be 는 RFC 7009 의 revocation endpoint `POST` 대신 `DELETE /oauth/token` 으로 폐기한다.
+   * IdP 가 `revocation_endpoint` 를 광고하면 표준 요청으로 바뀐다.
    */
   revocation: { endpoint: string; method: 'POST' | 'DELETE' };
-  /** Scopes the IdP advertises, kept as received so scopes the SDK does not know yet still show up. */
+  /** IdP 가 광고하는 scope. SDK 가 아직 모르는 scope 도 보이도록 받은 그대로 둔다. */
   scopesSupported: readonly string[];
   idTokenSigningAlgs: readonly string[];
 }
 
-/** Shape of the OpenID discovery document the IdP serves. */
+/** IdP 가 제공하는 OpenID discovery 문서의 모양. */
 export const DiscoveryDocumentSchema = z.looseObject({
   issuer: z.string(),
   authorization_endpoint: z.url(),
@@ -48,21 +48,21 @@ export const DiscoveryDocumentSchema = z.looseObject({
 export type DiscoveryDocument = z.infer<typeof DiscoveryDocumentSchema>;
 
 /**
- * Builds {@link AccountMetadata} from a discovery document and the URL it was fetched from.
+ * discovery 문서와 그 문서를 받아 온 URL 로 {@link AccountMetadata} 를 만든다.
  *
  * @remarks
- * This is the only place that works around defects in the IdP's discovery document:
- * - account-be derives the issuer and endpoints from its `BASE_URL`, and on staging that points to
- *   `account.account.gistory.me`, a host that does not exist. Endpoints are rebuilt on the host the
- *   document was actually fetched from: API endpoints on `api.<host>` and the login page on `<host>`.
- * - id_tokens carry an `iss` from a separate setting, so every host the IdP owns is accepted.
- * - The supported scopes are advertised as `scope_supported` instead of `scopes_supported`.
- * - Revocation is `DELETE /oauth/token` instead of a standard revocation endpoint.
+ * IdP discovery 문서의 결함을 보정하는 곳은 여기 하나뿐이다.
+ * - account-be 는 issuer 와 endpoint 를 `BASE_URL` 로 만드는데, 스테이징에서는 이 값이 존재하지 않는 호스트
+ *   `account.account.gistory.me` 를 가리킨다. 그래서 endpoint 를 문서를 실제로 받아 온 호스트 기준으로 다시 만든다.
+ *   API endpoint 는 `api.<host>`, 로그인 페이지는 `<host>` 다.
+ * - id_token 의 `iss` 는 별도 설정에서 오므로, IdP 가 가진 호스트를 모두 받아들인다.
+ * - 지원 scope 가 `scopes_supported` 가 아니라 `scope_supported` 로 나간다.
+ * - 폐기가 표준 revocation endpoint 가 아니라 `DELETE /oauth/token` 이다.
  *
- * For the same reasons `processDiscoveryResponse` from oauth4webapi cannot be used: it requires the
- * document's issuer to equal the URL that was requested. When the IdP is fixed these rules become no-ops.
+ * 같은 이유로 oauth4webapi 의 `processDiscoveryResponse` 는 쓸 수 없다. 문서의 issuer 가 요청한 URL 과 같아야 하기
+ * 때문이다. IdP 가 고쳐지면 이 규칙들은 아무 일도 하지 않게 된다.
  *
- * @throws {@link AccountError} `discovery_failed` when the document does not match {@link DiscoveryDocumentSchema}.
+ * @throws {@link AccountError} 문서가 {@link DiscoveryDocumentSchema} 와 맞지 않으면 `discovery_failed`.
  */
 export function normalizeDiscovery(input: unknown, fetchedFrom: string): AccountMetadata {
   const doc = parse(DiscoveryDocumentSchema, input, 'discovery_failed', 'discovery document');

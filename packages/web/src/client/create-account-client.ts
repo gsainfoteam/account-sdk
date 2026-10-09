@@ -25,7 +25,7 @@ import { STORAGE_KEYS } from '../storage/keys';
 import { saveTransaction, takeTransaction } from '../storage/transactions';
 
 export interface LoginOptions {
-  /** Where to send the user after the callback. Handed back by {@link AccountClient.handleCallback}. */
+  /** callback 뒤에 사용자를 보낼 위치. {@link AccountClient.handleCallback} 이 돌려준다. */
   returnTo?: string;
   prompt?: Prompt;
 }
@@ -34,68 +34,68 @@ export interface CallbackResult {
   returnTo: string | undefined;
 }
 
-/** Browser client for the IdP and the service backend's session. */
+/** IdP 와 서비스 백엔드 세션을 다루는 브라우저 client. */
 export interface AccountClient {
   readonly store: StoreApi<AccountState>;
 
   getAccessToken(): string | null;
 
   /**
-   * Restores the session through {@link SessionAdapter.refresh}. Safe to call more than once.
+   * {@link SessionAdapter.refresh} 로 세션을 복구한다. 여러 번 불러도 안전하다.
    *
    * @remarks
-   * Skipped on the callback page, where {@link AccountClient.handleCallback} creates the session and a
-   * concurrent refresh would race it.
+   * callback 페이지에서는 건너뛴다. 그곳에서는 {@link AccountClient.handleCallback} 이 세션을 만들고,
+   * 동시에 refresh 하면 서로 경합하기 때문이다.
    */
   ready(): Promise<void>;
 
   /**
-   * Redirects to the IdP login page.
+   * IdP 로그인 페이지로 보낸다.
    *
    * @remarks
-   * Signing out does not end the IdP's own login session. The first sign-in after a sign-out therefore
-   * asks for `prompt=login`, so the user can switch accounts.
+   * 로그아웃해도 IdP 자체의 로그인 세션은 끝나지 않는다. 그래서 로그아웃 뒤 첫 로그인에는 `prompt=login` 을
+   * 붙여 사용자가 계정을 바꿀 수 있게 한다.
    */
   login(options?: LoginOptions): Promise<void>;
 
   /**
-   * Validates the callback, exchanges the code and logs in to the service backend.
+   * callback 을 검증하고, code 를 교환하고, 서비스 백엔드에 로그인한다.
    *
    * @remarks
-   * React StrictMode runs effects twice, and a code can be exchanged only once. Calls for the same
-   * callback share one attempt.
+   * React StrictMode 는 effect 를 두 번 돌리는데 code 는 한 번만 교환할 수 있다. 그래서 같은 callback 에 대한
+   * 호출은 시도 하나를 같이 쓴다.
    *
-   * @throws {@link AccountError} such as `state_mismatch`, `user_cancelled` or `session_rejected`.
+   * @throws {@link AccountError} `state_mismatch`, `user_cancelled`, `session_rejected` 등.
    */
   handleCallback(url?: string): Promise<CallbackResult>;
 
   /**
-   * Sends the login again with the same IdP token and an extra body, for example the consent a service
-   * asked for after rejecting the first attempt with `session_rejected`.
+   * 같은 IdP 토큰에 body 를 더해 로그인을 다시 보낸다. 예를 들어 서비스가 첫 시도를 `session_rejected` 로
+   * 거절하며 요구한 동의 내용을 보낼 때 쓴다.
    *
    * @remarks
-   * Only logins made with the `browser` exchange can be retried; an authorization code works once.
+   * `browser` 교환으로 한 로그인만 재시도할 수 있다. authorization code 는 한 번만 쓸 수 있기 때문이다.
    */
   retryLogin(body: unknown): Promise<void>;
 
-  /** Ends the service session. Fails silently on the server side because the user is signed out locally either way. */
+  /** 서비스 세션을 끝낸다. 어차피 로컬에서는 로그아웃되므로 서버 쪽 실패는 조용히 넘긴다. */
   logout(): Promise<void>;
 
   /**
-   * Gets a new access token from the service backend.
+   * 서비스 백엔드에서 새 access token 을 받는다.
    *
-   * @param staleToken The token a request was rejected with. If another caller already replaced it,
-   * that newer token is returned without refreshing again.
-   * @returns The new token, or `null` when there is no session to refresh.
+   * @param staleToken 요청이 거절당했을 때 쓴 토큰. 다른 호출이 이미 교체했다면 다시 refresh 하지 않고
+   * 그 새 토큰을 돌려준다.
+   * @returns 새 토큰. refresh 할 세션이 없으면 `null`.
    */
   refresh(staleToken?: string | null): Promise<string | null>;
 
-  /** `fetch` that sends the access token and retries once after refreshing on 401. */
+  /** access token 을 보내고, 401 이면 refresh 한 뒤 한 번 다시 시도하는 `fetch`. */
   fetch: Fetch;
 }
 
 /**
- * Creates the browser client.
+ * 브라우저 client 를 만든다.
  *
  * @example
  * ```ts
@@ -109,7 +109,7 @@ export interface AccountClient {
  * });
  * ```
  *
- * @throws {@link AccountError} `invalid_request` when an option is missing or empty.
+ * @throws {@link AccountError} 옵션이 없거나 비어 있으면 `invalid_request`.
  */
 export function createAccountClient(input: AccountClientOptions): AccountClient {
   const parsed = AccountClientOptionsSchema.safeParse(input);

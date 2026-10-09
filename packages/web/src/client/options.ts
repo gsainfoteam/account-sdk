@@ -14,31 +14,31 @@ const SessionAdapterShapeSchema = z.looseObject({
   end: method(),
 });
 
-/** Options of {@link createAccountClient}. Validated at creation, so a missing env value fails at startup. */
+/** {@link createAccountClient} 의 옵션. 만들 때 검증하므로 환경 변수가 빠져 있으면 앱이 뜰 때 실패한다. */
 export const AccountClientOptionsSchema = z.object({
-  /** `'production'`, `'staging'` or the `https:` API origin of another account-be deployment. */
+  /** `'production'`, `'staging'`, 또는 다른 account-be 배포의 `https:` API origin. */
   issuer: z.custom<IssuerInput>((value) => isString(value) && value.length > 0),
   clientId: nonEmpty(),
-  /** Callback path or URL registered for the client. A path is resolved against the current origin. */
+  /** client 에 등록한 callback 경로나 URL. 경로는 현재 origin 기준으로 풀린다. */
   redirectUri: nonEmpty(),
   scopes: z.array(ScopeSchema),
   /**
-   * Asks for `offline_access` too. Off by default: service backends use the IdP token only once at login,
-   * and `offline_access` makes account-fe show the consent screen on every sign-in.
+   * `offline_access` 도 요청한다. 기본은 끔이다. 서비스 백엔드는 IdP 토큰을 로그인할 때 한 번만 쓰고,
+   * `offline_access` 를 요청하면 account-fe 가 로그인할 때마다 동의 화면을 띄우기 때문이다.
    */
   offlineAccess: z.optional(z.boolean()),
   /**
-   * Who exchanges the authorization code.
-   * - `browser`: the browser exchanges it as a public client and hands the IdP access token to the session.
-   * - `backend`: the code and PKCE verifier go to the service backend, which exchanges them as a confidential client.
+   * authorization code 를 누가 교환하는지.
+   * - `browser`: 브라우저가 public client 로 교환하고, IdP access token 을 세션에 넘긴다.
+   * - `backend`: code 와 PKCE verifier 를 서비스 백엔드에 보내고, 백엔드가 confidential client 로 교환한다.
    */
   exchange: z.enum(['browser', 'backend']),
-  /** How to start, refresh and end the service backend's session. See {@link cookieSession} and {@link bodySession}. */
+  /** 서비스 백엔드 세션을 시작, 갱신, 종료하는 방법. {@link cookieSession} 과 {@link bodySession} 을 본다. */
   session: z.custom<SessionAdapter>((value) => SessionAdapterShapeSchema.safeParse(value).success),
   fetch: z.optional(z.custom<Fetch>(isFunction)),
-  /** Where pending authorizations are kept. Defaults to `sessionStorage`. */
+  /** 진행 중인 인가를 보관할 곳. 기본은 `sessionStorage`. */
   transactionStorage: z.optional(z.custom<Storage>()),
-  /** Navigates to the IdP. Defaults to `location.assign`. */
+  /** IdP 로 이동하는 방법. 기본은 `location.assign`. */
   redirect: z.optional(z.custom<(url: string) => void>(isFunction)),
 });
 

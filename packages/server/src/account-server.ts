@@ -19,34 +19,34 @@ import * as z from 'zod/mini';
 import { createClientTokenCache } from './client-token-cache';
 import { AccountServerOptionsSchema, type AccountServerOptions } from './options';
 
-/** Talks to the IdP on behalf of a service backend. */
+/** 서비스 백엔드를 대신해 IdP 와 통신한다. */
 export interface AccountServer {
   metadata(): Promise<AccountMetadata>;
   /**
-   * Checks an IdP access token a frontend sent at login and returns its user.
+   * 프론트가 로그인할 때 보낸 IdP access token 을 확인하고 그 사용자를 돌려준다.
    *
-   * @throws {@link AccountError} `invalid_token` when the IdP rejects the token.
+   * @throws {@link AccountError} IdP 가 토큰을 거절하면 `invalid_token`.
    */
   getUserInfo(accessToken: string): Promise<UserInfo>;
-  /** Exchanges a code the frontend received for IdP tokens, as a confidential client. */
+  /** 프론트가 받은 code 를 confidential client 로서 IdP 토큰으로 교환한다. */
   exchangeCode(params: ExchangeCodeParams): Promise<TokenResponse>;
-  /** {@link AccountServer.exchangeCode} followed by {@link AccountServer.getUserInfo}. */
+  /** {@link AccountServer.exchangeCode} 한 뒤 {@link AccountServer.getUserInfo} 까지 한다. */
   loginWithCode(params: ExchangeCodeParams): Promise<{ tokens: TokenResponse; user: UserInfo }>;
   /**
-   * Looks a user up while they are not present, with a cached client credentials token.
+   * 캐시한 client credentials 토큰으로, 사용자가 없는 상황에서 사용자를 조회한다.
    *
    * @remarks
-   * When the IdP restarts it forgets its tokens, and account-be then answers 500 instead of 401.
-   * Either way the token is replaced and the lookup retried once.
+   * IdP 가 재시작하면 발급한 토큰을 잊는데, 그때 account-be 는 401 대신 500 을 돌려준다.
+   * 어느 쪽이든 토큰을 새로 받고 조회를 한 번 다시 시도한다.
    */
   getUserInfoBySub(sub: string): Promise<UserInfo>;
-  /** Verifies an id_token issued to this client, such as one a mobile app sends to its backend. */
+  /** 이 client 에 발급된 id_token 을 검증한다. 모바일 앱이 백엔드로 보낸 id_token 같은 것이다. */
   verifyIdToken(idToken: string, options?: { nonce?: string }): Promise<IdTokenClaims>;
   revoke(params: RevokeParams): Promise<void>;
 }
 
 /**
- * Creates the IdP client for a service backend.
+ * 서비스 백엔드용 IdP client 를 만든다.
  *
  * @example
  * ```ts
@@ -58,7 +58,7 @@ export interface AccountServer {
  * const user = await account.getUserInfo(idpAccessToken);
  * ```
  *
- * @throws {@link AccountError} `invalid_request` when an option is missing or empty.
+ * @throws {@link AccountError} 옵션이 없거나 비어 있으면 `invalid_request`.
  */
 export function createAccountServer(input: AccountServerOptions): AccountServer {
   const parsed = AccountServerOptionsSchema.safeParse(input);

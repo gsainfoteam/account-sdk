@@ -18,28 +18,27 @@ import {
 
 export interface ExchangeCodeParams {
   code: string;
-  /** The PKCE verifier from the {@link AuthorizationTransaction}. */
+  /** {@link AuthorizationTransaction} 에 저장한 PKCE verifier. */
   codeVerifier: string;
-  /** Must equal the `redirect_uri` of the authorization request. */
+  /** authorization 요청의 `redirect_uri` 와 같아야 한다. */
   redirectUri: string;
-  /** The nonce sent with `openid`. The id_token must carry the same value. */
+  /** `openid` 와 함께 보낸 nonce. id_token 에 같은 값이 있어야 한다. */
   nonce?: string;
-  /** The `iss` from the callback, when the party that received it passes it along. */
+  /** callback 의 `iss`. callback 을 받은 쪽이 넘겨줄 때만 있다. */
   iss?: string;
 }
 
 /**
- * Exchanges an authorization code for tokens.
+ * authorization code 를 토큰으로 교환한다.
  *
- * Works for a public client in the browser and for a confidential client on a server that received
- * the code from its frontend.
+ * 브라우저의 public client 와, 프론트에서 code 를 넘겨받은 서버의 confidential client 모두에서 쓴다.
  *
  * @remarks
- * `state` is not checked here: the party that received the callback already did, with {@link parseCallback}.
- * That is what lets a server reuse this function for codes handed over by its frontend.
+ * 여기서는 `state` 를 확인하지 않는다. callback 을 받은 쪽이 이미 {@link parseCallback} 으로 확인했다.
+ * 그래서 서버가 프론트에서 넘겨받은 code 에도 이 함수를 그대로 쓸 수 있다.
  *
- * @throws {@link AccountError} `invalid_grant` for a used or expired code, `invalid_id_token`,
- * `issuer_mismatch` or `network_error`.
+ * @throws {@link AccountError} 이미 쓰였거나 만료된 code 면 `invalid_grant`. 그 밖에 `invalid_id_token`,
+ * `issuer_mismatch`, `network_error`.
  */
 export async function exchangeCode(
   metadata: AccountMetadata,

@@ -8,26 +8,26 @@ import { parseIdTokenClaims, type IdTokenClaims } from '../identity/id-token';
 import { parseScopes, type Scope } from '../identity/scopes';
 import { authorizationServer } from '../internal/oauth4webapi';
 
-/** Tokens the IdP token endpoint returned, with the id_token claims already validated. */
+/** IdP token endpoint 가 돌려준 토큰. id_token claim 은 이미 검증했다. */
 export interface TokenResponse {
   accessToken: string;
   tokenType: string;
-  /** Access token lifetime in seconds. */
+  /** access token 수명(초). */
   expiresIn: number | undefined;
-  /** Present only when `offline_access` was granted. account-be rotates it on every refresh. */
+  /** `offline_access` 가 허용됐을 때만 있다. account-be 는 refresh 할 때마다 교체한다. */
   refreshToken?: string;
   refreshTokenExpiresIn?: number;
   idToken?: string;
-  /** Claims of `idToken`, checked against issuer, audience, expiry and nonce. */
+  /** `idToken` 의 claim. issuer, audience, 만료, nonce 를 확인했다. */
   idTokenClaims?: IdTokenClaims;
   scopes: Scope[];
 }
 
 /**
- * Identifies the client to the token endpoint.
+ * token endpoint 에 client 를 밝힌다.
  *
- * Leave `clientSecret` out for a public client (a browser or an app); set it for a confidential client
- * (a service backend). The secret is sent with `client_secret_post`.
+ * public client(브라우저, 앱)는 `clientSecret` 을 빼고, confidential client(서비스 백엔드)는 넣는다.
+ * secret 은 `client_secret_post` 로 보낸다.
  */
 export interface ClientCredentials {
   clientId: string;
@@ -37,13 +37,13 @@ export interface ClientCredentials {
 const WithIdTokenSchema = z.object({ id_token: z.string() });
 
 /**
- * Picks the issuer to validate the id_token in `response` against.
+ * `response` 의 id_token 을 어떤 issuer 로 검증할지 고른다.
  *
  * @remarks
- * oauth4webapi compares the id_token `iss` with a single issuer. The IdP uses more than one, so the
- * claim is read first and, when it is one of {@link AccountMetadata.issuers}, used as that issuer.
- * The signature is not checked here: the response came straight from the token endpoint over TLS,
- * which OIDC Core section 3.1.3.7 allows to stand in for it.
+ * oauth4webapi 는 id_token `iss` 를 issuer 하나와만 비교한다. IdP 는 issuer 를 여럿 쓰므로, claim 을 먼저 읽고
+ * {@link AccountMetadata.issuers} 중 하나면 그 값을 issuer 로 쓴다.
+ * 서명은 여기서 확인하지 않는다. 응답이 TLS 로 token endpoint 에서 바로 왔고, OIDC Core 3.1.3.7절은 이것으로
+ * 서명 확인을 대신할 수 있다고 한다.
  */
 export async function asForIdTokenOf(
   metadata: AccountMetadata,
@@ -60,7 +60,7 @@ export async function asForIdTokenOf(
   return authorizationServer(metadata, iss && metadata.issuers.includes(iss) ? iss : undefined);
 }
 
-/** Converts an oauth4webapi token response into a {@link TokenResponse}. */
+/** oauth4webapi 의 토큰 응답을 {@link TokenResponse} 로 바꾼다. */
 export function toTokenResponse(result: oauth.TokenEndpointResponse): TokenResponse {
   const claims = oauth.getValidatedIdTokenClaims(result);
   const refreshTokenExpiresIn = z.optional(z.number()).safeParse(result.refresh_token_expires_in);

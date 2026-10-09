@@ -1,4 +1,4 @@
-/// The service session kept between app launches.
+/// 앱을 다시 켜도 남아 있는 서비스 세션.
 class StoredSession {
   const StoredSession({required this.accessToken, this.refreshToken});
 
@@ -6,7 +6,7 @@ class StoredSession {
   final String? refreshToken;
 }
 
-/// Where [AccountClient] keeps the session and whether the user signed out.
+/// [AccountClient] 가 세션과 로그아웃 여부를 보관하는 곳.
 abstract interface class TokenStore {
   Future<StoredSession?> read();
 

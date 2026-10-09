@@ -9,11 +9,11 @@ import { type RequestOptions } from '../http/fetch';
 const ArgumentErrorSchema = z.object({ code: z.string().check(z.startsWith('ERR_')) });
 
 /**
- * Describes the IdP to oauth4webapi.
+ * oauth4webapi 에 넘길 IdP 정보를 만든다.
  *
  * @remarks
- * oauth4webapi accepts a single issuer. While the IdP uses more than one, a given `issuer` is first
- * checked against {@link AccountMetadata.issuers} and then used, so the library validation still runs.
+ * oauth4webapi 는 issuer 를 하나만 받는다. IdP 가 issuer 를 여럿 쓰는 동안에는, 주어진 `issuer` 를 먼저
+ * {@link AccountMetadata.issuers} 와 대조한 뒤 쓴다. 그래야 라이브러리의 검증도 그대로 돈다.
  */
 export function authorizationServer(
   metadata: AccountMetadata,
@@ -42,7 +42,7 @@ export function clientAuthentication(clientSecret: string | undefined): oauth.Cl
   return clientSecret ? oauth.ClientSecretPost(clientSecret) : oauth.None();
 }
 
-/** HTTP options for oauth4webapi. Only `https:` endpoints are allowed. */
+/** oauth4webapi 에 넘길 HTTP 옵션. `https:` endpoint 만 허용한다. */
 export function httpOptions<Method extends string, Body extends BodyInit | undefined = undefined>({
   fetch,
   signal,
@@ -59,11 +59,11 @@ export function httpOptions<Method extends string, Body extends BodyInit | undef
 }
 
 /**
- * Maps any error thrown while talking to the IdP to an {@link AccountError}.
+ * IdP 와 통신하다 던져진 에러를 {@link AccountError} 로 바꾼다.
  *
  * @remarks
- * A failed `fetch` is a `TypeError`, but so are oauth4webapi's argument errors; those carry a code
- * starting with `ERR_` and are not reported as network errors.
+ * 실패한 `fetch` 는 `TypeError` 인데, oauth4webapi 의 인자 에러도 `TypeError` 다. 인자 에러는 `ERR_` 로 시작하는
+ * code 가 있으므로 네트워크 에러로 보고하지 않는다.
  */
 export function toAccountError(error: unknown): AccountError {
   if (AccountError.is(error)) return error;

@@ -6,13 +6,13 @@ import { type AccountMetadata } from '../discovery/normalize-discovery';
 import { AccountError } from '../errors/account-error';
 import { OFFLINE_ACCESS_SCOPE, OPENID_SCOPE, type Scope } from '../identity/scopes';
 
-/** OpenID Connect `prompt` values account-fe understands. */
+/** account-fe 가 알아듣는 OpenID Connect `prompt` 값. */
 export type Prompt = 'none' | 'login' | 'consent';
 
 /**
- * Everything needed to validate the callback and exchange the code.
+ * callback 을 검증하고 code 를 교환하는 데 필요한 값 전부.
  *
- * Keep it where the callback can read it: `sessionStorage` in a browser, memory in an app.
+ * callback 에서 읽을 수 있는 곳에 둔다. 브라우저라면 `sessionStorage`, 앱이라면 메모리다.
  */
 export interface AuthorizationTransaction {
   state: string;
@@ -20,29 +20,29 @@ export interface AuthorizationTransaction {
   nonce?: string;
   redirectUri: string;
   scopes: Scope[];
-  /** Epoch milliseconds, used to drop transactions older than an authorization code can live. */
+  /** epoch 밀리초. authorization code 수명보다 오래된 트랜잭션을 버리는 데 쓴다. */
   createdAt: number;
 }
 
 export interface CreateAuthorizationParams {
   clientId: string;
-  /** Absolute URL registered for the client on the IdP. */
+  /** IdP 에 이 client 의 redirect URI 로 등록한 절대 URL. */
   redirectUri: string;
   scopes: readonly Scope[];
   prompt?: Prompt;
 }
 
 /**
- * Builds the authorization URL with PKCE (`S256`), `state` and, for `openid`, a `nonce`.
+ * PKCE(`S256`), `state`, 그리고 `openid` 일 때는 `nonce` 를 붙인 authorization URL 을 만든다.
  *
  * @remarks
- * Applies the rules account-fe enforces in `routes/_auth-required/authorize.tsx`, so a request
- * is never rejected after the user has already been sent away:
- * - a `nonce` is sent only with `openid`, which requires it and which is the only scope that allows it;
- * - `offline_access` gets `prompt=consent` unless `login` was asked, as OIDC Core section 11 requires;
- * - scopes the IdP does not advertise are rejected here instead of on the login page.
+ * account-fe 가 `routes/_auth-required/authorize.tsx` 에서 강제하는 규칙을 미리 적용한다. 사용자를
+ * 보낸 뒤에야 요청이 거절되는 일이 없게 하기 위해서다.
+ * - `nonce` 는 `openid` 일 때만 보낸다. `openid` 는 nonce 를 요구하고, nonce 를 허용하는 scope 도 `openid` 뿐이다.
+ * - `offline_access` 에는 `login` 을 요청하지 않은 한 `prompt=consent` 를 붙인다. OIDC Core 11절이 요구한다.
+ * - IdP 가 광고하지 않는 scope 는 로그인 페이지가 아니라 여기서 거절한다.
  *
- * @throws {@link AccountError} `invalid_scope` when a scope is not in {@link AccountMetadata.scopesSupported}.
+ * @throws {@link AccountError} scope 가 {@link AccountMetadata.scopesSupported} 에 없으면 `invalid_scope`.
  */
 export async function createAuthorization(
   metadata: AccountMetadata,

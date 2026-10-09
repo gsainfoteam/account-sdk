@@ -10,7 +10,7 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { ACCOUNT_SERVER } from './account.module-definition';
 
-/** {@link AccountServer} as a Nest provider. Inject it wherever the IdP is needed. */
+/** {@link AccountServer} 를 Nest provider 로 감싼 것. IdP 가 필요한 곳에 주입해서 쓴다. */
 @Injectable()
 export class AccountService implements AccountServer {
   constructor(@Inject(ACCOUNT_SERVER) private readonly server: AccountServer) {}

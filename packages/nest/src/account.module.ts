@@ -20,7 +20,7 @@ import { AccountService } from './account.service';
   exports: [AccountService],
 })
 /**
- * Registers {@link AccountService} from {@link AccountServerOptions}.
+ * {@link AccountServerOptions} 로 {@link AccountService} 를 등록한다.
  *
  * @example
  * ```ts

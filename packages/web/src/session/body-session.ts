@@ -9,17 +9,17 @@ export interface BodySessionOptions {
   baseUrl: string;
   paths?: SessionPaths;
   fetch?: Fetch;
-  /** Where the refresh token is kept. Defaults to `localStorage`. */
+  /** refresh token 을 보관할 곳. 기본은 `localStorage`. */
   storage?: Storage;
   storageKey?: string;
 }
 
 /**
- * Session for backends that return the refresh token in the body and take it back in the body,
- * such as the chatbot backend. Use it when cookies cannot be shared with the API origin.
+ * refresh token 을 body 로 주고 body 로 돌려받는 백엔드용 세션. chatbot 백엔드가 이 방식이다.
+ * API origin 과 쿠키를 공유할 수 없을 때 쓴다.
  *
- * Login sends `{ code, code_verifier, redirect_uri }` for the `backend` exchange, or the IdP token as a
- * bearer token for the `browser` exchange. Refresh and logout send `{ refresh_token }`.
+ * 로그인은 `backend` 교환이면 `{ code, code_verifier, redirect_uri }` 를, `browser` 교환이면 IdP 토큰을
+ * bearer 토큰으로 보낸다. refresh 와 로그아웃은 `{ refresh_token }` 을 보낸다.
  */
 export function bodySession({
   baseUrl,

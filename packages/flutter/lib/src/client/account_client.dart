@@ -21,10 +21,10 @@ import 'account_prompt.dart';
 import 'account_state.dart';
 import 'scopes.generated.dart';
 
-/// Opens [url] in a browser session and completes with the callback URL. Replaceable in tests.
+/// [url] 을 브라우저 세션으로 열고 callback URL 로 완료된다. 테스트에서 바꿔 끼울 수 있다.
 typedef BrowserAuthenticator = Future<String> Function(Uri url, String callbackUrlScheme);
 
-/// Signs a user in through the system browser and keeps the service backend's session.
+/// 시스템 브라우저로 사용자를 로그인시키고 서비스 백엔드의 세션을 유지한다.
 ///
 /// ```dart
 /// final account = AccountClient(
@@ -61,16 +61,16 @@ class AccountClient {
   final http.Client _http;
   final BrowserAuthenticator _browser;
 
-  /// Held for writing while the session refreshes, so requests wait for the new token.
+  /// 세션을 refresh 하는 동안 쓰기 잠금을 잡는다. 그래서 요청들은 새 토큰을 기다린다.
   final ReadWriteMutex mutex = ReadWriteMutex();
   final _state = BehaviorSubject.seeded(const AccountState(AccountStatus.loading));
 
-  /// Emits the current state first, then every change.
+  /// 현재 상태를 먼저 내보내고, 그 뒤로 바뀔 때마다 내보낸다.
   Stream<AccountState> get states => _state.stream;
   AccountState get state => _state.value;
   String? get accessToken => _state.value.accessToken;
 
-  /// Loads the stored session. Makes no network request.
+  /// 저장한 세션을 불러온다. 네트워크 요청은 하지 않는다.
   Future<void> restore() async {
     final stored = await _store.read();
 
@@ -81,16 +81,16 @@ class AccountClient {
     }
   }
 
-  /// Opens the IdP login page, validates the callback, exchanges the code and logs in to the service.
+  /// IdP 로그인 페이지를 열고, callback 을 검증하고, code 를 교환하고, 서비스에 로그인한다.
   ///
-  /// PKCE, `state` checking and the code exchange are done by `package:oauth2`. An `iss` in the callback
-  /// must be one of the IdP's hosts.
+  /// PKCE, `state` 확인, code 교환은 `package:oauth2` 가 한다. callback 에 `iss` 가 있으면 IdP 의 호스트 중
+  /// 하나여야 한다.
   ///
-  /// Signing out does not end the IdP's own login session, so the first sign-in after [logout] asks for
-  /// `prompt=login` and the user can switch accounts. With [AccountScope.offlineAccess] it asks for
-  /// `prompt=consent`, which account-fe requires for that scope.
+  /// 로그아웃해도 IdP 자체의 로그인 세션은 끝나지 않는다. 그래서 [logout] 뒤 첫 로그인에는 `prompt=login` 을
+  /// 붙여 사용자가 계정을 바꿀 수 있게 한다. [AccountScope.offlineAccess] 가 있으면 `prompt=consent` 를
+  /// 붙인다. account-fe 가 이 scope 에 요구한다.
   ///
-  /// Throws an [AccountException], such as [AccountCancelledException] when the user backs out.
+  /// 실패하면 [AccountException] 을 던진다. 사용자가 그만두면 [AccountCancelledException] 이다.
   Future<void> login() async {
     final metadata = await discover(issuer, client: _http);
     _checkScopes(metadata);
@@ -113,8 +113,8 @@ class AccountClient {
     await _store.writeLoggedOut(false);
   }
 
-  /// Clears the stored session and tells the service backend.
-  /// A failure on the server side is ignored because the device is signed out either way.
+  /// 저장한 세션을 지우고 서비스 백엔드에 알린다.
+  /// 어차피 기기에서는 로그아웃되므로 서버 쪽 실패는 무시한다.
   Future<void> logout() async {
     final stored = await _store.read();
 
@@ -128,10 +128,10 @@ class AccountClient {
     }
   }
 
-  /// Gets a new access token from the service backend and returns whether there is a session.
+  /// 서비스 백엔드에서 새 access token 을 받고, 세션이 있는지 돌려준다.
   ///
-  /// Requests that hit 401 at the same time share one refresh. When [staleToken] has already been
-  /// replaced by another caller, the newer token is kept without refreshing again.
+  /// 동시에 401 을 받은 요청들은 refresh 하나를 같이 쓴다. [staleToken] 을 다른 호출이 이미 교체했다면
+  /// 다시 refresh 하지 않고 그 새 토큰을 유지한다.
   Future<bool> refresh({String? staleToken}) async {
     if (mutex.isWriteLocked) {
       await mutex.acquireRead();

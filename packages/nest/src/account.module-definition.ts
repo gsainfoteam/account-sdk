@@ -1,7 +1,7 @@
 import { type AccountServerOptions } from '@gsainfoteam/account-server';
 import { ConfigurableModuleBuilder } from '@nestjs/common';
 
-/** Injection token of the underlying {@link AccountServer}. */
+/** 내부에서 쓰는 {@link AccountServer} 의 injection token. */
 export const ACCOUNT_SERVER = Symbol('ACCOUNT_SERVER');
 
 export const { ConfigurableModuleClass, MODULE_OPTIONS_TOKEN, OPTIONS_TYPE, ASYNC_OPTIONS_TYPE } =

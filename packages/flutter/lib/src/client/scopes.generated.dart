@@ -1,9 +1,9 @@
-/// Scopes the IdP accepts, except `openid`.
+/// `openid` 를 뺀, IdP 가 받는 scope.
 ///
-/// This package does not verify id_tokens, so it does not ask for one.
+/// 이 패키지는 id_token 을 검증하지 않으므로 요청하지도 않는다.
 ///
-/// Generated from the production IdP's `scopes_supported` by `pnpm sync:scopes`. Do not edit by
-/// hand: when account-be adds or removes a scope, run the script again and release the package.
+/// `pnpm sync:scopes` 가 production IdP 의 `scopes_supported` 에서 생성한다. 손으로 고치지 않는다.
+/// account-be 에 scope 가 추가되거나 빠지면 스크립트를 다시 돌리고 패키지를 배포한다.
 enum AccountScope {
   profile('profile'),
   name('name'),
@@ -15,6 +15,6 @@ enum AccountScope {
 
   const AccountScope(this.value);
 
-  /// The scope as sent to the IdP.
+  /// IdP 에 보내는 scope 문자열.
   final String value;
 }

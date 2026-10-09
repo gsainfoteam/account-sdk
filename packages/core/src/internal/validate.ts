@@ -2,7 +2,7 @@ import * as z from 'zod/mini';
 
 import { AccountError, type AccountErrorCode } from '../errors/account-error';
 
-/** Parses `value` with `schema`, throwing an {@link AccountError} with `code` when it does not match. */
+/** `value` 를 `schema` 로 파싱한다. 맞지 않으면 `code` 를 가진 {@link AccountError} 를 던진다. */
 export function parse<T>(
   schema: z.ZodMiniType<T>,
   value: unknown,

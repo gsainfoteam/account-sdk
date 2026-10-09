@@ -8,7 +8,7 @@ import { AccountError } from '../errors/account-error';
 import { type Fetch } from '../http/fetch';
 import { parse } from '../internal/validate';
 
-/** Claims of an id_token account-be signs. Profile claims appear only for the granted scopes. */
+/** account-be 가 서명하는 id_token 의 claim. 프로필 claim 은 허용된 scope 의 것만 들어 있다. */
 export const IdTokenClaimsSchema = z.looseObject({
   iss: z.string(),
   sub: z.string().check(z.minLength(1)),
@@ -48,9 +48,9 @@ function jwksOf(metadata: AccountMetadata, fetch: Fetch | undefined): JWTVerifyG
 }
 
 export interface VerifyIdTokenOptions {
-  /** The client id the token was issued to. */
+  /** 토큰을 발급받은 client id. */
   audience: string;
-  /** The nonce sent in the authorization request. When given, the token must carry it. */
+  /** authorization 요청에 보낸 nonce. 주면 토큰에 같은 값이 있어야 한다. */
   nonce?: string;
   clockToleranceSec?: number;
   currentDate?: Date;
@@ -58,11 +58,11 @@ export interface VerifyIdTokenOptions {
 }
 
 /**
- * Verifies an id_token that did not come straight from the token endpoint, such as one an app sends
- * to its backend: signature against the IdP's JWKS, issuer, audience, expiry and nonce.
+ * 앱이 백엔드로 보낸 것처럼, token endpoint 에서 바로 오지 않은 id_token 을 검증한다.
+ * IdP JWKS 로 서명을 확인하고, issuer, audience, 만료, nonce 를 확인한다.
  *
  * @remarks
- * Keys are fetched once per JWKS URI and refreshed by jose when an unknown `kid` shows up.
+ * 키는 JWKS URI 마다 한 번 받고, 모르는 `kid` 가 나오면 jose 가 다시 받는다.
  *
  * @throws {@link AccountError} `invalid_id_token`.
  */

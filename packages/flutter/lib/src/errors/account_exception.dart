@@ -1,9 +1,9 @@
-/// Every error this package throws. Switch over the subclasses to handle each case.
+/// 이 패키지가 던지는 모든 에러. 하위 클래스로 switch 해서 경우마다 처리한다.
 sealed class AccountException implements Exception {
   const AccountException();
 }
 
-/// The user closed the browser or cancelled on the IdP page.
+/// 사용자가 브라우저를 닫았거나 IdP 페이지에서 취소했다.
 final class AccountCancelledException extends AccountException {
   const AccountCancelledException();
 
@@ -11,7 +11,7 @@ final class AccountCancelledException extends AccountException {
   String toString() => 'AccountCancelledException';
 }
 
-/// Why account-fe turned the user away, from `error_description` of an `access_denied` response.
+/// account-fe 가 사용자를 돌려보낸 사유. `access_denied` 응답의 `error_description` 에서 읽는다.
 enum AccountDenialReason {
   userCancelled('user_cancelled'),
   verificationRequired('verification_required'),
@@ -21,14 +21,14 @@ enum AccountDenialReason {
 
   const AccountDenialReason(this.wire);
 
-  /// The value account-fe sends in `error_description`.
+  /// account-fe 가 `error_description` 에 담아 보내는 값.
   final String wire;
 
   static AccountDenialReason parse(String? wire) =>
       values.firstWhere((reason) => reason.wire == wire, orElse: () => other);
 }
 
-/// OAuth 2.0 error codes the IdP returns.
+/// IdP 가 돌려주는 OAuth 2.0 에러 코드.
 enum OAuthErrorCode {
   accessDenied('access_denied'),
   invalidRequest('invalid_request'),
@@ -50,7 +50,7 @@ enum OAuthErrorCode {
       values.firstWhere((code) => code.wire == wire, orElse: () => unknown);
 }
 
-/// The IdP refused the sign-in for [reason].
+/// IdP 가 [reason] 때문에 로그인을 거절했다.
 final class AccountDeniedException extends AccountException {
   const AccountDeniedException(this.reason, [this.description]);
 
@@ -61,7 +61,7 @@ final class AccountDeniedException extends AccountException {
   String toString() => 'AccountDeniedException($reason, $description)';
 }
 
-/// The callback did not carry the `state` this sign-in started with.
+/// callback 에 이 로그인을 시작할 때의 `state` 가 없었다.
 final class AccountStateMismatchException extends AccountException {
   const AccountStateMismatchException();
 
@@ -69,7 +69,7 @@ final class AccountStateMismatchException extends AccountException {
   String toString() => 'AccountStateMismatchException';
 }
 
-/// The callback came from an issuer that is not the IdP.
+/// callback 이 IdP 가 아닌 issuer 에서 왔다.
 final class AccountIssuerMismatchException extends AccountException {
   const AccountIssuerMismatchException(this.issuer);
 
@@ -79,14 +79,14 @@ final class AccountIssuerMismatchException extends AccountException {
   String toString() => 'AccountIssuerMismatchException($issuer)';
 }
 
-/// The IdP answered with an OAuth error such as `invalid_grant`.
+/// IdP 가 `invalid_grant` 같은 OAuth 에러로 응답했다.
 final class AccountOAuthException extends AccountException {
   AccountOAuthException(this.error, [this.description]) : code = OAuthErrorCode.parse(error);
 
-  /// [error] as a known code, or [OAuthErrorCode.unknown].
+  /// [error] 를 알려진 코드로 바꾼 것. 모르는 코드면 [OAuthErrorCode.unknown].
   final OAuthErrorCode code;
 
-  /// The error code exactly as the IdP sent it.
+  /// IdP 가 보낸 그대로의 에러 코드.
   final String error;
   final String? description;
 
@@ -94,7 +94,7 @@ final class AccountOAuthException extends AccountException {
   String toString() => 'AccountOAuthException($error, $description)';
 }
 
-/// The service backend refused the request. [body] holds its response.
+/// 서비스 백엔드가 요청을 거절했다. [body] 에 그 응답이 있다.
 final class AccountSessionRejectedException extends AccountException {
   const AccountSessionRejectedException(this.statusCode, this.body);
 
@@ -105,7 +105,7 @@ final class AccountSessionRejectedException extends AccountException {
   String toString() => 'AccountSessionRejectedException($statusCode)';
 }
 
-/// The request did not reach the server.
+/// 요청이 서버에 닿지 못했다.
 final class AccountNetworkException extends AccountException {
   const AccountNetworkException(this.cause);
 
@@ -115,7 +115,7 @@ final class AccountNetworkException extends AccountException {
   String toString() => 'AccountNetworkException($cause)';
 }
 
-/// The discovery document could not be fetched or understood.
+/// discovery 문서를 받지 못했거나 해석하지 못했다.
 final class AccountDiscoveryException extends AccountException {
   const AccountDiscoveryException(this.message);
 

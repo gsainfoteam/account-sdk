@@ -5,20 +5,19 @@ import * as z from 'zod/mini';
 const nonEmpty = () => z.string().check(z.minLength(1));
 
 /**
- * Options of {@link createAccountServer}.
+ * {@link createAccountServer} 의 옵션.
  *
- * Values usually come from environment variables, so they are validated when the server starts
- * instead of on the first request.
+ * 값은 보통 환경 변수에서 오므로, 첫 요청이 아니라 서버가 뜰 때 검증한다.
  */
 export const AccountServerOptionsSchema = z.object({
-  /** `'production'`, `'staging'` or the `https:` API origin of another account-be deployment. */
+  /** `'production'`, `'staging'`, 또는 다른 account-be 배포의 `https:` API origin. */
   issuer: z.custom<IssuerInput>((value) => isString(value) && value.length > 0),
   clientId: nonEmpty(),
-  /** Needed for {@link AccountServer.exchangeCode} and {@link AccountServer.getUserInfoBySub}. Checking IdP tokens works without it. */
+  /** {@link AccountServer.exchangeCode} 와 {@link AccountServer.getUserInfoBySub} 에 필요하다. IdP 토큰 확인은 없어도 된다. */
   clientSecret: z.optional(nonEmpty()),
   /**
-   * Scopes for the client credentials token behind {@link AccountServer.getUserInfoBySub}.
-   * Must be among the scopes registered for the client, so there is no default.
+   * {@link AccountServer.getUserInfoBySub} 가 쓰는 client credentials 토큰의 scope.
+   * client 에 등록한 scope 중에서 골라야 하므로 기본값이 없다.
    */
   clientCredentialsScopes: z.optional(z.array(ScopeSchema)),
   fetch: z.optional(z.custom<Fetch>(isFunction)),

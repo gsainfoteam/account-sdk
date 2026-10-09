@@ -13,8 +13,8 @@ import {
 import { parse } from '../internal/validate';
 
 /**
- * The userinfo body account-be returns. Fields outside the granted scopes are left out.
- * Only `profile` and `picture` can be `null`, matching the nullable columns of the account-be user model.
+ * account-be 가 돌려주는 userinfo body. 허용된 scope 밖의 필드는 빠진다.
+ * `null` 이 될 수 있는 건 `profile` 과 `picture` 뿐이다. account-be 사용자 모델에서 nullable 인 컬럼과 같다.
  */
 export const UserInfoResponseSchema = z.looseObject({
   sub: z.string().check(z.minLength(1)),
@@ -28,7 +28,7 @@ export const UserInfoResponseSchema = z.looseObject({
   is_phone_number_verified: z.optional(z.boolean()),
 });
 
-/** {@link UserInfoResponseSchema} converted to camelCase. */
+/** {@link UserInfoResponseSchema} 를 camelCase 로 바꾼 것. */
 export const UserInfoSchema = z.pipe(
   UserInfoResponseSchema,
   z.transform((raw) => ({
@@ -48,18 +48,18 @@ export type UserInfoResponse = z.input<typeof UserInfoSchema>;
 export type UserInfo = z.output<typeof UserInfoSchema>;
 
 export interface FetchUserInfoOptions extends RequestOptions {
-  /** The user to look up with a client credentials token. account-be reads it from the query string. */
+  /** client credentials 토큰으로 조회할 사용자. account-be 는 query string 에서 읽는다. */
   sub?: string;
 }
 
 /**
- * Fetches the user behind an access token.
+ * access token 의 주인을 조회한다.
  *
- * @throws {@link AccountError} `invalid_token` when the IdP rejects the token with 401 or 403.
+ * @throws {@link AccountError} IdP 가 토큰을 401 이나 403 으로 거절하면 `invalid_token`.
  *
  * @remarks
- * account-be currently answers an unknown token with 500 because a Redis lookup failure escapes,
- * so that case surfaces as `server_error` until account-be is fixed.
+ * 지금 account-be 는 모르는 토큰에 500 을 돌려준다. Redis 조회 실패가 그대로 새어 나가기 때문이다.
+ * 그래서 account-be 가 고쳐지기 전까지 이 경우는 `server_error` 로 나온다.
  */
 export async function fetchUserInfo(
   metadata: AccountMetadata,

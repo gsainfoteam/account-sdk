@@ -6,13 +6,13 @@ import { useAccountClient } from '../context/account-context';
 
 export interface RequireAuthProps {
   children?: ReactNode;
-  /** Shown while the session is loading or the user is being sent to sign in. */
+  /** 세션을 불러오는 동안이나 사용자를 로그인으로 보내는 동안 보여 준다. */
   fallback?: ReactNode;
-  /** Set to `false` to render `fallback` instead of redirecting, for apps with their own login page. */
+  /** `false` 면 redirect 하지 않고 `fallback` 을 렌더링한다. 자체 로그인 페이지가 있는 앱용이다. */
   redirect?: boolean;
 }
 
-/** Renders its children only for a signed-in user. Otherwise starts a sign-in that returns to the current page. */
+/** 로그인한 사용자에게만 children 을 렌더링한다. 아니면 현재 페이지로 돌아오는 로그인을 시작한다. */
 export function RequireAuth({
   children,
   fallback = null,

@@ -5,15 +5,15 @@ import { type AccountError, type CallbackResult } from '@gsainfoteam/account-web
 import { useAccountClient } from '../context/account-context';
 
 export interface AccountCallbackProps {
-  /** Called once with where to return, typically to navigate there. */
+  /** 돌아갈 위치와 함께 한 번 불린다. 보통 그 위치로 이동하는 데 쓴다. */
   onSuccess: (result: CallbackResult) => void;
   onError: (error: AccountError) => void;
   fallback?: ReactNode;
 }
 
 /**
- * Render on the redirect URI route. Completes the sign-in and reports the result once, even under
- * StrictMode where the effect runs twice.
+ * redirect URI 라우트에 렌더링한다. 로그인을 마무리하고 결과를 한 번만 알린다. effect 가 두 번 도는
+ * StrictMode 에서도 마찬가지다.
  *
  * @example
  * ```tsx

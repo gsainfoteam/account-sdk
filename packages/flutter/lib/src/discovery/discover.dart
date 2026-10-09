@@ -9,8 +9,8 @@ import 'account_metadata.dart';
 
 final _cache = <String, Future<AccountMetadata>>{};
 
-/// Fetches and normalizes the IdP's discovery document, cached per issuer.
-/// A failure is not cached, so a transient network error does not stick until the app restarts.
+/// IdP 의 discovery 문서를 받아 정규화한다. issuer 별로 캐시한다.
+/// 실패는 캐시하지 않는다. 일시적인 네트워크 오류가 앱을 재시작할 때까지 남아 있지 않게 하기 위해서다.
 Future<AccountMetadata> discover(AccountIssuer issuer, {http.Client? client}) {
   final url = issuer.discoveryUrl;
 
@@ -22,7 +22,7 @@ Future<AccountMetadata> discover(AccountIssuer issuer, {http.Client? client}) {
   });
 }
 
-/// Forgets every cached discovery result.
+/// 캐시한 discovery 결과를 모두 지운다.
 void clearDiscoveryCache() => _cache.clear();
 
 Future<AccountMetadata> _fetch(Uri url, http.Client client) async {

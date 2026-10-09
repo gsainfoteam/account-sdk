@@ -1,20 +1,20 @@
 import { DISCOVERY_PATH, ENVIRONMENTS } from '../constants';
 
-/** A deployment of the Infoteam account IdP that the SDK knows by name. */
+/** SDK 가 이름으로 아는 인포팀 계정 IdP 배포. */
 export type Environment = keyof typeof ENVIRONMENTS;
 
 /**
- * Where the IdP lives: an {@link Environment} name, or the `https:` origin of another account-be's API.
+ * IdP 위치. {@link Environment} 이름이거나, 다른 account-be 배포의 `https:` API origin 이다.
  */
 export type IssuerInput = Environment | (string & {});
 
-/** Returns the OpenID discovery URL of the IdP, which is always served from the API host. */
+/** IdP 의 OpenID discovery URL 을 돌려준다. discovery 는 항상 API 호스트에서 제공된다. */
 export function discoveryUrlOf(issuer: IssuerInput): string {
   const base = isEnvironment(issuer) ? ENVIRONMENTS[issuer] : issuer;
   return new URL(DISCOVERY_PATH, base).toString();
 }
 
-/** Tells whether `issuer` names a known {@link Environment} rather than an origin. */
+/** `issuer` 가 origin 이 아니라 알려진 {@link Environment} 이름인지 알려 준다. */
 export function isEnvironment(issuer: string): issuer is Environment {
   return Object.hasOwn(ENVIRONMENTS, issuer);
 }

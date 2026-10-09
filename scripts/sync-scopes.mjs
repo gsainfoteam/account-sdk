@@ -46,27 +46,27 @@ const camelCase = (scope) => scope.replace(/_([a-z0-9])/g, (_, letter) => letter
 const ts = `import * as z from 'zod/mini';
 
 /**
- * Scopes that grant access to user information.
+ * 사용자 정보에 접근하게 해 주는 scope.
  *
  * @remarks
- * Generated from the ${environment} IdP's \`scopes_supported\` by \`pnpm sync:scopes\`. Do not edit by hand:
- * when account-be adds or removes a scope, run the script again and release the SDK.
+ * \`pnpm sync:scopes\` 가 ${environment} IdP 의 \`scopes_supported\` 에서 생성한다. 손으로 고치지 않는다.
+ * account-be 에 scope 가 추가되거나 빠지면 스크립트를 다시 돌리고 SDK 를 배포한다.
  */
 export const ClientScopeSchema = z.enum([${clientScopes.map((scope) => `'${scope}'`).join(', ')}]);
 `;
 
-const dart = `/// Scopes the IdP accepts, except \`openid\`.
+const dart = `/// \`openid\` 를 뺀, IdP 가 받는 scope.
 ///
-/// This package does not verify id_tokens, so it does not ask for one.
+/// 이 패키지는 id_token 을 검증하지 않으므로 요청하지도 않는다.
 ///
-/// Generated from the ${environment} IdP's \`scopes_supported\` by \`pnpm sync:scopes\`. Do not edit by
-/// hand: when account-be adds or removes a scope, run the script again and release the package.
+/// \`pnpm sync:scopes\` 가 ${environment} IdP 의 \`scopes_supported\` 에서 생성한다. 손으로 고치지 않는다.
+/// account-be 에 scope 가 추가되거나 빠지면 스크립트를 다시 돌리고 패키지를 배포한다.
 enum AccountScope {
 ${dartScopes.map((scope) => `  ${camelCase(scope)}('${scope}')`).join(',\n')};
 
   const AccountScope(this.value);
 
-  /// The scope as sent to the IdP.
+  /// IdP 에 보내는 scope 문자열.
   final String value;
 }
 `;
