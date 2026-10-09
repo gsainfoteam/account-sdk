@@ -1,7 +1,13 @@
 import { clearDiscoveryCache } from '@gsainfoteam/account-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { bodySession, cookieSession, createAccountClient, type AccountClientOptions } from '../src';
+import {
+  AccountClientOptionsSchema,
+  bodySession,
+  cookieSession,
+  createAccountClient,
+  type AccountClientOptions,
+} from '../src';
 import { fakeServers, tokenResponse, type Route } from './fake-servers';
 
 const API = 'api.ziggle.gistory.me';
@@ -50,9 +56,21 @@ describe('createAccountClient', () => {
         redirectUri: '/cb',
         scopes: ['name'],
         exchange: 'browser',
-        session: {} as never,
+        session: cookieSession({ baseUrl: `https://${API}` }),
       }),
     ).toThrow(expect.objectContaining({ code: 'invalid_request' }));
+  });
+
+  it('rejects a session adapter that lacks a step', () => {
+    const input: unknown = {
+      issuer: 'production',
+      clientId: 'ziggle',
+      redirectUri: '/cb',
+      scopes: ['name'],
+      exchange: 'browser',
+      session: { start: vi.fn(), refresh: vi.fn() },
+    };
+    expect(AccountClientOptionsSchema.safeParse(input).success).toBe(false);
   });
 });
 

@@ -1,12 +1,12 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gsainfoteam_account/gsainfoteam_account.dart';
 
+import 'support/json.dart';
+
 void main() {
-  final idp =
-      jsonDecode(File('../core/src/constants/idp.json').readAsStringSync()) as Map<String, Object?>;
+  final idp = jsonObject(File('../core/src/constants/idp.json').readAsStringSync());
 
   test('matches the IdP constants the TypeScript packages use', () {
     expect({
@@ -15,8 +15,8 @@ void main() {
     expect(AccountConstants.apiHostPrefix, idp['apiHostPrefix']);
     expect(AccountConstants.discoveryPath, idp['discoveryPath']);
     expect(
-      AccountConstants.fallbackUserinfoPath,
-      (idp['fallbackEndpoints']! as Map<String, Object?>)['userinfo'],
+      idp['fallbackEndpoints'],
+      containsPair('userinfo', AccountConstants.fallbackUserinfoPath),
     );
     expect(AccountConstants.storageNamespace, idp['storageNamespace']);
     const paths = SessionPaths();
@@ -28,12 +28,13 @@ void main() {
   });
 
   test('knows every scope the IdP advertises except openid', () {
-    final discovery =
-        jsonDecode(File('../core/tests/fixtures/discovery.production.json').readAsStringSync())
-            as Map<String, Object?>;
-    final advertised = (discovery['scope_supported']! as List<Object?>).whereType<String>().toSet()
-      ..remove('openid');
-    expect(AccountScope.values.map((scope) => scope.value).toSet(), advertised);
+    final discovery = jsonObject(
+      File('../core/tests/fixtures/discovery.production.json').readAsStringSync(),
+    );
+    expect(
+      discovery['scope_supported'],
+      unorderedEquals([...AccountScope.values.map((scope) => scope.value), 'openid']),
+    );
   });
 
   test('parses OAuth error codes and denial reasons from their wire values', () {

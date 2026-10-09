@@ -10,6 +10,12 @@ import { createAccountMiddleware } from '../src/adapters/openapi-fetch';
 
 const API = 'api.ziggle.gistory.me';
 
+interface Paths {
+  '/notices': {
+    get: { responses: { 200: { content: { 'application/json': { id: number }[] } } } };
+  };
+}
+
 function setup() {
   let refreshes = 0;
   const servers = fakeServers({
@@ -37,10 +43,10 @@ afterEach(() => clearDiscoveryCache());
 describe('openapi-fetch middleware', () => {
   it('sends the service token and retries once after refreshing', async () => {
     const { client, fetch, refreshes } = setup();
-    const api = createFetchClient<Record<string, never>>({ baseUrl: `https://${API}`, fetch });
+    const api = createFetchClient<Paths>({ baseUrl: `https://${API}`, fetch });
     api.use(createAccountMiddleware(client));
 
-    const results = await Promise.all([api.GET('/notices' as never), api.GET('/notices' as never)]);
+    const results = await Promise.all([api.GET('/notices'), api.GET('/notices')]);
     expect(results.map((result) => result.response.status)).toEqual([200, 200]);
     expect(refreshes()).toBe(2);
   });

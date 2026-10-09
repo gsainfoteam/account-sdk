@@ -18,7 +18,8 @@ describe.each(environments)('%s IdP', (environment) => {
     const metadata = await discover(environment);
     const certs = await fetch(metadata.jwksUri);
     expect(certs.ok).toBe(true);
-    expect((await certs.json()) as { keys: unknown[] }).toMatchObject({ keys: expect.any(Array) });
+    const jwks: unknown = await certs.json();
+    expect(jwks).toMatchObject({ keys: expect.any(Array) });
 
     const token = await fetch(metadata.tokenEndpoint, {
       method: 'POST',

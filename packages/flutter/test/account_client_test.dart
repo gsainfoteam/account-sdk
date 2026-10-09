@@ -7,6 +7,8 @@ import 'package:gsainfoteam_account/gsainfoteam_account.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import 'support/json.dart';
+
 final discovery = File('../core/tests/fixtures/discovery.production.json').readAsStringSync();
 
 class FakeSession implements SessionAdapter {
@@ -133,7 +135,7 @@ void main() {
 
   test('rejects a scope the IdP does not advertise before opening the browser', () async {
     final opened = <Uri>[];
-    final body = jsonDecode(discovery) as Map<String, Object?>;
+    final body = jsonObject(discovery);
     final client = AccountClient(
       issuer: AccountIssuer.production,
       clientId: 'pot-g',
