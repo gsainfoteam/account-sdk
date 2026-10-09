@@ -31,3 +31,27 @@ jobs:
       - run: pnpm release
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  flutter:
+    name: Publish to pub.dev
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@v2
+        with:
+          install_args: flutter
+
+      - name: Authenticate to pub.dev after the last third-party action
+        uses: dart-lang/setup-dart@v1
+
+      - run: flutter pub get
+        working-directory: packages/flutter
+
+      - run: flutter pub publish --force
+        working-directory: packages/flutter

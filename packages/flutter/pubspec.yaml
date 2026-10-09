@@ -1,0 +1,24 @@
+name: gsainfoteam_account
+description: Flutter client for the Infoteam account IdP. Signs in through the system browser with PKCE and keeps the service session.
+version: 0.0.0
+repository: https://github.com/gsainfoteam/account-sdk/tree/main/packages/flutter
+
+environment:
+  sdk: ^3.10.0
+  flutter: ">=3.35.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.11.1
+  flutter_secure_storage: ^11.2.0
+  flutter_web_auth_2: ^5.1.0
+  http: ^1.6.0
+  mutex: ^3.1.0
+  oauth2: ^2.0.5
+  rxdart: ^0.28.0
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter

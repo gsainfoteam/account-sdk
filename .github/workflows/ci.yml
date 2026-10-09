@@ -28,3 +28,22 @@ jobs:
       - run: pnpm test
 
       - run: pnpm examples:build
+
+  flutter:
+    name: Flutter (analyze / test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: jdx/mise-action@v2
+        with:
+          install_args: flutter
+
+      - run: flutter pub get
+        working-directory: packages/flutter
+
+      - run: flutter analyze
+        working-directory: packages/flutter
+
+      - run: flutter test
+        working-directory: packages/flutter
