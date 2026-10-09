@@ -5,25 +5,7 @@ import { type AccountMetadata, type Fetch } from './discovery';
 import { AccountError } from './errors';
 import { parse } from './validate';
 
-export interface IdTokenClaims {
-  iss: string;
-  sub: string;
-  aud: string | string[];
-  exp: number;
-  iat: number;
-  nonce?: string;
-  auth_time?: number;
-  scope?: string;
-  name?: string;
-  profile?: string | null;
-  picture?: string | null;
-  email?: string;
-  student_id?: string;
-  phone_number?: string;
-  [claim: string]: unknown;
-}
-
-const IdTokenClaimsSchema: z.ZodMiniType<IdTokenClaims> = z.looseObject({
+export const IdTokenClaimsSchema = z.looseObject({
   iss: z.string(),
   sub: z.string().check(z.minLength(1)),
   aud: z.union([z.string(), z.array(z.string())]),
@@ -39,6 +21,8 @@ const IdTokenClaimsSchema: z.ZodMiniType<IdTokenClaims> = z.looseObject({
   student_id: z.optional(z.string()),
   phone_number: z.optional(z.string()),
 });
+
+export type IdTokenClaims = z.infer<typeof IdTokenClaimsSchema>;
 
 export function parseIdTokenClaims(value: unknown): IdTokenClaims {
   return parse(IdTokenClaimsSchema, value, 'invalid_id_token', 'id_token claims');

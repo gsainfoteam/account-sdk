@@ -14,6 +14,7 @@ export {
 export {
   clearDiscoveryCache,
   discover,
+  DiscoveryDocumentSchema,
   discoveryUrlOf,
   ENVIRONMENTS,
   normalizeDiscovery,
@@ -35,6 +36,7 @@ export {
   type SdkErrorCode,
 } from './errors';
 export {
+  IdTokenClaimsSchema,
   parseIdTokenClaims,
   verifyIdToken,
   type IdTokenClaims,
@@ -42,10 +44,11 @@ export {
 } from './id-token';
 export { type RequestOptions } from './oauth';
 export {
-  CLIENT_SCOPES,
+  ClientScopeSchema,
   isScope,
   parseScopes,
-  TOKEN_SCOPES,
+  ScopeSchema,
+  TokenScopeSchema,
   type ClientScope,
   type Scope,
   type TokenScope,
@@ -62,7 +65,8 @@ export {
 } from './token';
 export {
   fetchUserInfo,
-  toUserInfo,
+  UserInfoResponseSchema,
+  UserInfoSchema,
   type FetchUserInfoOptions,
   type UserInfo,
   type UserInfoResponse,

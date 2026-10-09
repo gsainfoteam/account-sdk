@@ -27,20 +27,7 @@ export interface AccountMetadata {
   idTokenSigningAlgs: readonly string[];
 }
 
-export interface DiscoveryDocument {
-  issuer: string;
-  authorization_endpoint: string;
-  token_endpoint: string;
-  userinfo_endpoint?: string;
-  jwks_uri: string;
-  revocation_endpoint?: string;
-  scopes_supported?: string[];
-  scope_supported?: string[];
-  id_token_signing_alg_values_supported?: string[];
-  [key: string]: unknown;
-}
-
-const DiscoveryDocumentSchema: z.ZodMiniType<DiscoveryDocument> = z.looseObject({
+export const DiscoveryDocumentSchema = z.looseObject({
   issuer: z.string(),
   authorization_endpoint: z.url(),
   token_endpoint: z.url(),
@@ -51,6 +38,8 @@ const DiscoveryDocumentSchema: z.ZodMiniType<DiscoveryDocument> = z.looseObject(
   scope_supported: z.optional(z.array(z.string())),
   id_token_signing_alg_values_supported: z.optional(z.array(z.string())),
 });
+
+export type DiscoveryDocument = z.infer<typeof DiscoveryDocumentSchema>;
 
 export function discoveryUrlOf(issuer: IssuerInput): string {
   const base = Object.hasOwn(ENVIRONMENTS, issuer) ? ENVIRONMENTS[issuer as Environment] : issuer;

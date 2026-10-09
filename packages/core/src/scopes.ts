@@ -1,22 +1,20 @@
 import * as z from 'zod/mini';
 
 // account-be `src/oauth/types/scope.type.ts` 와 맞춘다.
-export const CLIENT_SCOPES = [
+export const ClientScopeSchema = z.enum([
   'name',
   'profile',
   'picture',
   'email',
   'phone_number',
   'student_id',
-] as const;
+]);
+export const TokenScopeSchema = z.enum(['openid', 'offline_access']);
+export const ScopeSchema = z.union([ClientScopeSchema, TokenScopeSchema]);
 
-export const TOKEN_SCOPES = ['openid', 'offline_access'] as const;
-
-export type ClientScope = (typeof CLIENT_SCOPES)[number];
-export type TokenScope = (typeof TOKEN_SCOPES)[number];
-export type Scope = ClientScope | TokenScope;
-
-export const ScopeSchema: z.ZodMiniType<Scope> = z.enum([...CLIENT_SCOPES, ...TOKEN_SCOPES]);
+export type ClientScope = z.infer<typeof ClientScopeSchema>;
+export type TokenScope = z.infer<typeof TokenScopeSchema>;
+export type Scope = z.infer<typeof ScopeSchema>;
 
 export function isScope(value: unknown): value is Scope {
   return ScopeSchema.safeParse(value).success;

@@ -12,20 +12,8 @@ import {
 import { type ClientCredentials } from './token';
 import { parse } from './validate';
 
-export interface UserInfoResponse {
-  sub: string;
-  name?: string;
-  profile?: string | null;
-  picture?: string | null;
-  email?: string;
-  student_id?: string;
-  is_student_id_verified?: boolean;
-  phone_number?: string;
-  is_phone_number_verified?: boolean;
-}
-
 // account-be User 모델에서 profile 과 picture 만 nullable 이다.
-const UserInfoResponseSchema: z.ZodMiniType<UserInfoResponse> = z.looseObject({
+export const UserInfoResponseSchema = z.looseObject({
   sub: z.string().check(z.minLength(1)),
   name: z.optional(z.string()),
   profile: z.optional(z.nullable(z.string())),
@@ -37,20 +25,9 @@ const UserInfoResponseSchema: z.ZodMiniType<UserInfoResponse> = z.looseObject({
   is_phone_number_verified: z.optional(z.boolean()),
 });
 
-export interface UserInfo {
-  sub: string;
-  name?: string;
-  profile?: string | null;
-  picture?: string | null;
-  email?: string;
-  studentId?: string;
-  isStudentIdVerified?: boolean;
-  phoneNumber?: string;
-  isPhoneNumberVerified?: boolean;
-}
-
-export function toUserInfo(raw: UserInfoResponse): UserInfo {
-  return {
+export const UserInfoSchema = z.pipe(
+  UserInfoResponseSchema,
+  z.transform((raw) => ({
     sub: raw.sub,
     name: raw.name,
     profile: raw.profile,
@@ -60,8 +37,11 @@ export function toUserInfo(raw: UserInfoResponse): UserInfo {
     isStudentIdVerified: raw.is_student_id_verified,
     phoneNumber: raw.phone_number,
     isPhoneNumberVerified: raw.is_phone_number_verified,
-  };
-}
+  })),
+);
+
+export type UserInfoResponse = z.input<typeof UserInfoSchema>;
+export type UserInfo = z.output<typeof UserInfoSchema>;
 
 export interface FetchUserInfoOptions extends RequestOptions {
   sub?: string;
@@ -93,7 +73,7 @@ export async function fetchUserInfo(
       options.sub ?? oauth.skipSubjectCheck,
       response,
     );
-    return toUserInfo(parse(UserInfoResponseSchema, body, 'server_error', 'userinfo response'));
+    return parse(UserInfoSchema, body, 'server_error', 'userinfo response');
   } catch (error) {
     throw toAccountError(error);
   }
