@@ -29,6 +29,7 @@ export type SdkErrorCode =
   | 'discovery_failed'
   | 'network_error'
   | 'unauthenticated'
+  | 'session_rejected'
   | 'unknown';
 
 export type AccountErrorCode = DenialReason | OAuthErrorCode | SdkErrorCode;
@@ -49,6 +50,8 @@ const OAUTH_ERROR_CODES: ReadonlySet<string> = new Set<OAuthErrorCode>([
 export interface AccountErrorOptions {
   description?: string;
   status?: number;
+  // 서비스 백엔드가 거절하며 돌려준 body. house-be 의 requiredConsents 처럼 앱이 읽어야 하는 값이 들어 있다.
+  details?: unknown;
   cause?: unknown;
 }
 
@@ -57,6 +60,7 @@ export class AccountError extends Error {
   readonly code: AccountErrorCode;
   readonly description: string | undefined;
   readonly status: number | undefined;
+  readonly details: unknown;
 
   constructor(code: AccountErrorCode, options: AccountErrorOptions = {}) {
     super(options.description ? `${code}: ${options.description}` : code, {
@@ -65,6 +69,7 @@ export class AccountError extends Error {
     this.code = code;
     this.description = options.description;
     this.status = options.status;
+    this.details = options.details;
   }
 
   // 번들러가 클래스를 복제하면 instanceof 가 틀리므로 name 과 code 로 판별한다.
