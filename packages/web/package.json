@@ -31,12 +31,12 @@
   "dependencies": {
     "@gsainfoteam/account-core": "workspace:^",
     "es-toolkit": "^1.52.0",
-    "zod": "^4.6.5",
     "zustand": "^5.0.15"
   },
   "peerDependencies": {
     "axios": "^1.0.0",
-    "openapi-fetch": ">=0.13.0"
+    "openapi-fetch": ">=0.13.0",
+    "zod": "^4.0.0"
   },
   "peerDependenciesMeta": {
     "axios": {
@@ -52,6 +52,7 @@
     "openapi-fetch": "^0.17.0",
     "tsdown": "^0.23.0",
     "typescript": "~6.0.3",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.3",
+    "zod": "^4.6.5"
   }
 }

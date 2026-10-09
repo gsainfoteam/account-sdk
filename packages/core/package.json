@@ -36,7 +36,8 @@
     "@types/node": "^24.0.0",
     "tsdown": "^0.23.0",
     "typescript": "~6.0.3",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.3",
+    "zod": "^4.6.5"
   },
   "engines": {
     "node": ">=20.19"
@@ -44,7 +45,9 @@
   "dependencies": {
     "es-toolkit": "^1.52.0",
     "jose": "^6.2.12",
-    "oauth4webapi": "^3.8.8",
-    "zod": "^4.6.5"
+    "oauth4webapi": "^3.8.8"
+  },
+  "peerDependencies": {
+    "zod": "^4.0.0"
   }
 }
