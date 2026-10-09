@@ -1,41 +1,27 @@
-import { type AccountMetadata, type Fetch } from './discovery';
-import { AccountError, fromOAuthError } from './errors';
+import { decodeJwt } from 'jose';
+import * as oauth from 'oauth4webapi';
+
+import { type AccountMetadata } from './discovery';
+import { type IdTokenClaims } from './id-token';
+import {
+  authorizationServer,
+  clientAuthentication,
+  httpOptions,
+  oauthClient,
+  toAccountError,
+  type RequestOptions,
+} from './oauth';
 import { parseScopes, type Scope } from './scopes';
 
 export interface TokenResponse {
   accessToken: string;
   tokenType: string;
-  expiresIn: number;
+  expiresIn: number | undefined;
   refreshToken?: string;
   refreshTokenExpiresIn?: number;
   idToken?: string;
+  idTokenClaims?: IdTokenClaims;
   scopes: Scope[];
-}
-
-interface RawTokenResponse {
-  access_token?: unknown;
-  token_type?: unknown;
-  expires_in?: unknown;
-  refresh_token?: unknown;
-  refresh_token_expires_in?: unknown;
-  id_token?: unknown;
-  scope?: unknown;
-}
-
-export function parseTokenResponse(raw: RawTokenResponse): TokenResponse {
-  if (typeof raw.access_token !== 'string') {
-    throw new AccountError('invalid_grant', { description: 'token response has no access_token' });
-  }
-  return {
-    accessToken: raw.access_token,
-    tokenType: typeof raw.token_type === 'string' ? raw.token_type : 'Bearer',
-    expiresIn: typeof raw.expires_in === 'number' ? raw.expires_in : 0,
-    refreshToken: typeof raw.refresh_token === 'string' ? raw.refresh_token : undefined,
-    refreshTokenExpiresIn:
-      typeof raw.refresh_token_expires_in === 'number' ? raw.refresh_token_expires_in : undefined,
-    idToken: typeof raw.id_token === 'string' ? raw.id_token : undefined,
-    scopes: parseScopes(typeof raw.scope === 'string' ? raw.scope : undefined),
-  };
 }
 
 // client_secret 이 있으면 confidential client, 없으면 public client 다.
@@ -44,43 +30,103 @@ export interface ClientCredentials {
   clientSecret?: string;
 }
 
-export interface TokenRequestOptions {
-  fetch?: Fetch;
-  signal?: AbortSignal;
+export interface ExchangeCodeParams {
+  code: string;
+  codeVerifier: string;
+  redirectUri: string;
+  // authorize 요청에 nonce 를 보냈다면(openid) 같은 값. id_token 의 nonce 와 대조한다.
+  nonce?: string;
+  // callback 에 실려 온 iss. 서버가 브라우저에게서 code 를 넘겨받을 때도 함께 받으면 대조할 수 있다.
+  iss?: string;
 }
 
-export type TokenGrant =
-  | { grantType: 'authorization_code'; code: string; codeVerifier: string; redirectUri: string }
-  | { grantType: 'refresh_token'; refreshToken: string }
-  | { grantType: 'client_credentials'; scopes: readonly Scope[] };
-
-// client_secret_basic 대신 client_secret_post 를 쓴다. account-be 의 Basic 파서는 RFC 6749 2.3.1 의
-// form-urlencoding 을 풀지 않아서, secret 에 `:` 나 `%` 가 들어가면 두 방식의 결과가 달라진다.
-export async function requestToken(
+// state 는 callback 을 받은 쪽(브라우저나 앱)이 이미 검증했다. 서버가 code 를 넘겨받는 B 방식에서도
+// 같은 함수를 쓰도록 state 검사는 건너뛰고, oauth4webapi 가 요구하는 검증된 callback 파라미터만 만든다.
+export async function exchangeCode(
   metadata: AccountMetadata,
   client: ClientCredentials,
-  grant: TokenGrant,
-  { fetch = globalThis.fetch, signal }: TokenRequestOptions = {},
+  params: ExchangeCodeParams,
+  options: RequestOptions = {},
 ): Promise<TokenResponse> {
-  const body = new URLSearchParams({ grant_type: grant.grantType, client_id: client.clientId });
-  if (client.clientSecret) body.set('client_secret', client.clientSecret);
+  try {
+    const callback = new URLSearchParams({ code: params.code });
+    if (params.iss) callback.set('iss', params.iss);
+    const validated = oauth.validateAuthResponse(
+      authorizationServer(metadata, params.iss),
+      oauthClient(client.clientId),
+      callback,
+      oauth.skipStateCheck,
+    );
 
-  switch (grant.grantType) {
-    case 'authorization_code':
-      body.set('code', grant.code);
-      body.set('code_verifier', grant.codeVerifier);
-      body.set('redirect_uri', grant.redirectUri);
-      break;
-    case 'refresh_token':
-      body.set('refresh_token', grant.refreshToken);
-      break;
-    case 'client_credentials':
-      body.set('scope', grant.scopes.join(' '));
-      break;
+    const response = await oauth.authorizationCodeGrantRequest(
+      authorizationServer(metadata),
+      oauthClient(client.clientId),
+      clientAuthentication(client.clientSecret),
+      validated,
+      params.redirectUri,
+      params.codeVerifier,
+      httpOptions(metadata, options),
+    );
+    const result = await oauth.processAuthorizationCodeResponse(
+      await asForIdTokenOf(metadata, response),
+      oauthClient(client.clientId),
+      response,
+      { expectedNonce: params.nonce ?? oauth.expectNoNonce },
+    );
+    return toTokenResponse(result);
+  } catch (error) {
+    throw toAccountError(error);
   }
+}
 
-  const json = await postForm(metadata.tokenEndpoint, body, { fetch, signal });
-  return parseTokenResponse(json as RawTokenResponse);
+export async function refreshTokens(
+  metadata: AccountMetadata,
+  client: ClientCredentials,
+  refreshToken: string,
+  options: RequestOptions = {},
+): Promise<TokenResponse> {
+  try {
+    const response = await oauth.refreshTokenGrantRequest(
+      authorizationServer(metadata),
+      oauthClient(client.clientId),
+      clientAuthentication(client.clientSecret),
+      refreshToken,
+      httpOptions(metadata, options),
+    );
+    const result = await oauth.processRefreshTokenResponse(
+      await asForIdTokenOf(metadata, response),
+      oauthClient(client.clientId),
+      response,
+    );
+    return toTokenResponse(result);
+  } catch (error) {
+    throw toAccountError(error);
+  }
+}
+
+export async function requestClientCredentials(
+  metadata: AccountMetadata,
+  client: Required<ClientCredentials>,
+  scopes: readonly Scope[],
+  options: RequestOptions = {},
+): Promise<TokenResponse> {
+  try {
+    const response = await oauth.clientCredentialsGrantRequest(
+      authorizationServer(metadata),
+      oauthClient(client.clientId),
+      clientAuthentication(client.clientSecret),
+      { scope: scopes.join(' ') },
+      httpOptions(metadata, options),
+    );
+    const result = await oauth.processClientCredentialsResponse(
+      authorizationServer(metadata),
+      oauthClient(client.clientId),
+      response,
+    );
+    return toTokenResponse(result);
+  } catch (error) {
+    throw toAccountError(error);
+  }
 }
 
 export interface RevokeParams {
@@ -92,63 +138,58 @@ export async function revokeToken(
   metadata: AccountMetadata,
   client: ClientCredentials,
   { token, tokenTypeHint }: RevokeParams,
-  { fetch = globalThis.fetch, signal }: TokenRequestOptions = {},
+  options: RequestOptions = {},
 ): Promise<void> {
-  const body = new URLSearchParams({
-    token,
-    token_type_hint: tokenTypeHint,
-    client_id: client.clientId,
-  });
-  if (client.clientSecret) body.set('client_secret', client.clientSecret);
-  await postForm(metadata.revocation.endpoint, body, { fetch, signal }, metadata.revocation.method);
-}
-
-async function postForm(
-  url: string,
-  body: URLSearchParams,
-  { fetch = globalThis.fetch, signal }: TokenRequestOptions,
-  method: 'POST' | 'DELETE' = 'POST',
-): Promise<unknown> {
-  let response: Response;
+  const base = httpOptions(metadata, options);
+  const fetch = options.fetch ?? globalThis.fetch;
   try {
-    response = await fetch(url, {
-      method,
-      headers: {
-        'content-type': 'application/x-www-form-urlencoded',
-        accept: 'application/json',
+    const response = await oauth.revocationRequest(
+      { ...authorizationServer(metadata), revocation_endpoint: metadata.revocation.endpoint },
+      oauthClient(client.clientId),
+      clientAuthentication(client.clientSecret),
+      token,
+      {
+        ...base,
+        additionalParameters: { token_type_hint: tokenTypeHint },
+        // account-be 는 RFC 7009 의 POST 대신 `DELETE /oauth/token` 으로 받는다.
+        [oauth.customFetch]: (url, init) =>
+          fetch(url, { ...init, method: metadata.revocation.method }),
       },
-      body,
-      signal,
-    });
-  } catch (cause) {
-    throw new AccountError('network_error', { description: `${method} ${url}`, cause });
+    );
+    await oauth.processRevocationResponse(response);
+  } catch (error) {
+    throw toAccountError(error);
   }
-
-  const text = await response.text();
-  const json: unknown = text ? safeJson(text) : undefined;
-
-  if (!response.ok) {
-    const error = (json as { error?: unknown } | undefined)?.error;
-    const description = (json as { error_description?: unknown } | undefined)?.error_description;
-    if (typeof error === 'string') {
-      throw fromOAuthError(
-        error,
-        typeof description === 'string' ? description : null,
-        response.status,
-      );
-    }
-    throw new AccountError(response.status >= 500 ? 'server_error' : 'invalid_request', {
-      description: `${method} ${url}`,
-      status: response.status,
-    });
-  }
-  return json;
 }
 
-function safeJson(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return undefined;
-  }
+// id_token 의 iss 가 metadata.issuers 중 무엇인지 미리 읽어서 그 issuer 로 검증하게 한다.
+// 서명은 oauth4webapi 가 확인하지 않는다. token endpoint 에서 TLS 로 직접 받은 응답이라 OIDC Core 3.1.3.7 이 허용한다.
+async function asForIdTokenOf(
+  metadata: AccountMetadata,
+  response: Response,
+): Promise<oauth.AuthorizationServer> {
+  if (!response.ok) return authorizationServer(metadata);
+  const body = (await response
+    .clone()
+    .json()
+    .catch(() => undefined)) as { id_token?: unknown } | undefined;
+  if (typeof body?.id_token !== 'string') return authorizationServer(metadata);
+  const iss = decodeJwt(body.id_token).iss;
+  return authorizationServer(metadata, iss && metadata.issuers.includes(iss) ? iss : undefined);
+}
+
+function toTokenResponse(result: oauth.TokenEndpointResponse): TokenResponse {
+  const claims = oauth.getValidatedIdTokenClaims(result);
+  const refreshTokenExpiresIn = result.refresh_token_expires_in;
+  return {
+    accessToken: result.access_token,
+    tokenType: result.token_type,
+    expiresIn: result.expires_in,
+    refreshToken: result.refresh_token,
+    refreshTokenExpiresIn:
+      typeof refreshTokenExpiresIn === 'number' ? refreshTokenExpiresIn : undefined,
+    idToken: result.id_token,
+    idTokenClaims: claims as IdTokenClaims | undefined,
+    scopes: parseScopes(result.scope),
+  };
 }

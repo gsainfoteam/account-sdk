@@ -39,6 +39,11 @@
     "vitest": "^5.0.3"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20.19"
+  },
+  "dependencies": {
+    "jose": "^6.2.12",
+    "oauth4webapi": "^3.8.8",
+    "zod": "^4.6.5"
   }
 }

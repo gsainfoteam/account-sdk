@@ -1,3 +1,5 @@
+import * as z from 'zod/mini';
+
 import { AccountError } from './errors';
 import { parseScopes, type Scope } from './scopes';
 
@@ -35,12 +37,23 @@ export interface DiscoveryDocument {
   userinfo_endpoint?: string;
   jwks_uri: string;
   revocation_endpoint?: string;
-  response_types_supported?: string[];
   scopes_supported?: string[];
   scope_supported?: string[];
   id_token_signing_alg_values_supported?: string[];
   [key: string]: unknown;
 }
+
+const DiscoveryDocumentSchema: z.ZodMiniType<DiscoveryDocument> = z.looseObject({
+  issuer: z.string(),
+  authorization_endpoint: z.url(),
+  token_endpoint: z.url(),
+  userinfo_endpoint: z.optional(z.url()),
+  jwks_uri: z.url(),
+  revocation_endpoint: z.optional(z.url()),
+  scopes_supported: z.optional(z.array(z.string())),
+  scope_supported: z.optional(z.array(z.string())),
+  id_token_signing_alg_values_supported: z.optional(z.array(z.string())),
+});
 
 export function discoveryUrlOf(issuer: IssuerInput): string {
   const base = Object.hasOwn(ENVIRONMENTS, issuer) ? ENVIRONMENTS[issuer as Environment] : issuer;
@@ -54,14 +67,17 @@ export function discoveryUrlOf(issuer: IssuerInput): string {
 //   API origin 과 로그인 화면 origin 을 모두 받아들인다.
 // - `scopes_supported` 가 `scope_supported` 로 잘못 나간다.
 // - 표준 revocation endpoint 대신 `DELETE /oauth/token` 을 쓴다.
-export function normalizeDiscovery(doc: DiscoveryDocument, fetchedFrom: string): AccountMetadata {
-  if (
-    typeof doc.authorization_endpoint !== 'string' ||
-    typeof doc.token_endpoint !== 'string' ||
-    typeof doc.jwks_uri !== 'string'
-  ) {
-    throw new AccountError('discovery_failed', { description: 'missing endpoints' });
+// 같은 이유로 oauth4webapi 의 processDiscoveryResponse 는 쓸 수 없다. 문서의 issuer 가 요청한 URL 과
+// 같아야 통과하기 때문이다.
+export function normalizeDiscovery(input: unknown, fetchedFrom: string): AccountMetadata {
+  const parsed = DiscoveryDocumentSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new AccountError('discovery_failed', {
+      description: 'invalid discovery document',
+      cause: parsed.error,
+    });
   }
+  const doc = parsed.data;
 
   const apiOrigin = new URL(fetchedFrom).origin;
   const frontOrigin = apiOrigin.replace('://api.', '://');
@@ -128,9 +144,9 @@ async function fetchDiscovery(
       status: response.status,
     });
   }
-  let doc: DiscoveryDocument;
+  let doc: unknown;
   try {
-    doc = (await response.json()) as DiscoveryDocument;
+    doc = await response.json();
   } catch (cause) {
     throw new AccountError('discovery_failed', { description: `${url} is not JSON`, cause });
   }
