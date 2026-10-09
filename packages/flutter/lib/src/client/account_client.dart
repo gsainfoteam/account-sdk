@@ -96,6 +96,15 @@ class AccountClient {
       metadata.tokenEndpoint,
       httpClient: _http,
     );
+    final unsupported = metadata.scopesSupported.isEmpty
+        ? const <AccountScope>[]
+        : scopes.where((scope) => !metadata.scopesSupported.contains(scope.value)).toList();
+    if (unsupported.isNotEmpty) {
+      throw AccountOAuthException(
+        OAuthErrorCode.invalidScope.wire,
+        unsupported.map((scope) => scope.value).join(' '),
+      );
+    }
     final state = _randomState();
     var url = grant.getAuthorizationUrl(
       redirectUri,

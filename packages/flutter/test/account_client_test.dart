@@ -131,6 +131,40 @@ void main() {
     await expectLater(client.signIn(), throwsA(isA<AccountCancelledException>()));
   });
 
+  test('rejects a scope the IdP does not advertise before opening the browser', () async {
+    final opened = <Uri>[];
+    final body = jsonDecode(discovery) as Map<String, Object?>;
+    final client = AccountClient(
+      issuer: AccountIssuer.production,
+      clientId: 'pot-g',
+      redirectUri: Uri.parse('pot-g-idp-login-redirect://callback'),
+      scopes: const [AccountScope.name],
+      session: FakeSession(),
+      store: MemoryTokenStore(),
+      httpClient: MockClient(
+        (request) async => http.Response(
+          jsonEncode({
+            ...body,
+            'scope_supported': ['email'],
+          }),
+          200,
+          headers: {'content-type': 'application/json'},
+        ),
+      ),
+      authenticate: (url, scheme) async {
+        opened.add(url);
+        return success(url);
+      },
+    );
+    await expectLater(
+      client.signIn(),
+      throwsA(
+        isA<AccountOAuthException>().having((e) => e.code, 'code', OAuthErrorCode.invalidScope),
+      ),
+    );
+    expect(opened, isEmpty);
+  });
+
   test('refreshes once for concurrent 401s', () async {
     final (:client, :session, authorizations: _) = setup(success);
     await client.signIn();
