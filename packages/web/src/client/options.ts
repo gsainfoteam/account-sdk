@@ -13,7 +13,7 @@ const nonEmpty = () => z.string().check(z.minLength(1));
 
 /** Options of {@link createAccountClient}. Validated at creation, so a missing env value fails at startup. */
 export const AccountClientOptionsSchema = z.object({
-  /** `'production'`, `'staging'` or the API origin of a local account-be. */
+  /** `'production'`, `'staging'` or the `https:` API origin of another account-be deployment. */
   issuer: z.custom<IssuerInput>((value) => typeof value === 'string' && value.length > 0),
   clientId: nonEmpty(),
   /** Callback path or URL registered for the client. A path is resolved against the current origin. */

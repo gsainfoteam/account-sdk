@@ -29,7 +29,7 @@ export async function revokeToken(
   { token, tokenTypeHint }: RevokeParams,
   options: RequestOptions = {},
 ): Promise<void> {
-  const base = httpOptions(metadata, options);
+  const base = httpOptions(options);
   const fetch = options.fetch ?? globalThis.fetch;
   try {
     const response = await oauth.revocationRequest(

@@ -33,7 +33,7 @@ export async function refreshTokens(
       oauthClient(client.clientId),
       clientAuthentication(client.clientSecret),
       refreshToken,
-      httpOptions(metadata, options),
+      httpOptions(options),
     );
     const result = await oauth.processRefreshTokenResponse(
       await asForIdTokenOf(metadata, response),

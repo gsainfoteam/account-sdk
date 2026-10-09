@@ -4,8 +4,7 @@ import { DISCOVERY_PATH, ENVIRONMENTS } from '../constants';
 export type Environment = keyof typeof ENVIRONMENTS;
 
 /**
- * Where the IdP lives: an {@link Environment} name, or the origin of its API such as
- * `http://localhost:3000` for an account-be running locally.
+ * Where the IdP lives: an {@link Environment} name, or the `https:` origin of another account-be's API.
  */
 export type IssuerInput = Environment | (string & {});
 

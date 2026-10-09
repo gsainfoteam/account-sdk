@@ -76,7 +76,7 @@ export async function fetchUserInfo(
       as,
       oauthClientOf,
       accessToken,
-      httpOptions(metadata, options),
+      httpOptions(options),
     );
     const body = await oauth.processUserInfoResponse(
       as,

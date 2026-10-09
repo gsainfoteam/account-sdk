@@ -64,7 +64,7 @@ export async function exchangeCode(
       validated,
       params.redirectUri,
       params.codeVerifier,
-      httpOptions(metadata, options),
+      httpOptions(options),
     );
     const result = await oauth.processAuthorizationCodeResponse(
       await asForIdTokenOf(metadata, response),

@@ -29,7 +29,7 @@ export async function requestClientCredentials(
       oauthClient(client.clientId),
       clientAuthentication(client.clientSecret),
       { scope: scopes.join(' ') },
-      httpOptions(metadata, options),
+      httpOptions(options),
     );
     const result = await oauth.processClientCredentialsResponse(
       authorizationServer(metadata),

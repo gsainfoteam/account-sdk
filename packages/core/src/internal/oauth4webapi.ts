@@ -38,11 +38,11 @@ export function clientAuthentication(clientSecret: string | undefined): oauth.Cl
   return clientSecret ? oauth.ClientSecretPost(clientSecret) : oauth.None();
 }
 
-/** HTTP options for oauth4webapi. Plain `http:` is allowed only for an account-be running locally. */
-export function httpOptions<Method, Body = undefined>(
-  metadata: AccountMetadata,
-  { fetch, signal }: RequestOptions,
-): oauth.HttpRequestOptions<Method, Body> {
+/** HTTP options for oauth4webapi. Only `https:` endpoints are allowed. */
+export function httpOptions<Method, Body = undefined>({
+  fetch,
+  signal,
+}: RequestOptions): oauth.HttpRequestOptions<Method, Body> {
   return {
     signal,
     ...(fetch
@@ -51,7 +51,6 @@ export function httpOptions<Method, Body = undefined>(
             fetch(url, init as RequestInit),
         }
       : {}),
-    [oauth.allowInsecureRequests]: new URL(metadata.tokenEndpoint).protocol === 'http:',
   };
 }
 
