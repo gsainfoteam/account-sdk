@@ -7,13 +7,13 @@ import { authorizationServer, oauthClient, toAccountError } from '../internal/oa
 /** Values taken from a validated callback URL. */
 export interface CallbackParams {
   code: string;
-  /** The state saved when the authorization started. Without one the callback cannot be trusted. */
   state: string;
   iss?: string;
 }
 
 export interface ParseCallbackOptions {
   clientId: string;
+  /** The state saved when the authorization started. Without one the callback cannot be trusted. */
   state: string | null | undefined;
 }
 
