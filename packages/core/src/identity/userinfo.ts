@@ -3,7 +3,7 @@ import * as z from 'zod/mini';
 
 import { type AccountMetadata } from '../discovery/normalize-discovery';
 import { type ClientCredentials } from '../grants/token-response';
-import { type RequestOptions } from '../internal/http';
+import { type RequestOptions } from '../http/fetch';
 import {
   authorizationServer,
   httpOptions,

@@ -1,5 +1,8 @@
 import {
   AccountError,
+  AUTHORIZATION_HEADER,
+  bearer,
+  isUnauthorized,
   createAuthorization,
   discover,
   exchangeCode,
@@ -16,6 +19,7 @@ import { createStore, type StoreApi } from 'zustand/vanilla';
 import { type AccountState } from './account-state';
 import { AccountClientOptionsSchema, type AccountClientOptions } from './options';
 import { type LoginCredential } from '../session/session-adapter';
+import { STORAGE_KEYS } from '../storage/keys';
 import { saveTransaction, takeTransaction } from '../storage/transactions';
 
 export interface SignInOptions {
@@ -39,7 +43,7 @@ export interface AccountClient {
   fetch: Fetch;
 }
 
-const SIGNED_OUT_KEY = 'gsainfoteam-account:signed-out';
+const SIGNED_OUT_KEY = STORAGE_KEYS.signedOut;
 
 export function createAccountClient(input: AccountClientOptions): AccountClient {
   const parsed = AccountClientOptionsSchema.safeParse(input);
@@ -234,13 +238,13 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
         const headers = new Headers(
           init?.headers ?? (input instanceof Request ? input.headers : undefined),
         );
-        if (token) headers.set('authorization', `Bearer ${token}`);
+        if (token) headers.set(AUTHORIZATION_HEADER, bearer(token));
         const request = input instanceof Request ? input.clone() : input;
         return (fetch ?? globalThis.fetch)(request, { ...init, headers });
       };
       const token = client.getAccessToken();
       const response = await send(token);
-      if (response.status !== 401) return response;
+      if (!isUnauthorized(response.status)) return response;
       const refreshed = await client.refresh(token);
       return refreshed ? send(refreshed) : response;
     },

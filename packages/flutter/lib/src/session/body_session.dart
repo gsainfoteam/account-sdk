@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 
+import '../constants.dart';
 import '../errors/account_exception.dart';
+import '../http/bearer.dart';
 import '../http/dio_interceptor.dart';
 import 'session_adapter.dart';
 import 'session_tokens.dart';
@@ -9,11 +11,13 @@ import 'session_tokens.dart';
 class BodySession implements SessionAdapter {
   BodySession({
     required this.dio,
-    this.loginPath = '/auth/login',
-    this.refreshPath = '/auth/refresh',
-    this.logoutPath = '/auth/logout',
+    String? loginPath,
+    String? refreshPath,
+    String? logoutPath,
     this.loginBody,
-  });
+  }) : loginPath = loginPath ?? AccountConstants.sessionPaths['login']!,
+       refreshPath = refreshPath ?? AccountConstants.sessionPaths['refresh']!,
+       logoutPath = logoutPath ?? AccountConstants.sessionPaths['logout']!;
 
   final Dio dio;
   final String loginPath;
@@ -32,7 +36,7 @@ class BodySession implements SessionAdapter {
     try {
       return SessionTokens.fromJson(await _post(refreshPath, {'refresh_token': refreshToken}));
     } on AccountSessionRejectedException catch (error) {
-      if (error.statusCode == 401 || error.statusCode == 403) return null;
+      if (AccountConstants.authFailureStatuses.contains(error.statusCode)) return null;
       rethrow;
     }
   }
@@ -42,7 +46,7 @@ class BodySession implements SessionAdapter {
     await _post(
       logoutPath,
       {'refresh_token': refreshToken ?? ''},
-      headers: {if (accessToken != null) 'authorization': 'Bearer $accessToken'},
+      headers: {if (accessToken != null) authorizationHeader: bearer(accessToken)},
     );
   }
 

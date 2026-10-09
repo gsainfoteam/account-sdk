@@ -1,3 +1,4 @@
+import '../constants.dart';
 import '../errors/account_exception.dart';
 
 class AccountMetadata {
@@ -34,7 +35,12 @@ AccountMetadata normalizeDiscovery(Object? json, Uri fetchedFrom) {
   }
 
   final apiOrigin = fetchedFrom.replace(path: '', query: null);
-  final frontOrigin = apiOrigin.replace(host: apiOrigin.host.replaceFirst(RegExp(r'^api\.'), ''));
+  final frontOrigin = apiOrigin.replace(
+    host: apiOrigin.host.replaceFirst(
+      RegExp('^${RegExp.escape(AccountConstants.apiHostPrefix)}'),
+      '',
+    ),
+  );
   Uri onApi(String endpoint) => apiOrigin.replace(path: Uri.parse(endpoint).path);
   final scopes = json['scopes_supported'] ?? json['scope_supported'];
 
@@ -45,7 +51,9 @@ AccountMetadata normalizeDiscovery(Object? json, Uri fetchedFrom) {
       path: Uri.parse(field('authorization_endpoint')).path,
     ),
     tokenEndpoint: onApi(field('token_endpoint')),
-    userinfoEndpoint: onApi((json['userinfo_endpoint'] as String?) ?? '/oauth/userinfo'),
+    userinfoEndpoint: onApi(
+      (json['userinfo_endpoint'] as String?) ?? AccountConstants.fallbackEndpoints['userinfo']!,
+    ),
     scopesSupported: scopes is List ? scopes.whereType<String>().toList() : const [],
   );
 }

@@ -2,7 +2,7 @@ import * as oauth from 'oauth4webapi';
 
 import { type ClientCredentials } from './token-response';
 import { type AccountMetadata } from '../discovery/normalize-discovery';
-import { type RequestOptions } from '../internal/http';
+import { type RequestOptions } from '../http/fetch';
 import {
   authorizationServer,
   clientAuthentication,

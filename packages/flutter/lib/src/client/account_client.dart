@@ -9,6 +9,7 @@ import 'package:mutex/mutex.dart';
 import 'package:oauth2/oauth2.dart' as oauth2;
 import 'package:rxdart/rxdart.dart';
 
+import '../constants.dart';
 import '../discovery/account_issuer.dart';
 import '../discovery/discover.dart';
 import '../errors/account_exception.dart';
@@ -174,7 +175,9 @@ Future<String> _systemBrowser(Uri url, String callbackUrlScheme) =>
 
 String _randomState() {
   final random = Random.secure();
-  return base64UrlEncode(List<int>.generate(32, (_) => random.nextInt(256))).replaceAll('=', '');
+  return base64UrlEncode(
+    List<int>.generate(AccountConstants.stateByteLength, (_) => random.nextInt(256)),
+  ).replaceAll('=', '');
 }
 
 AccountException _fromAuthorizationError(oauth2.AuthorizationException error) {

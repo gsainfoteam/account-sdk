@@ -1,3 +1,9 @@
+import {
+  AUTHORIZATION_HEADER,
+  bearer,
+  isUnauthorized,
+  readBearer,
+} from '@gsainfoteam/account-core';
 import { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 
 import { type AccountClient } from '../client/create-account-client';
@@ -8,18 +14,18 @@ export function attachAccount(instance: AxiosInstance, client: AccountClient): (
   const request = instance.interceptors.request.use(async (config) => {
     await client.ready();
     const token = client.getAccessToken();
-    if (token) config.headers.set('authorization', `Bearer ${token}`);
+    if (token) config.headers.set(AUTHORIZATION_HEADER, bearer(token));
     return config;
   });
 
   const response = instance.interceptors.response.use(undefined, async (error: AxiosError) => {
     const config = error.config;
-    if (error.response?.status !== 401 || !config || retried.has(config)) throw error;
-    const stale = String(config.headers.get('authorization') ?? '').replace(/^Bearer /, '') || null;
+    if (!isUnauthorized(error.response?.status) || !config || retried.has(config)) throw error;
+    const stale = readBearer(String(config.headers.get(AUTHORIZATION_HEADER) ?? ''));
     const token = await client.refresh(stale);
     if (!token) throw error;
     retried.add(config);
-    config.headers.set('authorization', `Bearer ${token}`);
+    config.headers.set(AUTHORIZATION_HEADER, bearer(token));
     return instance.request(config);
   });
 

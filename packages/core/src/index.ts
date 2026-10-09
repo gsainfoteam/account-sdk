@@ -12,12 +12,7 @@ export {
   type ParseCallbackOptions,
 } from './authorization/parse-callback';
 export { clearDiscoveryCache, discover, type DiscoverOptions } from './discovery/discover';
-export {
-  discoveryUrlOf,
-  ENVIRONMENTS,
-  type Environment,
-  type IssuerInput,
-} from './discovery/environments';
+export { discoveryUrlOf, type Environment, type IssuerInput } from './discovery/environments';
 export {
   DiscoveryDocumentSchema,
   normalizeDiscovery,
@@ -65,4 +60,12 @@ export {
   type UserInfo,
   type UserInfoResponse,
 } from './identity/userinfo';
-export { type Fetch, type RequestOptions } from './internal/http';
+export { type Fetch, type RequestOptions } from './http/fetch';
+export * from './constants';
+export {
+  AUTHORIZATION_HEADER,
+  bearer,
+  isAuthFailure,
+  isUnauthorized,
+  readBearer,
+} from './http/bearer';

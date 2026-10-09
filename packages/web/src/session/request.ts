@@ -1,4 +1,4 @@
-import { AccountError, type Fetch } from '@gsainfoteam/account-core';
+import { AccountError, AUTHORIZATION_HEADER, bearer, type Fetch } from '@gsainfoteam/account-core';
 import * as z from 'zod/mini';
 
 import { SessionTokensSchema, type SessionTokens } from './session-adapter';
@@ -13,7 +13,7 @@ export function createRequester(baseUrl: string, fetch: Fetch | undefined) {
   const base = baseUrl.replace(/\/+$/, '');
   return async ({ path, accessToken, body }: Request): Promise<Response> => {
     const headers = new Headers({ accept: 'application/json' });
-    if (accessToken) headers.set('authorization', `Bearer ${accessToken}`);
+    if (accessToken) headers.set(AUTHORIZATION_HEADER, bearer(accessToken));
     if (body !== undefined) headers.set('content-type', 'application/json');
     try {
       return await (fetch ?? globalThis.fetch)(`${base}${path}`, {

@@ -1,5 +1,6 @@
 import * as z from 'zod/mini';
 
+import { API_HOST_PREFIX, DEFAULT_ID_TOKEN_SIGNING_ALGS, FALLBACK_ENDPOINTS } from '../constants';
 import { parse } from '../internal/validate';
 
 export interface AccountMetadata {
@@ -41,7 +42,7 @@ export function normalizeDiscovery(input: unknown, fetchedFrom: string): Account
   const doc = parse(DiscoveryDocumentSchema, input, 'discovery_failed', 'discovery document');
 
   const apiOrigin = new URL(fetchedFrom).origin;
-  const frontOrigin = apiOrigin.replace('://api.', '://');
+  const frontOrigin = apiOrigin.replace(`://${API_HOST_PREFIX}`, '://');
   const onApi = (endpoint: string): string =>
     new URL(new URL(endpoint).pathname, apiOrigin).toString();
 
@@ -53,12 +54,17 @@ export function normalizeDiscovery(input: unknown, fetchedFrom: string): Account
       frontOrigin,
     ).toString(),
     tokenEndpoint: onApi(doc.token_endpoint),
-    userinfoEndpoint: onApi(doc.userinfo_endpoint ?? `${apiOrigin}/oauth/userinfo`),
+    userinfoEndpoint: onApi(
+      doc.userinfo_endpoint ?? new URL(FALLBACK_ENDPOINTS.userinfo, apiOrigin).toString(),
+    ),
     jwksUri: onApi(doc.jwks_uri),
     revocation: doc.revocation_endpoint
       ? { endpoint: onApi(doc.revocation_endpoint), method: 'POST' }
-      : { endpoint: `${apiOrigin}/oauth/token`, method: 'DELETE' },
+      : {
+          endpoint: new URL(FALLBACK_ENDPOINTS.revocation, apiOrigin).toString(),
+          method: 'DELETE',
+        },
     scopesSupported: doc.scopes_supported ?? doc.scope_supported ?? [],
-    idTokenSigningAlgs: doc.id_token_signing_alg_values_supported ?? ['ES256'],
+    idTokenSigningAlgs: doc.id_token_signing_alg_values_supported ?? DEFAULT_ID_TOKEN_SIGNING_ALGS,
   };
 }

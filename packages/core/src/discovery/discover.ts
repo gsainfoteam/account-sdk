@@ -1,7 +1,7 @@
 import { discoveryUrlOf, type IssuerInput } from './environments';
 import { normalizeDiscovery, type AccountMetadata } from './normalize-discovery';
 import { AccountError } from '../errors/account-error';
-import { type Fetch } from '../internal/http';
+import { type Fetch } from '../http/fetch';
 
 export interface DiscoverOptions {
   fetch?: Fetch;

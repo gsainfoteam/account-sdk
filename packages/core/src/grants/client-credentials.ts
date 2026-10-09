@@ -2,8 +2,8 @@ import * as oauth from 'oauth4webapi';
 
 import { toTokenResponse, type ClientCredentials, type TokenResponse } from './token-response';
 import { type AccountMetadata } from '../discovery/normalize-discovery';
+import { type RequestOptions } from '../http/fetch';
 import { type Scope } from '../identity/scopes';
-import { type RequestOptions } from '../internal/http';
 import {
   authorizationServer,
   clientAuthentication,

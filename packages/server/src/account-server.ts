@@ -1,5 +1,6 @@
 import {
   AccountError,
+  DEFAULT_CLIENT_CREDENTIALS_SCOPES,
   discover,
   exchangeCode,
   fetchUserInfo,
@@ -51,7 +52,7 @@ export function createAccountServer(input: AccountServerOptions): AccountServer 
     requestClientCredentials(
       await metadata(),
       { clientId, clientSecret: requireSecret('getUserInfoBySub') },
-      options.clientCredentialsScopes ?? ['name', 'email'],
+      options.clientCredentialsScopes ?? DEFAULT_CLIENT_CREDENTIALS_SCOPES,
       { fetch },
     ),
   );

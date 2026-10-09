@@ -1,9 +1,13 @@
-import { ScopeSchema, type AuthorizationTransaction } from '@gsainfoteam/account-core';
+import {
+  AUTHORIZATION_CODE_TTL_MS,
+  ScopeSchema,
+  type AuthorizationTransaction,
+} from '@gsainfoteam/account-core';
 import * as z from 'zod/mini';
 
-const PREFIX = 'gsainfoteam-account:tx:';
-// account-be 의 authorization code 수명과 같다. 그보다 오래된 트랜잭션으로는 어차피 교환할 수 없다.
-const TTL_MS = 10 * 60 * 1000;
+import { STORAGE_KEYS } from './keys';
+
+const PREFIX = STORAGE_KEYS.transactionPrefix;
 
 export const StoredTransactionSchema = z.object({
   state: z.string(),
@@ -48,7 +52,7 @@ function pruneExpired(storage: Storage): void {
 }
 
 function isExpired(transaction: StoredTransaction): boolean {
-  return Date.now() - transaction.createdAt > TTL_MS;
+  return Date.now() - transaction.createdAt > AUTHORIZATION_CODE_TTL_MS;
 }
 
 function safeJson(raw: string | null): unknown {

@@ -1,13 +1,15 @@
 import 'package:dio/dio.dart';
 
 import '../client/account_client.dart';
+import '../constants.dart';
+import 'bearer.dart';
 
 abstract final class SkipAccountAuth {
-  static const key = 'gsainfoteam_account.skip';
+  static const key = '${AccountConstants.storageNamespace}:skip';
   static const extra = {key: true};
 }
 
-const _retriedKey = 'gsainfoteam_account.retried';
+const _retriedKey = '${AccountConstants.storageNamespace}:retried';
 
 class AccountInterceptor extends QueuedInterceptor {
   AccountInterceptor(this.client, this.dio);
@@ -23,15 +25,15 @@ class AccountInterceptor extends QueuedInterceptor {
     await client.mutex.acquireRead();
     final token = client.accessToken;
     client.mutex.release();
-    if (token != null) options.headers['authorization'] = 'Bearer $token';
+    if (token != null) options.headers[authorizationHeader] = bearer(token);
     handler.next(options);
   }
 
   @override
   Future<void> onError(DioException err, ErrorInterceptorHandler handler) async {
     final options = err.requestOptions;
-    final sent = (options.headers['authorization'] as String?)?.replaceFirst('Bearer ', '');
-    if (err.response?.statusCode != 401 ||
+    final sent = readBearer(options.headers[authorizationHeader]);
+    if (err.response?.statusCode != AccountConstants.unauthorizedStatus ||
         options.extra[SkipAccountAuth.key] == true ||
         options.extra[_retriedKey] == true ||
         sent == null) {
@@ -39,7 +41,7 @@ class AccountInterceptor extends QueuedInterceptor {
     }
     if (!await client.refresh(staleToken: sent)) return handler.next(err);
     options.extra[_retriedKey] = true;
-    options.headers['authorization'] = 'Bearer ${client.accessToken}';
+    options.headers[authorizationHeader] = bearer(client.accessToken!);
     try {
       handler.resolve(await dio.fetch<Object?>(options));
     } on DioException catch (retryError) {

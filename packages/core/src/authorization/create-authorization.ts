@@ -1,5 +1,6 @@
 import * as oauth from 'oauth4webapi';
 
+import { CODE_CHALLENGE_METHOD } from '../constants';
 import { type AccountMetadata } from '../discovery/normalize-discovery';
 import { AccountError } from '../errors/account-error';
 import { type Scope } from '../identity/scopes';
@@ -53,7 +54,7 @@ export async function createAuthorization(
   url.searchParams.set('scope', scopes.join(' '));
   url.searchParams.set('state', state);
   url.searchParams.set('code_challenge', await oauth.calculatePKCECodeChallenge(codeVerifier));
-  url.searchParams.set('code_challenge_method', 'S256');
+  url.searchParams.set('code_challenge_method', CODE_CHALLENGE_METHOD);
   if (nonce) url.searchParams.set('nonce', nonce);
   if (prompt) url.searchParams.set('prompt', prompt);
 

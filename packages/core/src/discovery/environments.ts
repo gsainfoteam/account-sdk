@@ -1,13 +1,10 @@
-export type Environment = 'production' | 'staging';
+import { DISCOVERY_PATH, ENVIRONMENTS } from '../constants';
 
-export const ENVIRONMENTS: Readonly<Record<Environment, string>> = {
-  production: 'https://api.account.gistory.me',
-  staging: 'https://api.stg.account.gistory.me',
-};
+export type Environment = keyof typeof ENVIRONMENTS;
 
 export type IssuerInput = Environment | (string & {});
 
 export function discoveryUrlOf(issuer: IssuerInput): string {
   const base = Object.hasOwn(ENVIRONMENTS, issuer) ? ENVIRONMENTS[issuer as Environment] : issuer;
-  return new URL('/.well-known/openid-configuration', base).toString();
+  return new URL(DISCOVERY_PATH, base).toString();
 }

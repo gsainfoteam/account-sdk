@@ -1,17 +1,18 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../constants.dart';
 import 'token_store.dart';
 
 class SecureTokenStore implements TokenStore {
-  SecureTokenStore([FlutterSecureStorage? storage, this.prefix = 'gsainfoteam_account'])
+  SecureTokenStore([FlutterSecureStorage? storage, this.prefix = AccountConstants.storageNamespace])
     : _storage = storage ?? const FlutterSecureStorage();
 
   final FlutterSecureStorage _storage;
   final String prefix;
 
-  String get _access => '$prefix.access_token';
-  String get _refresh => '$prefix.refresh_token';
-  String get _signedOut => '$prefix.signed_out';
+  String get _access => '$prefix:access-token';
+  String get _refresh => '$prefix:refresh-token';
+  String get _signedOut => '$prefix:signed-out';
 
   @override
   Future<StoredSession?> read() async {

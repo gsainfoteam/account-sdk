@@ -1,7 +1,8 @@
-import { type Fetch } from '@gsainfoteam/account-core';
+import { isAuthFailure, SESSION_PATHS, type Fetch } from '@gsainfoteam/account-core';
 
 import { createRequester, readTokens } from './request';
 import { type SessionAdapter, type SessionPaths, type SessionTokens } from './session-adapter';
+import { STORAGE_KEYS } from '../storage/keys';
 
 export interface BodySessionOptions {
   baseUrl: string;
@@ -16,10 +17,10 @@ export function bodySession({
   paths = {},
   fetch,
   storage = globalThis.localStorage,
-  storageKey = 'gsainfoteam-account:refresh-token',
+  storageKey = STORAGE_KEYS.refreshToken,
 }: BodySessionOptions): SessionAdapter {
   const request = createRequester(baseUrl, fetch);
-  const { login = '/auth/login', refresh = '/auth/refresh', logout = '/auth/logout' } = paths;
+  const { login, refresh, logout } = { ...SESSION_PATHS, ...paths };
 
   const keep = (tokens: SessionTokens): SessionTokens => {
     if (tokens.refreshToken) storage.setItem(storageKey, tokens.refreshToken);
@@ -48,7 +49,7 @@ export function bodySession({
       const refreshToken = storage.getItem(storageKey);
       if (!refreshToken) return null;
       const response = await request({ path: refresh, body: { refresh_token: refreshToken } });
-      if (response.status === 401 || response.status === 403) {
+      if (isAuthFailure(response.status)) {
         storage.removeItem(storageKey);
         return null;
       }

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   AccountError,
+  SCOPES,
   clearDiscoveryCache,
   discover,
   discoveryUrlOf,
@@ -83,6 +84,12 @@ describe('normalizeDiscovery', () => {
       endpoint: 'https://api.account.gistory.me/oauth/revoke',
       method: 'POST',
     });
+  });
+});
+
+describe('scopes', () => {
+  it('match what the IdP advertises', () => {
+    expect([...SCOPES].sort()).toEqual([...production.scope_supported].sort());
   });
 });
 

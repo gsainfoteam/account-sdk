@@ -1,8 +1,9 @@
 import * as oauth from 'oauth4webapi';
 
-import { type RequestOptions } from './http';
 import { type AccountMetadata } from '../discovery/normalize-discovery';
 import { AccountError, fromOAuthError } from '../errors/account-error';
+import { isAuthFailure } from '../http/bearer';
+import { type RequestOptions } from '../http/fetch';
 
 // oauth4webapi 는 issuer 를 하나만 받는다. IdP 가 issuer 를 두 가지로 내보내는 동안에는, 받은 값이
 // metadata.issuers 에 있는지 먼저 확인하고 그 값을 issuer 로 넣어 라이브러리 검증을 그대로 통과시킨다.
@@ -62,8 +63,7 @@ export function toAccountError(error: unknown): AccountError {
   }
   if (error instanceof oauth.OperationProcessingError) {
     const status = error.cause instanceof Response ? error.cause.status : undefined;
-    if (status === 401 || status === 403)
-      return new AccountError('invalid_token', { status, cause: error });
+    if (isAuthFailure(status)) return new AccountError('invalid_token', { status, cause: error });
     if (error.code === oauth.JWT_CLAIM_COMPARISON || error.code === oauth.JWT_TIMESTAMP_CHECK) {
       return new AccountError('invalid_id_token', { description: error.message, cause: error });
     }

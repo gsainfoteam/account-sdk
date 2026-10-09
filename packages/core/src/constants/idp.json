@@ -1,0 +1,20 @@
+{
+  "environments": {
+    "production": "https://api.account.gistory.me",
+    "staging": "https://api.stg.account.gistory.me"
+  },
+  "apiHostPrefix": "api.",
+  "discoveryPath": "/.well-known/openid-configuration",
+  "fallbackEndpoints": {
+    "userinfo": "/oauth/userinfo",
+    "revocation": "/oauth/token"
+  },
+  "idTokenSigningAlgs": ["ES256"],
+  "authorizationCodeTtlSeconds": 600,
+  "sessionPaths": {
+    "login": "/auth/login",
+    "refresh": "/auth/refresh",
+    "logout": "/auth/logout"
+  },
+  "storageNamespace": "gsainfoteam-account"
+}

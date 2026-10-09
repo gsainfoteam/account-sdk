@@ -1,4 +1,9 @@
-import { ScopeSchema, type Fetch, type IssuerInput } from '@gsainfoteam/account-core';
+import {
+  ScopeSchema,
+  SESSION_PATHS,
+  type Fetch,
+  type IssuerInput,
+} from '@gsainfoteam/account-core';
 import * as z from 'zod/mini';
 
 import { type SessionAdapter } from '../session/session-adapter';
@@ -17,7 +22,7 @@ export const AccountClientOptionsSchema = z.object({
     (value) =>
       typeof value === 'object' &&
       value !== null &&
-      ['login', 'refresh', 'logout'].every((key) =>
+      Object.keys(SESSION_PATHS).every((key) =>
         isFunction((value as unknown as Record<string, unknown>)[key]),
       ),
   ),

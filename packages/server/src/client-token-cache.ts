@@ -1,7 +1,5 @@
-import { type TokenResponse } from '@gsainfoteam/account-core';
+import { CLIENT_TOKEN_REFRESH_MARGIN_MS, type TokenResponse } from '@gsainfoteam/account-core';
 import { Mutex } from 'es-toolkit';
-
-const CLIENT_TOKEN_REFRESH_MARGIN_MS = 60_000;
 
 export interface ClientTokenCache {
   get(): Promise<string>;

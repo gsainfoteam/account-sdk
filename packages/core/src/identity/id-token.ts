@@ -1,9 +1,10 @@
 import { createRemoteJWKSet, customFetch, jwtVerify, type JWTVerifyGetKey } from 'jose';
 import * as z from 'zod/mini';
 
+import { ID_TOKEN_CLOCK_TOLERANCE_SEC } from '../constants';
 import { type AccountMetadata } from '../discovery/normalize-discovery';
 import { AccountError } from '../errors/account-error';
-import { type Fetch } from '../internal/http';
+import { type Fetch } from '../http/fetch';
 import { parse } from '../internal/validate';
 
 export const IdTokenClaimsSchema = z.looseObject({
@@ -63,7 +64,7 @@ export async function verifyIdToken(
       audience: options.audience,
       algorithms: [...metadata.idTokenSigningAlgs],
       requiredClaims: ['sub', 'iat', 'exp'],
-      clockTolerance: options.clockToleranceSec ?? 60,
+      clockTolerance: options.clockToleranceSec ?? ID_TOKEN_CLOCK_TOLERANCE_SEC,
       currentDate: options.currentDate,
     }));
   } catch (cause) {

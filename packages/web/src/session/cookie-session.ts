@@ -1,4 +1,4 @@
-import { AccountError, type Fetch } from '@gsainfoteam/account-core';
+import { AccountError, isAuthFailure, SESSION_PATHS, type Fetch } from '@gsainfoteam/account-core';
 
 import { createRequester, readTokens } from './request';
 import { type SessionAdapter, type SessionPaths } from './session-adapter';
@@ -15,7 +15,7 @@ export function cookieSession({
   fetch,
 }: CookieSessionOptions): SessionAdapter {
   const request = createRequester(baseUrl, fetch);
-  const { login = '/auth/login', refresh = '/auth/refresh', logout = '/auth/logout' } = paths;
+  const { login, refresh, logout } = { ...SESSION_PATHS, ...paths };
 
   return {
     async login(credential, body) {
@@ -31,7 +31,7 @@ export function cookieSession({
     },
     async refresh() {
       const response = await request({ path: refresh });
-      if (response.status === 401 || response.status === 403) return null;
+      if (isAuthFailure(response.status)) return null;
       return readTokens(response, refresh);
     },
     async logout(accessToken) {
