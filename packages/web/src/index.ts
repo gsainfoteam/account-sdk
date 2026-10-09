@@ -1,24 +1,20 @@
+export { type AccountState, type AccountStatus } from './client/account-state';
 export {
-  AccountClientOptionsSchema,
   createAccountClient,
   type AccountClient,
-  type AccountClientOptions,
-  type AccountState,
-  type AccountStatus,
   type CallbackResult,
   type SignInOptions,
-} from './client';
+} from './client/create-account-client';
+export { AccountClientOptionsSchema, type AccountClientOptions } from './client/options';
+export { bodySession, type BodySessionOptions } from './session/body-session';
+export { cookieSession, type CookieSessionOptions } from './session/cookie-session';
 export {
-  bodySession,
-  cookieSession,
   SessionTokensSchema,
-  type BodySessionOptions,
-  type CookieSessionOptions,
   type LoginCredential,
   type SessionAdapter,
   type SessionPaths,
   type SessionTokens,
-} from './session';
+} from './session/session-adapter';
 export {
   AccountError,
   type AccountErrorCode,

@@ -1,6 +1,6 @@
 import * as z from 'zod/mini';
 
-import { AccountError, type AccountErrorCode } from './errors';
+import { AccountError, type AccountErrorCode } from '../errors/account-error';
 
 export function parse<T>(
   schema: z.ZodMiniType<T>,

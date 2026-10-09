@@ -1,6 +1,6 @@
 import { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 
-import { type AccountClient } from './client';
+import { type AccountClient } from '../client/create-account-client';
 
 export function attachAccount(instance: AxiosInstance, client: AccountClient): () => void {
   const retried = new WeakSet<InternalAxiosRequestConfig>();

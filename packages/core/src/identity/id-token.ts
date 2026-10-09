@@ -1,9 +1,10 @@
 import { createRemoteJWKSet, customFetch, jwtVerify, type JWTVerifyGetKey } from 'jose';
 import * as z from 'zod/mini';
 
-import { type AccountMetadata, type Fetch } from './discovery';
-import { AccountError } from './errors';
-import { parse } from './validate';
+import { type AccountMetadata } from '../discovery/normalize-discovery';
+import { AccountError } from '../errors/account-error';
+import { type Fetch } from '../internal/http';
+import { parse } from '../internal/validate';
 
 export const IdTokenClaimsSchema = z.looseObject({
   iss: z.string(),

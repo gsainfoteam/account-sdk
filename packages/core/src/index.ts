@@ -3,28 +3,27 @@ export {
   type AuthorizationTransaction,
   type CreateAuthorizationParams,
   type Prompt,
-} from './authorize';
+} from './authorization/create-authorization';
 export {
   isCallbackUrl,
   parseCallback,
   readCallbackState,
   type CallbackParams,
   type ParseCallbackOptions,
-} from './callback';
+} from './authorization/parse-callback';
+export { clearDiscoveryCache, discover, type DiscoverOptions } from './discovery/discover';
 export {
-  clearDiscoveryCache,
-  discover,
-  DiscoveryDocumentSchema,
   discoveryUrlOf,
   ENVIRONMENTS,
+  type Environment,
+  type IssuerInput,
+} from './discovery/environments';
+export {
+  DiscoveryDocumentSchema,
   normalizeDiscovery,
   type AccountMetadata,
-  type DiscoverOptions,
   type DiscoveryDocument,
-  type Environment,
-  type Fetch,
-  type IssuerInput,
-} from './discovery';
+} from './discovery/normalize-discovery';
 export {
   AccountError,
   DENIAL_REASONS,
@@ -34,15 +33,19 @@ export {
   type DenialReason,
   type OAuthErrorCode,
   type SdkErrorCode,
-} from './errors';
+} from './errors/account-error';
+export { requestClientCredentials } from './grants/client-credentials';
+export { exchangeCode, type ExchangeCodeParams } from './grants/exchange-code';
+export { refreshTokens } from './grants/refresh-tokens';
+export { revokeToken, type RevokeParams } from './grants/revoke-token';
+export { type ClientCredentials, type TokenResponse } from './grants/token-response';
 export {
   IdTokenClaimsSchema,
   parseIdTokenClaims,
   verifyIdToken,
   type IdTokenClaims,
   type VerifyIdTokenOptions,
-} from './id-token';
-export { type RequestOptions } from './oauth';
+} from './identity/id-token';
 export {
   ClientScopeSchema,
   isScope,
@@ -53,17 +56,7 @@ export {
   type ClientScope,
   type Scope,
   type TokenScope,
-} from './scopes';
-export {
-  exchangeCode,
-  refreshTokens,
-  requestClientCredentials,
-  revokeToken,
-  type ClientCredentials,
-  type ExchangeCodeParams,
-  type RevokeParams,
-  type TokenResponse,
-} from './token';
+} from './identity/scopes';
 export {
   fetchUserInfo,
   UserInfoResponseSchema,
@@ -71,4 +64,5 @@ export {
   type FetchUserInfoOptions,
   type UserInfo,
   type UserInfoResponse,
-} from './userinfo';
+} from './identity/userinfo';
+export { type Fetch, type RequestOptions } from './internal/http';

@@ -1,7 +1,11 @@
 import { defineConfig } from 'tsdown';
 
 export default defineConfig({
-  entry: ['src/index.ts', 'src/openapi-fetch.ts', 'src/axios.ts'],
+  entry: {
+    index: 'src/index.ts',
+    'openapi-fetch': 'src/adapters/openapi-fetch.ts',
+    axios: 'src/adapters/axios.ts',
+  },
   format: ['esm'],
   platform: 'browser',
   dts: true,

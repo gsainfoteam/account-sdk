@@ -1,0 +1,41 @@
+import { AccountError, type Fetch } from '@gsainfoteam/account-core';
+
+import { createRequester, readTokens } from './request';
+import { type SessionAdapter, type SessionPaths } from './session-adapter';
+
+export interface CookieSessionOptions {
+  baseUrl: string;
+  paths?: SessionPaths;
+  fetch?: Fetch;
+}
+
+export function cookieSession({
+  baseUrl,
+  paths = {},
+  fetch,
+}: CookieSessionOptions): SessionAdapter {
+  const request = createRequester(baseUrl, fetch);
+  const { login = '/auth/login', refresh = '/auth/refresh', logout = '/auth/logout' } = paths;
+
+  return {
+    async login(credential, body) {
+      if (credential.type !== 'idp_token') {
+        throw new AccountError('invalid_request', {
+          description: "cookieSession needs exchange: 'browser'",
+        });
+      }
+      return readTokens(
+        await request({ path: login, accessToken: credential.accessToken, body }),
+        login,
+      );
+    },
+    async refresh() {
+      const response = await request({ path: refresh });
+      if (response.status === 401 || response.status === 403) return null;
+      return readTokens(response, refresh);
+    },
+    async logout(accessToken) {
+      await request({ path: logout, accessToken: accessToken ?? undefined });
+    },
+  };
+}

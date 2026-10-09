@@ -1,8 +1,8 @@
 import * as oauth from 'oauth4webapi';
 
-import { type AccountMetadata } from './discovery';
-import { AccountError } from './errors';
-import { type Scope } from './scopes';
+import { type AccountMetadata } from '../discovery/normalize-discovery';
+import { AccountError } from '../errors/account-error';
+import { type Scope } from '../identity/scopes';
 
 export type Prompt = 'none' | 'login' | 'consent';
 

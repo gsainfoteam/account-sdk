@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from 'react';
 
 import { type AccountClient } from '@gsainfoteam/account-web';
 
-import { AccountContext } from './context';
+import { AccountContext } from '../context/account-context';
 
 export interface AccountProviderProps {
   client: AccountClient;

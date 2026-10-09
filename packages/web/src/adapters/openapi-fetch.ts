@@ -1,6 +1,6 @@
 import { type Middleware } from 'openapi-fetch';
 
-import { type AccountClient } from './client';
+import { type AccountClient } from '../client/create-account-client';
 
 export function createAccountMiddleware(client: AccountClient): Middleware {
   return {

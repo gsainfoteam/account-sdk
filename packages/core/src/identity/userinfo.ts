@@ -1,16 +1,16 @@
 import * as oauth from 'oauth4webapi';
 import * as z from 'zod/mini';
 
-import { type AccountMetadata } from './discovery';
+import { type AccountMetadata } from '../discovery/normalize-discovery';
+import { type ClientCredentials } from '../grants/token-response';
+import { type RequestOptions } from '../internal/http';
 import {
   authorizationServer,
   httpOptions,
   oauthClient,
   toAccountError,
-  type RequestOptions,
-} from './oauth';
-import { type ClientCredentials } from './token';
-import { parse } from './validate';
+} from '../internal/oauth4webapi';
+import { parse } from '../internal/validate';
 
 // account-be User 모델에서 profile 과 picture 만 nullable 이다.
 export const UserInfoResponseSchema = z.looseObject({

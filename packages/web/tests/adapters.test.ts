@@ -5,8 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { cookieSession, createAccountClient } from '../src';
 import { fakeServers } from './fake-servers';
-import { attachAccount } from '../src/axios';
-import { createAccountMiddleware } from '../src/openapi-fetch';
+import { attachAccount } from '../src/adapters/axios';
+import { createAccountMiddleware } from '../src/adapters/openapi-fetch';
 
 const API = 'api.ziggle.gistory.me';
 

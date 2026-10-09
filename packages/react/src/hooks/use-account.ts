@@ -1,7 +1,7 @@
 import { type AccountClient, type AccountState } from '@gsainfoteam/account-web';
 import { useStore } from 'zustand';
 
-import { useAccountClient } from './context';
+import { useAccountClient } from '../context/account-context';
 
 export interface UseAccountResult extends AccountState {
   signIn: AccountClient['signIn'];

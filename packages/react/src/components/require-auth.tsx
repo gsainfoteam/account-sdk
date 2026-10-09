@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from 'react';
 
 import { useStore } from 'zustand';
 
-import { useAccountClient } from './context';
+import { useAccountClient } from '../context/account-context';
 
 export interface RequireAuthProps {
   children?: ReactNode;

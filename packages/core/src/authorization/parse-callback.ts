@@ -1,8 +1,8 @@
 import * as oauth from 'oauth4webapi';
 
-import { type AccountMetadata } from './discovery';
-import { AccountError } from './errors';
-import { authorizationServer, oauthClient, toAccountError } from './oauth';
+import { type AccountMetadata } from '../discovery/normalize-discovery';
+import { AccountError } from '../errors/account-error';
+import { authorizationServer, oauthClient, toAccountError } from '../internal/oauth4webapi';
 
 export interface CallbackParams {
   code: string;

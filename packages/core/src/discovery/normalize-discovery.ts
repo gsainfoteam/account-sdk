@@ -1,18 +1,6 @@
 import * as z from 'zod/mini';
 
-import { AccountError } from './errors';
-import { parse } from './validate';
-
-export type Environment = 'production' | 'staging';
-
-export const ENVIRONMENTS: Readonly<Record<Environment, string>> = {
-  production: 'https://api.account.gistory.me',
-  staging: 'https://api.stg.account.gistory.me',
-};
-
-export type IssuerInput = Environment | (string & {});
-
-export type Fetch = typeof globalThis.fetch;
+import { parse } from '../internal/validate';
 
 export interface AccountMetadata {
   issuer: string;
@@ -39,11 +27,6 @@ export const DiscoveryDocumentSchema = z.looseObject({
 });
 
 export type DiscoveryDocument = z.infer<typeof DiscoveryDocumentSchema>;
-
-export function discoveryUrlOf(issuer: IssuerInput): string {
-  const base = Object.hasOwn(ENVIRONMENTS, issuer) ? ENVIRONMENTS[issuer as Environment] : issuer;
-  return new URL('/.well-known/openid-configuration', base).toString();
-}
 
 // 지금 IdP discovery 문서의 결함을 여기서만 흡수한다. IdP 가 고쳐지면 이 함수만 단순해진다.
 // - issuer 와 endpoint 들을 account-be 의 BASE_URL 로 만들어서, 스테이징은 `account.account.gistory.me` 처럼
@@ -78,55 +61,4 @@ export function normalizeDiscovery(input: unknown, fetchedFrom: string): Account
     scopesSupported: doc.scopes_supported ?? doc.scope_supported ?? [],
     idTokenSigningAlgs: doc.id_token_signing_alg_values_supported ?? ['ES256'],
   };
-}
-
-export interface DiscoverOptions {
-  fetch?: Fetch;
-  signal?: AbortSignal;
-}
-
-const cache = new Map<string, Promise<AccountMetadata>>();
-
-export function discover(
-  issuer: IssuerInput,
-  options: DiscoverOptions = {},
-): Promise<AccountMetadata> {
-  const url = discoveryUrlOf(issuer);
-  const cached = cache.get(url);
-  if (cached) return cached;
-
-  const pending = fetchDiscovery(url, options);
-  cache.set(url, pending);
-  // 실패를 캐시하면 일시적인 네트워크 오류가 페이지를 새로 고칠 때까지 남는다.
-  pending.catch(() => cache.delete(url));
-  return pending;
-}
-
-export function clearDiscoveryCache(): void {
-  cache.clear();
-}
-
-async function fetchDiscovery(
-  url: string,
-  { fetch = globalThis.fetch, signal }: DiscoverOptions,
-): Promise<AccountMetadata> {
-  let response: Response;
-  try {
-    response = await fetch(url, { headers: { accept: 'application/json' }, signal });
-  } catch (cause) {
-    throw new AccountError('network_error', { description: `GET ${url}`, cause });
-  }
-  if (!response.ok) {
-    throw new AccountError('discovery_failed', {
-      description: `GET ${url}`,
-      status: response.status,
-    });
-  }
-  let doc: unknown;
-  try {
-    doc = await response.json();
-  } catch (cause) {
-    throw new AccountError('discovery_failed', { description: `${url} is not JSON`, cause });
-  }
-  return normalizeDiscovery(doc, url);
 }

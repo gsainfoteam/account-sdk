@@ -2,7 +2,7 @@ import { useEffect, useEffectEvent, type ReactNode } from 'react';
 
 import { type AccountError, type CallbackResult } from '@gsainfoteam/account-web';
 
-import { useAccountClient } from './context';
+import { useAccountClient } from '../context/account-context';
 
 export interface AccountCallbackProps {
   onSuccess: (result: CallbackResult) => void;
