@@ -6,8 +6,11 @@ class AccountIssuer {
 
   factory AccountIssuer.custom(Uri apiOrigin) => AccountIssuer._(apiOrigin.toString());
 
-  static final production = AccountIssuer._(AccountConstants.environments['production']!);
-  static final staging = AccountIssuer._(AccountConstants.environments['staging']!);
+  /// The issuer of a known [AccountEnvironment].
+  AccountIssuer.of(AccountEnvironment environment) : apiOrigin = environment.apiOrigin;
+
+  static final production = AccountIssuer.of(AccountEnvironment.production);
+  static final staging = AccountIssuer.of(AccountEnvironment.staging);
 
   final String apiOrigin;
 

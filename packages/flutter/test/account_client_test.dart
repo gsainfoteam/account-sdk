@@ -52,14 +52,17 @@ http.Client idp() => MockClient((request) async {
 
 typedef Callback = String Function(Uri authorize);
 
-({AccountClient client, FakeSession session, List<Uri> authorizations}) setup(Callback callback) {
+({AccountClient client, FakeSession session, List<Uri> authorizations}) setup(
+  Callback callback, {
+  List<AccountScope> scopes = const [AccountScope.name, AccountScope.email],
+}) {
   final session = FakeSession();
   final authorizations = <Uri>[];
   final client = AccountClient(
     issuer: AccountIssuer.production,
     clientId: 'pot-g',
     redirectUri: Uri.parse('pot-g-idp-login-redirect://callback'),
-    scopes: const [AccountScope.name, AccountScope.email],
+    scopes: scopes,
     session: session,
     store: MemoryTokenStore(),
     httpClient: idp(),

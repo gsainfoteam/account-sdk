@@ -31,39 +31,36 @@ class AccountMetadata {
 ///
 /// Throws [AccountDiscoveryException] when the document lacks an endpoint.
 AccountMetadata normalizeDiscovery(Object? json, Uri fetchedFrom) {
-  if (json is! Map<String, Object?>) {
-    throw const AccountDiscoveryException('not a JSON object');
-  }
-  String field(String key) {
-    final value = json[key];
-    if (value is! String || value.isEmpty) {
-      throw AccountDiscoveryException('missing $key');
-    }
-    return value;
-  }
+  if (json case {
+    'issuer': final String issuer,
+    'authorization_endpoint': final String authorizationEndpoint,
+    'token_endpoint': final String tokenEndpoint,
+  } when issuer.isNotEmpty && authorizationEndpoint.isNotEmpty && tokenEndpoint.isNotEmpty) {
+    final apiOrigin = fetchedFrom.replace(path: '', query: null);
+    final frontOrigin = apiOrigin.replace(
+      host: apiOrigin.host.replaceFirst(
+        RegExp('^${RegExp.escape(AccountConstants.apiHostPrefix)}'),
+        '',
+      ),
+    );
+    Uri onApi(String endpoint) => apiOrigin.replace(path: Uri.parse(endpoint).path);
 
-  final apiOrigin = fetchedFrom.replace(path: '', query: null);
-  final frontOrigin = apiOrigin.replace(
-    host: apiOrigin.host.replaceFirst(
-      RegExp('^${RegExp.escape(AccountConstants.apiHostPrefix)}'),
-      '',
-    ),
-  );
-  Uri onApi(String endpoint) => apiOrigin.replace(path: Uri.parse(endpoint).path);
-  final scopes = json['scopes_supported'] ?? json['scope_supported'];
-
-  return AccountMetadata(
-    issuer: field('issuer'),
-    issuers: {field('issuer'), _origin(frontOrigin), _origin(apiOrigin)}.toList(),
-    authorizationEndpoint: frontOrigin.replace(
-      path: Uri.parse(field('authorization_endpoint')).path,
-    ),
-    tokenEndpoint: onApi(field('token_endpoint')),
-    userinfoEndpoint: onApi(
-      (json['userinfo_endpoint'] as String?) ?? AccountConstants.fallbackEndpoints['userinfo']!,
-    ),
-    scopesSupported: scopes is List ? scopes.whereType<String>().toList() : const [],
-  );
+    return AccountMetadata(
+      issuer: issuer,
+      issuers: {issuer, _origin(frontOrigin), _origin(apiOrigin)}.toList(),
+      authorizationEndpoint: frontOrigin.replace(path: Uri.parse(authorizationEndpoint).path),
+      tokenEndpoint: onApi(tokenEndpoint),
+      userinfoEndpoint: onApi(switch (json['userinfo_endpoint']) {
+        final String endpoint => endpoint,
+        _ => AccountConstants.fallbackUserinfoPath,
+      }),
+      scopesSupported: switch (json['scopes_supported'] ?? json['scope_supported']) {
+        final List<Object?> scopes => scopes.whereType<String>().toList(),
+        _ => const [],
+      },
+    );
+  }
+  throw const AccountDiscoveryException('missing issuer or endpoints');
 }
 
 String _origin(Uri uri) => '${uri.scheme}://${uri.authority}';

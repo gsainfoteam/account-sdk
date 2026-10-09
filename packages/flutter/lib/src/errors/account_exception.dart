@@ -12,7 +12,43 @@ final class AccountCancelledException extends AccountException {
 }
 
 /// Why account-fe turned the user away, from `error_description` of an `access_denied` response.
-enum AccountDenialReason { verificationRequired, consentRequired, loginRequired, other }
+enum AccountDenialReason {
+  userCancelled('user_cancelled'),
+  verificationRequired('verification_required'),
+  consentRequired('consent_required'),
+  loginRequired('login_required'),
+  other('');
+
+  const AccountDenialReason(this.wire);
+
+  /// The value account-fe sends in `error_description`.
+  final String wire;
+
+  static AccountDenialReason parse(String? wire) =>
+      values.firstWhere((reason) => reason.wire == wire, orElse: () => other);
+}
+
+/// OAuth 2.0 error codes the IdP returns.
+enum OAuthErrorCode {
+  accessDenied('access_denied'),
+  invalidRequest('invalid_request'),
+  invalidScope('invalid_scope'),
+  unauthorizedClient('unauthorized_client'),
+  unsupportedResponseType('unsupported_response_type'),
+  serverError('server_error'),
+  temporarilyUnavailable('temporarily_unavailable'),
+  invalidGrant('invalid_grant'),
+  invalidClient('invalid_client'),
+  unsupportedGrantType('unsupported_grant_type'),
+  unknown('');
+
+  const OAuthErrorCode(this.wire);
+
+  final String wire;
+
+  static OAuthErrorCode parse(String wire) =>
+      values.firstWhere((code) => code.wire == wire, orElse: () => unknown);
+}
 
 /// The IdP refused the sign-in for [reason].
 final class AccountDeniedException extends AccountException {
@@ -45,8 +81,12 @@ final class AccountIssuerMismatchException extends AccountException {
 
 /// The IdP answered with an OAuth error such as `invalid_grant`.
 final class AccountOAuthException extends AccountException {
-  const AccountOAuthException(this.error, [this.description]);
+  AccountOAuthException(this.error, [this.description]) : code = OAuthErrorCode.parse(error);
 
+  /// [error] as a known code, or [OAuthErrorCode.unknown].
+  final OAuthErrorCode code;
+
+  /// The error code exactly as the IdP sent it.
   final String error;
   final String? description;
 

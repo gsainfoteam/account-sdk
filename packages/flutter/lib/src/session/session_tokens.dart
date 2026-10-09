@@ -6,18 +6,20 @@ class SessionTokens {
 
   /// Reads `access_token`, `refresh_token` and `expires_in`. Throws [AccountSessionRejectedException] without an access token.
   factory SessionTokens.fromJson(Object? json) {
-    if (json is! Map ||
-        json['access_token'] is! String ||
-        (json['access_token'] as String).isEmpty) {
-      throw AccountSessionRejectedException(null, json);
+    if (json case {'access_token': final String accessToken} when accessToken.isNotEmpty) {
+      return SessionTokens(
+        accessToken: accessToken,
+        refreshToken: switch (json['refresh_token']) {
+          final String token when token.isNotEmpty => token,
+          _ => null,
+        },
+        expiresIn: switch (json['expires_in']) {
+          final num seconds => Duration(seconds: seconds.toInt()),
+          _ => null,
+        },
+      );
     }
-    final refreshToken = json['refresh_token'];
-    final expiresIn = json['expires_in'];
-    return SessionTokens(
-      accessToken: json['access_token'] as String,
-      refreshToken: refreshToken is String && refreshToken.isNotEmpty ? refreshToken : null,
-      expiresIn: expiresIn is num ? Duration(seconds: expiresIn.toInt()) : null,
-    );
+    throw AccountSessionRejectedException(null, json);
   }
 
   final String accessToken;

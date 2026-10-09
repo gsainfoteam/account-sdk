@@ -16,6 +16,7 @@ import '../errors/account_exception.dart';
 import '../session/session_adapter.dart';
 import '../storage/secure_token_store.dart';
 import '../storage/token_store.dart';
+import 'account_prompt.dart';
 import 'account_state.dart';
 import 'scopes.dart';
 
@@ -103,7 +104,7 @@ class AccountClient {
     );
     final prompt = await _prompt();
     if (prompt != null) {
-      url = url.replace(queryParameters: {...url.queryParameters, 'prompt': prompt});
+      url = url.replace(queryParameters: {...url.queryParameters, 'prompt': prompt.name});
     }
 
     final String result;
@@ -193,9 +194,9 @@ class AccountClient {
 
   Future<void> dispose() => _state.close();
 
-  Future<String?> _prompt() async {
-    if (await _store.readSignedOut()) return 'login';
-    if (scopes.contains(AccountScope.offlineAccess)) return 'consent';
+  Future<AccountPrompt?> _prompt() async {
+    if (await _store.readSignedOut()) return AccountPrompt.login;
+    if (scopes.contains(AccountScope.offlineAccess)) return AccountPrompt.consent;
     return null;
   }
 }
@@ -211,23 +212,11 @@ String _randomState() {
 }
 
 AccountException _fromAuthorizationError(oauth2.AuthorizationException error) {
-  if (error.error != 'access_denied') {
+  if (OAuthErrorCode.parse(error.error) != OAuthErrorCode.accessDenied) {
     return AccountOAuthException(error.error, error.description);
   }
-  return switch (error.description) {
-    'user_cancelled' => const AccountCancelledException(),
-    'verification_required' => AccountDeniedException(
-      AccountDenialReason.verificationRequired,
-      error.description,
-    ),
-    'consent_required' => AccountDeniedException(
-      AccountDenialReason.consentRequired,
-      error.description,
-    ),
-    'login_required' => AccountDeniedException(
-      AccountDenialReason.loginRequired,
-      error.description,
-    ),
-    _ => AccountDeniedException(AccountDenialReason.other, error.description),
+  return switch (AccountDenialReason.parse(error.description)) {
+    AccountDenialReason.userCancelled => const AccountCancelledException(),
+    final reason => AccountDeniedException(reason, error.description),
   };
 }
