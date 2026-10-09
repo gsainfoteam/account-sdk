@@ -14,5 +14,6 @@
     "lint": {
       "dependsOn": ["^build"]
     }
-  }
+  },
+  "agentGuidance": false
 }
