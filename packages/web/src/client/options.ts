@@ -1,8 +1,4 @@
-import {
-  ScopeSchema,
-  type Fetch,
-  type IssuerInput,
-} from '@gsainfoteam/account-core';
+import { ScopeSchema, type Fetch, type IssuerInput } from '@gsainfoteam/account-core';
 import { isFunction, isString } from 'es-toolkit';
 import * as z from 'zod/mini';
 
