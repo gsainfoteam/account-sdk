@@ -3,10 +3,10 @@ import 'reflect-metadata';
 import { clearDiscoveryCache } from '@gsainfoteam/account-core';
 import { Inject, Injectable, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import production from '../../core/tests/fixtures/discovery.production.json' with { type: 'json' };
-import { AccountModule, AccountService } from '../src';
+import { AccountModule, AccountService, defineAccount } from '../src';
 
 const fetch = vi.fn<typeof globalThis.fetch>(async (input) => {
   const url = new URL(String(input));
@@ -69,7 +69,44 @@ describe('AccountModule', () => {
         AuthModule,
       ],
     }).compile();
-    expect(moduleRef.get(AuthService).account).toBeInstanceOf(AccountService);
+    expect(moduleRef.get(AuthService).account).toBe(moduleRef.get(AccountService));
+  });
+
+  it('types and checks the fields of the scopes defineAccount declares', async () => {
+    const student = defineAccount({ requiredScopes: ['name', 'student_id'] });
+    type StudentAccount = InstanceType<typeof student.AccountService>;
+
+    const moduleRef = await Test.createTestingModule({
+      imports: [student.AccountModule.forRoot({ issuer: 'production', clientId: 'c', fetch })],
+    }).compile();
+    const account: StudentAccount = moduleRef.get(student.AccountService);
+
+    expectTypeOf<
+      Awaited<ReturnType<StudentAccount['getUserInfo']>>['studentId']
+    >().toEqualTypeOf<string>();
+    await expect(account.getUserInfo('at-1')).rejects.toMatchObject({
+      code: 'missing_claims',
+      description: 'student_id is_student_id_verified',
+    });
+  });
+
+  it('keeps accounts defined with different scopes apart in one app', async () => {
+    const named = defineAccount({ requiredScopes: ['name'] });
+    const student = defineAccount({ requiredScopes: ['student_id'] });
+
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        named.AccountModule.forRoot({ issuer: 'production', clientId: 'c', fetch }),
+        student.AccountModule.forRoot({ issuer: 'production', clientId: 'c', fetch }),
+      ],
+    }).compile();
+
+    await expect(moduleRef.get(named.AccountService).getUserInfo('at-1')).resolves.toMatchObject({
+      name: '홍길동',
+    });
+    await expect(moduleRef.get(student.AccountService).getUserInfo('at-1')).rejects.toMatchObject({
+      code: 'missing_claims',
+    });
   });
 
   it('fails while bootstrapping when the client id is missing', async () => {
