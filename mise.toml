@@ -1,0 +1,13 @@
+[tools]
+node = "24.21.0"
+pnpm = "12.10.1"
+flutter = "3.44.0"
+fnox = "1.35.2"
+
+[tasks.check]
+description = "CI 와 같은 검사를 로컬에서 돌린다"
+run = ["pnpm typecheck", "pnpm lint", "pnpm build", "pnpm test"]
+
+[tasks."test:live"]
+description = "스테이징 IdP 에 실제로 요청하는 테스트. fnox 가 테스트 client 자격 증명을 넣어 준다"
+run = "fnox exec -- pnpm --filter @gsainfoteam/account-server test:live"

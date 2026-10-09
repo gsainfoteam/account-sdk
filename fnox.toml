@@ -1,0 +1,10 @@
+default_provider = "plain"
+
+[providers.plain]
+type = "plain"
+
+# 스테이징 IdP 에 등록한 테스트 client. 실제 서비스 자격 증명이 아니라서 평문으로 둔다.
+# 레포를 공개하게 되면 secret 은 age provider 로 옮긴다.
+[secrets]
+ACCOUNT_TEST_CLIENT_ID = { description = "스테이징 IdP 에 등록한 테스트 client 의 id", if_missing = "warn" }
+ACCOUNT_TEST_CLIENT_SECRET = { description = "위 client 의 secret. confidential client 흐름(server 패키지) 테스트에 쓴다", if_missing = "warn" }

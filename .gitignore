@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.output/
+.tanstack/
+
+# Turbo
+.turbo/
+
+# Dart / Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+pubspec.lock
+!examples/flutter/pubspec.lock
+
+# Claude
+.claude/
+
+# Misc
+.DS_Store
+*.local
+.env
+.env.*
+!.env.example
+*.tsbuildinfo

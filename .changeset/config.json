@@ -1,0 +1,24 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config/schema.json",
+  "changelog": "@changesets/cli/changelog",
+  "commit": false,
+  "fixed": [
+    [
+      "@gsainfoteam/account-core",
+      "@gsainfoteam/account-web",
+      "@gsainfoteam/account-react",
+      "@gsainfoteam/account-server",
+      "@gsainfoteam/account-nest",
+      "gsainfoteam_account"
+    ]
+  ],
+  "linked": [],
+  "privatePackages": {
+    "version": true,
+    "tag": false
+  },
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": ["@gsainfoteam/account-example-*"]
+}
