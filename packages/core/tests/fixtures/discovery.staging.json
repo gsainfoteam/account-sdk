@@ -1,0 +1,37 @@
+{
+  "issuer": "https://account.account.gistory.me",
+  "authorization_endpoint": "https://account.account.gistory.me/authorize",
+  "token_endpoint": "https://api.account.account.gistory.me/oauth/token",
+  "userinfo_endpoint": "https://api.account.account.gistory.me/oauth/userinfo",
+  "jwks_uri": "https://api.account.account.gistory.me/oauth/certs",
+  "response_types_supported": ["code"],
+  "subject_types_supported": ["public"],
+  "id_token_signing_alg_values_supported": ["ES256"],
+  "scope_supported": [
+    "profile",
+    "name",
+    "picture",
+    "email",
+    "phone_number",
+    "student_id",
+    "openid",
+    "offline_access"
+  ],
+  "token_endpoint_auth_methods_supported": ["client_secret_basic", "client_secret_post"],
+  "claims_supported": [
+    "sub",
+    "aud",
+    "exp",
+    "iat",
+    "iss",
+    "auth_time",
+    "nonce",
+    "profile",
+    "name",
+    "picture",
+    "email",
+    "phone_number",
+    "student_id"
+  ],
+  "grant_types_supported": ["authorization_code", "refresh_token", "client_credentials"]
+}

@@ -1,0 +1,117 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  AccountError,
+  clearDiscoveryCache,
+  discover,
+  discoveryUrlOf,
+  normalizeDiscovery,
+} from '../src';
+import production from './fixtures/discovery.production.json' with { type: 'json' };
+import staging from './fixtures/discovery.staging.json' with { type: 'json' };
+
+describe('discoveryUrlOf', () => {
+  it('maps environments to the API host', () => {
+    expect(discoveryUrlOf('production')).toBe(
+      'https://api.account.gistory.me/.well-known/openid-configuration',
+    );
+    expect(discoveryUrlOf('staging')).toBe(
+      'https://api.stg.account.gistory.me/.well-known/openid-configuration',
+    );
+  });
+
+  it('takes a custom API origin', () => {
+    expect(discoveryUrlOf('http://localhost:3000')).toBe(
+      'http://localhost:3000/.well-known/openid-configuration',
+    );
+  });
+
+  it('does not treat Object.prototype keys as environments', () => {
+    expect(() => discoveryUrlOf('toString')).toThrow();
+  });
+});
+
+describe('normalizeDiscovery', () => {
+  it('keeps the production endpoints', () => {
+    const metadata = normalizeDiscovery(production, discoveryUrlOf('production'));
+    expect(metadata.authorizationEndpoint).toBe('https://account.gistory.me/authorize');
+    expect(metadata.tokenEndpoint).toBe('https://api.account.gistory.me/oauth/token');
+    expect(metadata.userinfoEndpoint).toBe('https://api.account.gistory.me/oauth/userinfo');
+    expect(metadata.jwksUri).toBe('https://api.account.gistory.me/oauth/certs');
+    expect(metadata.issuers).toEqual([
+      'https://account.gistory.me',
+      'https://api.account.gistory.me',
+    ]);
+  });
+
+  it('rebuilds the broken staging endpoints from the host it was fetched from', () => {
+    expect(staging.issuer).toBe('https://account.account.gistory.me');
+    const metadata = normalizeDiscovery(staging, discoveryUrlOf('staging'));
+    expect(metadata.authorizationEndpoint).toBe('https://stg.account.gistory.me/authorize');
+    expect(metadata.tokenEndpoint).toBe('https://api.stg.account.gistory.me/oauth/token');
+    expect(metadata.jwksUri).toBe('https://api.stg.account.gistory.me/oauth/certs');
+    expect(metadata.issuers).toContain('https://stg.account.gistory.me');
+    expect(metadata.issuers).toContain('https://api.stg.account.gistory.me');
+  });
+
+  it('reads the misspelled scope_supported', () => {
+    const metadata = normalizeDiscovery(production, discoveryUrlOf('production'));
+    expect(metadata.scopesSupported).toContain('student_id');
+    expect(metadata.scopesSupported).toContain('offline_access');
+  });
+
+  it('falls back to DELETE /oauth/token for revocation', () => {
+    const metadata = normalizeDiscovery(production, discoveryUrlOf('production'));
+    expect(metadata.revocation).toEqual({
+      endpoint: 'https://api.account.gistory.me/oauth/token',
+      method: 'DELETE',
+    });
+  });
+
+  it('uses a standard revocation endpoint once the IdP advertises one', () => {
+    const metadata = normalizeDiscovery(
+      { ...production, revocation_endpoint: 'https://api.account.gistory.me/oauth/revoke' },
+      discoveryUrlOf('production'),
+    );
+    expect(metadata.revocation).toEqual({
+      endpoint: 'https://api.account.gistory.me/oauth/revoke',
+      method: 'POST',
+    });
+  });
+});
+
+describe('discover', () => {
+  afterEach(() => clearDiscoveryCache());
+
+  it('fetches once per issuer', async () => {
+    const fetch = vi.fn(async () => Response.json(production));
+    const [a, b] = await Promise.all([
+      discover('production', { fetch }),
+      discover('production', { fetch }),
+    ]);
+    expect(a).toBe(b);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not cache a failure', async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockRejectedValueOnce(new TypeError('offline'))
+      .mockResolvedValueOnce(Response.json(production));
+    await expect(discover('production', { fetch })).rejects.toSatisfy((e) =>
+      AccountError.is(e, 'network_error'),
+    );
+    await expect(discover('production', { fetch })).resolves.toMatchObject({
+      issuer: 'https://account.gistory.me',
+    });
+  });
+
+  it('rejects an HTML page', async () => {
+    const fetch = vi.fn(
+      async () => new Response('<!doctype html>', { headers: { 'content-type': 'text/html' } }),
+    );
+    await expect(discover('https://account.gistory.me', { fetch })).rejects.toSatisfy((e) =>
+      AccountError.is(e, 'discovery_failed'),
+    );
+  });
+});
