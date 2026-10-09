@@ -1,7 +1,7 @@
 {
   "name": "@gsainfoteam/account-server",
   "version": "0.0.0",
-  "description": "서비스 백엔드용 인포팀 계정(IdP) 클라이언트. IdP 토큰 검증, code 교환, client_credentials 조회",
+  "description": "Backend client for the Infoteam account IdP: IdP token checks, code exchange and user lookup with client credentials",
   "license": "MIT",
   "type": "module",
   "repository": {

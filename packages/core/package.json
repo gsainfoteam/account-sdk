@@ -1,7 +1,7 @@
 {
   "name": "@gsainfoteam/account-core",
   "version": "0.0.0",
-  "description": "인포팀 계정(IdP) 연동의 공용 코어. discovery, PKCE, authorize URL, callback 검증, id_token 검증",
+  "description": "Shared core for the Infoteam account IdP: discovery, PKCE authorization, callback validation, token exchange and id_token verification",
   "license": "MIT",
   "type": "module",
   "repository": {
