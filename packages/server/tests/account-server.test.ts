@@ -1,5 +1,5 @@
 import { clearDiscoveryCache } from '@gsainfoteam/account-core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import production from '../../core/tests/fixtures/discovery.production.json' with { type: 'json' };
 import { AccountServerOptionsSchema, createAccountServer } from '../src';
@@ -67,6 +67,42 @@ describe('getUserInfo', () => {
       name: '홍길동',
     });
   });
+
+  it('types the fields of the required scopes as present', async () => {
+    const fetch = idp({
+      '/oauth/userinfo': () =>
+        Response.json({ sub: 'user-1', name: '홍길동', email: 'a@gm.gist.ac.kr' }),
+    });
+    const server = createAccountServer({
+      issuer: 'production',
+      clientId: 'c',
+      requiredScopes: ['name', 'email'],
+      fetch,
+    });
+
+    const user = await server.getUserInfo('at-1');
+
+    expectTypeOf(user.name).toEqualTypeOf<string>();
+    expectTypeOf(user.email).toEqualTypeOf<string>();
+    expectTypeOf(user.studentId).toEqualTypeOf<string | undefined>();
+  });
+
+  it('fails with missing_claims when a required scope was not granted', async () => {
+    const fetch = idp({
+      '/oauth/userinfo': () => Response.json({ sub: 'user-1', name: '홍길동' }),
+    });
+    const server = createAccountServer({
+      issuer: 'production',
+      clientId: 'c',
+      requiredScopes: ['name', 'student_id'],
+      fetch,
+    });
+
+    await expect(server.getUserInfo('at-1')).rejects.toMatchObject({
+      code: 'missing_claims',
+      description: 'student_id is_student_id_verified',
+    });
+  });
 });
 
 describe('exchangeCode', () => {
@@ -125,7 +161,8 @@ describe('getUserInfoBySub', () => {
     );
     const fetch = idp({
       '/oauth/token': tokenRequests,
-      '/oauth/userinfo': ({ url }) => Response.json({ sub: url.searchParams.get('sub') }),
+      '/oauth/userinfo': ({ url }) =>
+        Response.json({ sub: url.searchParams.get('sub'), name: 'n', email: 'e' }),
     });
     const server = createAccountServer({
       issuer: 'production',
@@ -138,6 +175,7 @@ describe('getUserInfoBySub', () => {
     const users = await Promise.all(
       ['u-1', 'u-2', 'u-3'].map((sub) => server.getUserInfoBySub(sub)),
     );
+    expectTypeOf<(typeof users)[number]['email']>().toEqualTypeOf<string>();
     expect(users.map((user) => user.sub)).toEqual(['u-1', 'u-2', 'u-3']);
     await server.getUserInfoBySub('u-4');
     expect(tokenRequests).toHaveBeenCalledTimes(1);
@@ -151,7 +189,7 @@ describe('getUserInfoBySub', () => {
       '/oauth/userinfo': ({ headers }) =>
         headers.get('authorization') === 'Bearer client-token-1'
           ? new Response('Internal server error', { status: 500 })
-          : Response.json({ sub: 'u-1' }),
+          : Response.json({ sub: 'u-1', name: 'n', email: 'e' }),
     });
     const server = createAccountServer({
       issuer: 'production',

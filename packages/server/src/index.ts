@@ -5,6 +5,7 @@ export {
   ENVIRONMENTS,
   type AccountErrorCode,
   type AccountMetadata,
+  type ClientScope,
   type Environment,
   type ExchangeCodeParams,
   type IdTokenClaims,
