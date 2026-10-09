@@ -46,12 +46,12 @@ describe('createAccountServer', () => {
     ).toThrow(expect.objectContaining({ code: 'invalid_request' }));
   });
 
-  it('rejects an unknown scope for client credentials', () => {
+  it('rejects a malformed scope for client credentials', () => {
     expect(() =>
       createAccountServer({
         issuer: 'production',
         clientId: 'c',
-        clientCredentialsScopes: ['nickname' as 'name'],
+        clientCredentialsScopes: ['name email'],
       }),
     ).toThrow(expect.objectContaining({ code: 'invalid_request' }));
   });
@@ -108,6 +108,18 @@ describe('exchangeCode', () => {
 });
 
 describe('getUserInfoBySub', () => {
+  it('needs the scopes registered for the client', async () => {
+    const server = createAccountServer({
+      issuer: 'production',
+      clientId: 'c',
+      clientSecret: 's',
+      fetch: idp({}),
+    });
+    await expect(server.getUserInfoBySub('u-1')).rejects.toMatchObject({
+      code: 'invalid_request',
+    });
+  });
+
   it('issues one client token for concurrent lookups and reuses it', async () => {
     const tokenRequests = vi.fn(() =>
       Response.json({ ...tokenBody, access_token: 'client-token' }),
@@ -120,6 +132,7 @@ describe('getUserInfoBySub', () => {
       issuer: 'production',
       clientId: 'c',
       clientSecret: 's',
+      clientCredentialsScopes: ['name', 'email'],
       fetch,
     });
 
@@ -145,6 +158,7 @@ describe('getUserInfoBySub', () => {
       issuer: 'production',
       clientId: 'c',
       clientSecret: 's',
+      clientCredentialsScopes: ['name', 'email'],
       fetch,
     });
     await expect(server.getUserInfoBySub('u-1')).resolves.toMatchObject({ sub: 'u-1' });

@@ -2,36 +2,27 @@ import { isString } from 'es-toolkit';
 import * as z from 'zod/mini';
 
 /**
- * Scopes that grant access to user information. Mirrors `src/oauth/types/scope.type.ts` in account-be,
- * and a test checks it against the scopes the IdP advertises.
+ * A scope-token as RFC 6749 section 3.3 defines it.
+ *
+ * @remarks
+ * The SDK does not keep its own list of the IdP's scopes. Which scopes exist is up to the IdP, and
+ * {@link createAuthorization} checks them against {@link AccountMetadata.scopesSupported} from discovery,
+ * so a scope the IdP adds works without a new SDK release.
  */
-export const ClientScopeSchema = z.enum([
-  'name',
-  'profile',
-  'picture',
-  'email',
-  'phone_number',
-  'student_id',
-]);
-/** Scopes that change which tokens are issued: `openid` adds an id_token, `offline_access` a refresh token. */
-export const TokenScopeSchema = z.enum(['openid', 'offline_access']);
-export const ScopeSchema = z.union([ClientScopeSchema, TokenScopeSchema]);
-/** Every scope the SDK knows. */
-export const SCOPES: readonly Scope[] = [...ClientScopeSchema.options, ...TokenScopeSchema.options];
+export const ScopeSchema = z.string().check(z.regex(/^[\x21\x23-\x5B\x5D-\x7E]+$/));
 
-export type ClientScope = z.infer<typeof ClientScopeSchema>;
-export type TokenScope = z.infer<typeof TokenScopeSchema>;
 export type Scope = z.infer<typeof ScopeSchema>;
 
-export function isScope(value: unknown): value is Scope {
-  return ScopeSchema.safeParse(value).success;
-}
+/** OpenID Connect scope that adds an id_token, and with it a `nonce`. */
+export const OPENID_SCOPE = 'openid';
+/** OpenID Connect scope that adds a refresh token, and with it `prompt=consent`. */
+export const OFFLINE_ACCESS_SCOPE = 'offline_access';
 
-/** Parses a space-separated scope string, dropping values the SDK does not know instead of failing. */
+/** Parses a space-separated scope string. */
 export function parseScopes(value: string | readonly string[] | undefined | null): Scope[] {
   if (!value) return [];
 
   const list = isString(value) ? value.split(' ') : value;
 
-  return list.filter(isScope);
+  return list.filter((scope) => scope.length > 0);
 }

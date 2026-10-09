@@ -54,6 +54,12 @@ describe('createAuthorization', () => {
     });
   });
 
+  it('accepts a scope the IdP advertises even if the SDK has never heard of it', async () => {
+    const extended = { ...metadata, scopesSupported: [...metadata.scopesSupported, 'nickname'] };
+    const { url } = await createAuthorization(extended, { ...base, scopes: ['nickname'] });
+    expect(new URL(url).searchParams.get('scope')).toBe('nickname');
+  });
+
   it('leaves prompt out when nothing needs it', async () => {
     const { url } = await createAuthorization(metadata, { ...base, scopes: ['name'] });
     expect(new URL(url).searchParams.has('prompt')).toBe(false);

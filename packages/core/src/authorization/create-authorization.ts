@@ -4,7 +4,7 @@ import * as oauth from 'oauth4webapi';
 import { CODE_CHALLENGE_METHOD } from '../constants';
 import { type AccountMetadata } from '../discovery/normalize-discovery';
 import { AccountError } from '../errors/account-error';
-import { type Scope } from '../identity/scopes';
+import { OFFLINE_ACCESS_SCOPE, OPENID_SCOPE, type Scope } from '../identity/scopes';
 
 /** OpenID Connect `prompt` values account-fe understands. */
 export type Prompt = 'none' | 'login' | 'consent';
@@ -59,9 +59,9 @@ export async function createAuthorization(
   const state = oauth.generateRandomState();
   const codeVerifier = oauth.generateRandomCodeVerifier();
   const codeChallenge = await oauth.calculatePKCECodeChallenge(codeVerifier);
-  const nonce = scopes.includes('openid') ? oauth.generateRandomNonce() : undefined;
+  const nonce = scopes.includes(OPENID_SCOPE) ? oauth.generateRandomNonce() : undefined;
 
-  const asksForRefreshToken = scopes.includes('offline_access');
+  const asksForRefreshToken = scopes.includes(OFFLINE_ACCESS_SCOPE);
   const prompt =
     asksForRefreshToken && params.prompt !== 'login' && params.prompt !== 'consent'
       ? 'consent'

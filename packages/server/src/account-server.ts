@@ -1,6 +1,5 @@
 import {
   AccountError,
-  DEFAULT_CLIENT_CREDENTIALS_SCOPES,
   discover,
   exchangeCode,
   fetchUserInfo,
@@ -11,6 +10,7 @@ import {
   type ExchangeCodeParams,
   type IdTokenClaims,
   type RevokeParams,
+  type Scope,
   type TokenResponse,
   type UserInfo,
 } from '@gsainfoteam/account-core';
@@ -69,7 +69,7 @@ export function createAccountServer(input: AccountServerOptions): AccountServer 
   }
 
   const options = parsed.data;
-  const { issuer, clientId, clientSecret, fetch } = options;
+  const { issuer, clientId, clientSecret, clientCredentialsScopes, fetch } = options;
   const client = { clientId, clientSecret };
 
   const metadata = (): Promise<AccountMetadata> => discover(issuer, { fetch });
@@ -82,11 +82,21 @@ export function createAccountServer(input: AccountServerOptions): AccountServer 
     return clientSecret;
   };
 
+  const requireScopes = (operation: string): Scope[] => {
+    if (!clientCredentialsScopes?.length) {
+      throw new AccountError('invalid_request', {
+        description: `${operation} needs clientCredentialsScopes`,
+      });
+    }
+
+    return clientCredentialsScopes;
+  };
+
   const clientToken = createClientTokenCache(async () =>
     requestClientCredentials(
       await metadata(),
       { clientId, clientSecret: requireSecret('getUserInfoBySub') },
-      options.clientCredentialsScopes ?? DEFAULT_CLIENT_CREDENTIALS_SCOPES,
+      requireScopes('getUserInfoBySub'),
       { fetch },
     ),
   );

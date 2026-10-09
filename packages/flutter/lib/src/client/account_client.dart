@@ -19,7 +19,7 @@ import '../storage/secure_token_store.dart';
 import '../storage/token_store.dart';
 import 'account_prompt.dart';
 import 'account_state.dart';
-import 'scopes.dart';
+import 'oidc_scopes.dart';
 
 /// Opens [url] in a browser session and completes with the callback URL. Replaceable in tests.
 typedef BrowserAuthenticator = Future<String> Function(Uri url, String callbackUrlScheme);
@@ -31,7 +31,7 @@ typedef BrowserAuthenticator = Future<String> Function(Uri url, String callbackU
 ///   issuer: AccountIssuer.production,
 ///   clientId: 'pot-g',
 ///   redirectUri: Uri.parse('pot-g://callback'),
-///   scopes: [AccountScope.name, AccountScope.email],
+///   scopes: ['name', 'email'],
 ///   session: BodySession(dio: dio, paths: const SessionPaths(login: '/api/v1/user/login')),
 /// );
 /// await account.restore();
@@ -54,7 +54,7 @@ class AccountClient {
   final AccountIssuer issuer;
   final String clientId;
   final Uri redirectUri;
-  final List<AccountScope> scopes;
+  final List<String> scopes;
   final SessionAdapter session;
 
   final TokenStore _store;
@@ -87,7 +87,7 @@ class AccountClient {
   /// must be one of the IdP's hosts.
   ///
   /// Signing out does not end the IdP's own login session, so the first sign-in after [logout] asks for
-  /// `prompt=login` and the user can switch accounts. With [AccountScope.offlineAccess] it asks for
+  /// `prompt=login` and the user can switch accounts. With [OidcScopes.offlineAccess] it asks for
   /// `prompt=consent`, which account-fe requires for that scope.
   ///
   /// Throws an [AccountException], such as [AccountCancelledException] when the user backs out.
@@ -175,21 +175,14 @@ class AccountClient {
   void _checkScopes(AccountMetadata metadata) {
     if (metadata.scopesSupported.isEmpty) return;
 
-    final unsupported = scopes.where((scope) => !metadata.scopesSupported.contains(scope.value));
+    final unsupported = scopes.where((scope) => !metadata.scopesSupported.contains(scope));
     if (unsupported.isEmpty) return;
 
-    throw AccountOAuthException(
-      OAuthErrorCode.invalidScope.wire,
-      unsupported.map((scope) => scope.value).join(' '),
-    );
+    throw AccountOAuthException(OAuthErrorCode.invalidScope.wire, unsupported.join(' '));
   }
 
   Future<Uri> _authorizationUrl(oauth2.AuthorizationCodeGrant grant) async {
-    final url = grant.getAuthorizationUrl(
-      redirectUri,
-      scopes: scopes.map((scope) => scope.value),
-      state: _randomState(),
-    );
+    final url = grant.getAuthorizationUrl(redirectUri, scopes: scopes, state: _randomState());
 
     final prompt = await _prompt();
     if (prompt == null) return url;
@@ -199,7 +192,7 @@ class AccountClient {
 
   Future<AccountPrompt?> _prompt() async {
     if (await _store.readLoggedOut()) return AccountPrompt.login;
-    if (scopes.contains(AccountScope.offlineAccess)) return AccountPrompt.consent;
+    if (scopes.contains(OidcScopes.offlineAccess)) return AccountPrompt.consent;
 
     return null;
   }

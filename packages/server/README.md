@@ -10,6 +10,7 @@ const account = createAccountServer({
   issuer: 'production',
   clientId: process.env.ACCOUNT_CLIENT_ID!,
   clientSecret: process.env.ACCOUNT_CLIENT_SECRET,
+  clientCredentialsScopes: ['name', 'email'], // getUserInfoBySub 를 쓸 때만. client 에 등록한 scope 여야 한다
 });
 
 const user = await account.getUserInfo(idpAccessToken);

@@ -1,4 +1,9 @@
-import { discover, SCOPES, type Environment } from '@gsainfoteam/account-core';
+import {
+  discover,
+  OFFLINE_ACCESS_SCOPE,
+  OPENID_SCOPE,
+  type Environment,
+} from '@gsainfoteam/account-core';
 import { describe, expect, it } from 'vitest';
 
 import { createAccountServer } from '../../src';
@@ -6,9 +11,11 @@ import { createAccountServer } from '../../src';
 const environments: Environment[] = ['production', 'staging'];
 
 describe.each(environments)('%s IdP', (environment) => {
-  it('advertises exactly the scopes the SDK knows', async () => {
+  it('advertises the OpenID Connect scopes the SDK branches on', async () => {
     const metadata = await discover(environment);
-    expect([...metadata.scopesSupported].sort()).toEqual([...SCOPES].sort());
+    expect(metadata.scopesSupported).toEqual(
+      expect.arrayContaining([OPENID_SCOPE, OFFLINE_ACCESS_SCOPE]),
+    );
   });
 
   it('serves JWKS and the token endpoint where the normalized metadata points', async () => {
@@ -36,7 +43,12 @@ const clientSecret = process.env.ACCOUNT_TEST_CLIENT_SECRET;
 
 describe.skipIf(!clientId || !clientSecret)('staging test client', () => {
   it('gets a client credentials token and looks a user up', async () => {
-    const server = createAccountServer({ issuer: 'staging', clientId: clientId!, clientSecret });
+    const server = createAccountServer({
+      issuer: 'staging',
+      clientId: clientId!,
+      clientSecret,
+      clientCredentialsScopes: ['name'],
+    });
     await expect(
       server.getUserInfoBySub('00000000-0000-0000-0000-000000000000'),
     ).rejects.toMatchObject({

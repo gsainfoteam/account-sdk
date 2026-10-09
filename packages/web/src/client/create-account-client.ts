@@ -7,6 +7,7 @@ import {
   exchangeCode,
   isCallbackUrl,
   isUnauthorized,
+  OFFLINE_ACCESS_SCOPE,
   parseCallback,
   readCallbackState,
   type Fetch,
@@ -119,9 +120,7 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
 
   const options = parsed.data;
   const { clientId, session, fetch } = options;
-  const scopes = options.offlineAccess
-    ? [...options.scopes, 'offline_access' as const]
-    : options.scopes;
+  const scopes = options.offlineAccess ? [...options.scopes, OFFLINE_ACCESS_SCOPE] : options.scopes;
   const transactions = options.transactionStorage ?? globalThis.sessionStorage;
   const redirect = options.redirect ?? ((url: string) => window.location.assign(url));
 

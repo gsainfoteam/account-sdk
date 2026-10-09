@@ -54,7 +54,7 @@ typedef Callback = String Function(Uri authorize);
 
 ({AccountClient client, FakeSession session, List<Uri> authorizations}) setup(
   Callback callback, {
-  List<AccountScope> scopes = const [AccountScope.name, AccountScope.email],
+  List<String> scopes = const ['name', 'email'],
 }) {
   final session = FakeSession();
   final authorizations = <Uri>[];
@@ -138,7 +138,7 @@ void main() {
       issuer: AccountIssuer.production,
       clientId: 'pot-g',
       redirectUri: Uri.parse('pot-g-idp-login-redirect://callback'),
-      scopes: const [AccountScope.name],
+      scopes: const ['name'],
       session: FakeSession(),
       store: MemoryTokenStore(),
       httpClient: MockClient(

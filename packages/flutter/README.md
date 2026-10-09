@@ -20,7 +20,7 @@ final account = AccountClient(
   issuer: AccountIssuer.production,
   clientId: 'pot-g',
   redirectUri: Uri.parse('pot-g://callback'),
-  scopes: const [AccountScope.name, AccountScope.email],
+  scopes: const ['name', 'email'],
   session: BodySession(
     dio: dio,
     paths: const SessionPaths(login: '/api/v1/user/login', refresh: '/api/v1/user/refresh', logout: '/api/v1/user/logout'),

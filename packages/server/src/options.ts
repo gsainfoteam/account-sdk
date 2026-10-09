@@ -16,7 +16,10 @@ export const AccountServerOptionsSchema = z.object({
   clientId: nonEmpty(),
   /** Needed for {@link AccountServer.exchangeCode} and {@link AccountServer.getUserInfoBySub}. Checking IdP tokens works without it. */
   clientSecret: z.optional(nonEmpty()),
-  /** Scopes for the client credentials token behind {@link AccountServer.getUserInfoBySub}. */
+  /**
+   * Scopes for the client credentials token behind {@link AccountServer.getUserInfoBySub}.
+   * Must be among the scopes registered for the client, so there is no default.
+   */
   clientCredentialsScopes: z.optional(z.array(ScopeSchema)),
   fetch: z.optional(z.custom<Fetch>(isFunction)),
 });

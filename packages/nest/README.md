@@ -26,6 +26,7 @@ Bun 은 버전 제한이 없다.
         issuer: 'production',
         clientId: config.getOrThrow('ACCOUNT_CLIENT_ID'),
         clientSecret: config.get('ACCOUNT_CLIENT_SECRET'),
+        clientCredentialsScopes: ['name', 'email'], // getUserInfoBySub 를 쓸 때만
       }),
     }),
   ],
