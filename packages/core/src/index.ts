@@ -21,8 +21,11 @@ export {
 } from './discovery/normalize-discovery';
 export {
   AccountError,
-  DENIAL_REASONS,
+  AccountErrorCodeSchema,
+  DenialReasonSchema,
   fromOAuthError,
+  OAuthErrorCodeSchema,
+  SdkErrorCodeSchema,
   type AccountErrorCode,
   type AccountErrorOptions,
   type DenialReason,

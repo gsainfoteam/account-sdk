@@ -1,48 +1,20 @@
+import * as z from 'zod/mini';
+
 /**
  * Reasons account-fe gives for turning a user away.
  *
  * account-fe redirects back with `error=access_denied` and puts the reason in `error_description`.
  * The SDK lifts that reason into {@link AccountError.code} so an app can react to each case.
  */
-export const DENIAL_REASONS = [
+export const DenialReasonSchema = z.enum([
   'user_cancelled',
   'verification_required',
   'consent_required',
   'login_required',
-] as const;
-
-export type DenialReason = (typeof DENIAL_REASONS)[number];
+]);
 
 /** Error codes defined by OAuth 2.0 (RFC 6749) that the IdP returns. */
-export type OAuthErrorCode =
-  | 'access_denied'
-  | 'invalid_request'
-  | 'invalid_scope'
-  | 'unauthorized_client'
-  | 'unsupported_response_type'
-  | 'server_error'
-  | 'temporarily_unavailable'
-  | 'invalid_grant'
-  | 'invalid_client'
-  | 'unsupported_grant_type';
-
-/** Errors the SDK raises itself while validating responses or talking to a service backend. */
-export type SdkErrorCode =
-  | 'state_mismatch'
-  | 'issuer_mismatch'
-  | 'missing_code'
-  | 'invalid_id_token'
-  | 'invalid_token'
-  | 'discovery_failed'
-  | 'network_error'
-  | 'unauthenticated'
-  | 'session_rejected'
-  | 'unknown';
-
-/** Every code an {@link AccountError} can carry. */
-export type AccountErrorCode = DenialReason | OAuthErrorCode | SdkErrorCode;
-
-const OAUTH_ERROR_CODES: ReadonlySet<string> = new Set<OAuthErrorCode>([
+export const OAuthErrorCodeSchema = z.enum([
   'access_denied',
   'invalid_request',
   'invalid_scope',
@@ -54,6 +26,37 @@ const OAUTH_ERROR_CODES: ReadonlySet<string> = new Set<OAuthErrorCode>([
   'invalid_client',
   'unsupported_grant_type',
 ]);
+
+/** Errors the SDK raises itself while validating responses or talking to a service backend. */
+export const SdkErrorCodeSchema = z.enum([
+  'state_mismatch',
+  'issuer_mismatch',
+  'missing_code',
+  'invalid_id_token',
+  'invalid_token',
+  'discovery_failed',
+  'network_error',
+  'unauthenticated',
+  'session_rejected',
+  'unknown',
+]);
+
+/** Every code an {@link AccountError} can carry. */
+export const AccountErrorCodeSchema = z.union([
+  DenialReasonSchema,
+  OAuthErrorCodeSchema,
+  SdkErrorCodeSchema,
+]);
+
+export type DenialReason = z.infer<typeof DenialReasonSchema>;
+export type OAuthErrorCode = z.infer<typeof OAuthErrorCodeSchema>;
+export type SdkErrorCode = z.infer<typeof SdkErrorCodeSchema>;
+export type AccountErrorCode = z.infer<typeof AccountErrorCodeSchema>;
+
+const AccountErrorShapeSchema = z.object({
+  name: z.literal('AccountError'),
+  code: AccountErrorCodeSchema,
+});
 
 export interface AccountErrorOptions {
   /** Human-readable detail, such as the IdP's `error_description`. */
@@ -105,24 +108,20 @@ export class AccountError extends Error {
    * Tells whether `value` is an {@link AccountError}, optionally with a given code.
    *
    * @remarks
-   * Checks `name` and `code` instead of `instanceof`, because a bundler that duplicates this module
+   * Checks the shape instead of using `instanceof`, because a bundler that duplicates this module
    * would make `instanceof` fail for errors thrown by the other copy.
    */
   static is(value: unknown, code?: AccountErrorCode): value is AccountError {
-    return (
-      typeof value === 'object' &&
-      value !== null &&
-      (value as { name?: unknown }).name === 'AccountError' &&
-      typeof (value as { code?: unknown }).code === 'string' &&
-      (code === undefined || (value as { code: unknown }).code === code)
-    );
+    if (!(value instanceof Error)) return false;
+    const shape = AccountErrorShapeSchema.safeParse(value);
+    return shape.success && (code === undefined || shape.data.code === code);
   }
 }
 
 /**
  * Turns an OAuth error response into an {@link AccountError}.
  *
- * `access_denied` with one of {@link DENIAL_REASONS} as its description becomes that reason.
+ * `access_denied` with a {@link DenialReason} as its description becomes that reason.
  * Unknown codes become `unknown` and keep the original code in `description`.
  */
 export function fromOAuthError(
@@ -130,18 +129,15 @@ export function fromOAuthError(
   description?: string | null,
   status?: number,
 ): AccountError {
-  if (error === 'access_denied' && description && isDenialReason(description)) {
-    return new AccountError(description, { status });
+  const denial = DenialReasonSchema.safeParse(description);
+  if (error === 'access_denied' && denial.success) {
+    return new AccountError(denial.data, { status });
   }
-  const code: AccountErrorCode = OAUTH_ERROR_CODES.has(error)
-    ? (error as OAuthErrorCode)
-    : 'unknown';
-  return new AccountError(code, {
-    description: description ?? (code === 'unknown' ? error : undefined),
-    status,
-  });
-}
-
-function isDenialReason(value: string): value is DenialReason {
-  return (DENIAL_REASONS as readonly string[]).includes(value);
+  const known = OAuthErrorCodeSchema.safeParse(error);
+  return known.success
+    ? new AccountError(known.data, { description: description ?? undefined, status })
+    : new AccountError('unknown', {
+        description: description ? `${error}: ${description}` : error,
+        status,
+      });
 }
