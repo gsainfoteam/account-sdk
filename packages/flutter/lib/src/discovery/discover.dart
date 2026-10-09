@@ -9,16 +9,18 @@ import 'account_metadata.dart';
 
 final _cache = <String, Future<AccountMetadata>>{};
 
+/// Fetches and normalizes the IdP's discovery document, cached per issuer.
+/// A failure is not cached, so a transient network error does not stick until the app restarts.
 Future<AccountMetadata> discover(AccountIssuer issuer, {http.Client? client}) {
   final url = issuer.discoveryUrl;
   return _cache.putIfAbsent(url.toString(), () {
     final pending = _fetch(url, client ?? http.Client());
-    // 실패를 캐시하면 일시적인 네트워크 오류가 앱을 다시 켤 때까지 남는다.
     unawaited(pending.then<void>((_) {}, onError: (Object _) => _cache.remove(url.toString())));
     return pending;
   });
 }
 
+/// Forgets every cached discovery result.
 void clearDiscoveryCache() => _cache.clear();
 
 Future<AccountMetadata> _fetch(Uri url, http.Client client) async {

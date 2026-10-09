@@ -1,4 +1,7 @@
-// id_token 을 검증하지 않으므로 openid 는 받지 않는다.
+/// Scopes the IdP accepts, except `openid`.
+///
+/// This package does not verify id_tokens, so it does not ask for one.
+/// A test checks this list against the scopes the IdP advertises.
 enum AccountScope {
   name('name'),
   profile('profile'),
@@ -10,5 +13,6 @@ enum AccountScope {
 
   const AccountScope(this.value);
 
+  /// The scope as sent to the IdP.
   final String value;
 }

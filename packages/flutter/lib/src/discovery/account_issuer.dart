@@ -1,6 +1,6 @@
 import '../constants.dart';
 
-// IdP 는 `api.<host>` 에 API 를, `<host>` 에 로그인 화면을 둔다.
+/// A deployment of the IdP, identified by the origin of its API.
 class AccountIssuer {
   const AccountIssuer._(this.apiOrigin);
 
@@ -11,5 +11,6 @@ class AccountIssuer {
 
   final String apiOrigin;
 
+  /// The OpenID discovery document, which is always served from the API host.
   Uri get discoveryUrl => Uri.parse(apiOrigin).replace(path: AccountConstants.discoveryPath);
 }

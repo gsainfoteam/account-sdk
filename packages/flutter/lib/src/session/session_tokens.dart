@@ -1,8 +1,10 @@
 import '../errors/account_exception.dart';
 
+/// Tokens a service backend returns from login and refresh.
 class SessionTokens {
   const SessionTokens({required this.accessToken, this.refreshToken, this.expiresIn});
 
+  /// Reads `access_token`, `refresh_token` and `expires_in`. Throws [AccountSessionRejectedException] without an access token.
   factory SessionTokens.fromJson(Object? json) {
     if (json is! Map ||
         json['access_token'] is! String ||

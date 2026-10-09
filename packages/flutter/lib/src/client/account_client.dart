@@ -19,8 +19,22 @@ import '../storage/token_store.dart';
 import 'account_state.dart';
 import 'scopes.dart';
 
+/// Opens [url] in a browser session and completes with the callback URL. Replaceable in tests.
 typedef BrowserAuthenticator = Future<String> Function(Uri url, String callbackUrlScheme);
 
+/// Signs a user in through the system browser and keeps the service backend's session.
+///
+/// ```dart
+/// final account = AccountClient(
+///   issuer: AccountIssuer.production,
+///   clientId: 'pot-g',
+///   redirectUri: Uri.parse('pot-g://callback'),
+///   scopes: [AccountScope.name, AccountScope.email],
+///   session: BodySession(dio: dio, loginPath: '/api/v1/user/login'),
+/// );
+/// await account.restore();
+/// dio.interceptors.add(AccountInterceptor(account, dio));
+/// ```
 class AccountClient {
   AccountClient({
     required this.issuer,
@@ -44,13 +58,16 @@ class AccountClient {
   final http.Client _http;
   final BrowserAuthenticator _authenticate;
 
+  /// Held for writing while the session refreshes, so requests wait for the new token.
   final ReadWriteMutex mutex = ReadWriteMutex();
   final _state = BehaviorSubject.seeded(const AccountState(AccountStatus.loading));
 
+  /// Emits the current state first, then every change.
   Stream<AccountState> get states => _state.stream;
   AccountState get state => _state.value;
   String? get accessToken => _state.value.accessToken;
 
+  /// Loads the stored session. Makes no network request.
   Future<void> restore() async {
     final stored = await _store.read();
     _state.add(
@@ -60,6 +77,16 @@ class AccountClient {
     );
   }
 
+  /// Opens the IdP login page, validates the callback, exchanges the code and logs in to the service.
+  ///
+  /// PKCE, `state` checking and the code exchange are done by `package:oauth2`. An `iss` in the callback
+  /// must be one of the IdP's hosts.
+  ///
+  /// Signing out does not end the IdP's own login session, so the first sign-in after [signOut] asks for
+  /// `prompt=login` and the user can switch accounts. With [AccountScope.offlineAccess] it asks for
+  /// `prompt=consent`, which account-fe requires for that scope.
+  ///
+  /// Throws an [AccountException], such as [AccountCancelledException] when the user backs out.
   Future<void> signIn() async {
     final metadata = await discover(issuer, client: _http);
     final grant = oauth2.AuthorizationCodeGrant(
@@ -113,6 +140,8 @@ class AccountClient {
     _state.add(AccountState(AccountStatus.authenticated, tokens.accessToken));
   }
 
+  /// Clears the stored session and tells the service backend.
+  /// A failure on the server side is ignored because the device is signed out either way.
   Future<void> signOut() async {
     final stored = await _store.read();
     await _store.clear();
@@ -121,11 +150,14 @@ class AccountClient {
     try {
       await session.logout(accessToken: stored?.accessToken, refreshToken: stored?.refreshToken);
     } on AccountException {
-      // 서버 쪽 정리가 실패해도 이 기기에서는 이미 로그아웃됐다.
+      return;
     }
   }
 
-  // 401 을 받은 요청들이 동시에 부르면 한 번만 갱신하고, 기다린 요청들은 그 결과를 쓴다.
+  /// Gets a new access token from the service backend and returns whether there is a session.
+  ///
+  /// Requests that hit 401 at the same time share one refresh. When [staleToken] has already been
+  /// replaced by another caller, the newer token is kept without refreshing again.
   Future<bool> refresh({String? staleToken}) async {
     if (mutex.isWriteLocked) {
       await mutex.acquireRead();
@@ -161,8 +193,6 @@ class AccountClient {
 
   Future<void> dispose() => _state.close();
 
-  // 로그아웃해도 IdP 로그인 세션은 남는다. 다른 계정으로 바꿀 수 있게 로그아웃 직후 한 번은 로그인 화면을 띄운다.
-  // offline_access 는 account-fe 가 prompt=consent 나 login 일 때만 받는다.
   Future<String?> _prompt() async {
     if (await _store.readSignedOut()) return 'login';
     if (scopes.contains(AccountScope.offlineAccess)) return 'consent';

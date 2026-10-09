@@ -1,6 +1,7 @@
 import '../constants.dart';
 import '../errors/account_exception.dart';
 
+/// IdP endpoints, normalized from its discovery document.
 class AccountMetadata {
   const AccountMetadata({
     required this.issuer,
@@ -12,6 +13,8 @@ class AccountMetadata {
   });
 
   final String issuer;
+
+  /// Issuer values accepted in a callback `iss` parameter.
   final List<String> issuers;
   final Uri authorizationEndpoint;
   final Uri tokenEndpoint;
@@ -19,9 +22,14 @@ class AccountMetadata {
   final List<String> scopesSupported;
 }
 
-// web 의 normalizeDiscovery 와 같은 규칙이다. account-be 가 BASE_URL 로 issuer 와 endpoint 를 만들어
-// 스테이징 문서가 존재하지 않는 호스트를 가리키므로, 문서를 받아 온 호스트를 기준으로 다시 만든다.
-// id_token 과 callback 의 iss 는 다른 env 에서 오므로 IdP 의 두 호스트를 모두 받아들인다.
+/// Builds [AccountMetadata] from a discovery document and the URL it was fetched from.
+///
+/// Follows the same rules as `normalizeDiscovery` in the TypeScript core: account-be derives its endpoints
+/// from `BASE_URL`, which points to a host that does not exist on staging, so endpoints are rebuilt on the
+/// host the document came from. Callback and id_token issuers come from a separate setting, so every host
+/// the IdP owns is accepted.
+///
+/// Throws [AccountDiscoveryException] when the document lacks an endpoint.
 AccountMetadata normalizeDiscovery(Object? json, Uri fetchedFrom) {
   if (json is! Map<String, Object?>) {
     throw const AccountDiscoveryException('not a JSON object');

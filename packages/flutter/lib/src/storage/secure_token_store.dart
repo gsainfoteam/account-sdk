@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../constants.dart';
 import 'token_store.dart';
 
+/// [TokenStore] backed by the platform keychain or keystore through `flutter_secure_storage`.
 class SecureTokenStore implements TokenStore {
   SecureTokenStore([FlutterSecureStorage? storage, this.prefix = AccountConstants.storageNamespace])
     : _storage = storage ?? const FlutterSecureStorage();

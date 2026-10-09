@@ -7,7 +7,12 @@ import '../http/dio_interceptor.dart';
 import 'session_adapter.dart';
 import 'session_tokens.dart';
 
-// pot-g-be 의 규약. 앱은 쿠키를 쓰지 않으므로 refresh token 을 body 로 주고받는다.
+/// Session for backends that exchange tokens in request and response bodies, as pot-g-be does.
+/// Apps have no cookies to keep a refresh token in.
+///
+/// Login posts `{token: <IdP access token>, ...loginBody()}`, refresh posts `{refresh_token}`, and logout
+/// posts `{refresh_token}` with the service token as a bearer token. Paths default to
+/// [AccountConstants.sessionPaths].
 class BodySession implements SessionAdapter {
   BodySession({
     required this.dio,
@@ -23,6 +28,8 @@ class BodySession implements SessionAdapter {
   final String loginPath;
   final String refreshPath;
   final String logoutPath;
+
+  /// Extra login fields, such as pot-g-be's `device_id`.
   final Future<Map<String, Object?>> Function()? loginBody;
 
   @override

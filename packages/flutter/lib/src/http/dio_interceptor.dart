@@ -4,6 +4,7 @@ import '../client/account_client.dart';
 import '../constants.dart';
 import 'bearer.dart';
 
+/// Add [extra] to a request's options to send it without the access token, as session requests are.
 abstract final class SkipAccountAuth {
   static const key = '${AccountConstants.storageNamespace}:skip';
   static const extra = {key: true};
@@ -11,6 +12,9 @@ abstract final class SkipAccountAuth {
 
 const _retriedKey = '${AccountConstants.storageNamespace}:retried';
 
+/// Sends the access token on every request and retries once after refreshing on 401.
+///
+/// Requests wait while a refresh is running, so they never go out with a token that is being replaced.
 class AccountInterceptor extends QueuedInterceptor {
   AccountInterceptor(this.client, this.dio);
 
