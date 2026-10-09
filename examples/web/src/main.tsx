@@ -19,15 +19,15 @@ import { createRoot } from 'react-dom/client';
 import { account } from './account';
 
 function Home() {
-  const { status, error, signIn, signOut } = useAccount();
+  const { status, error, login, logout } = useAccount();
   return (
     <main>
       <p>status: {status}</p>
       {error && <p>error: {error.code}</p>}
       {status === 'authenticated' ? (
-        <button onClick={() => void signOut()}>sign out</button>
+        <button onClick={() => void logout()}>sign out</button>
       ) : (
-        <button onClick={() => void signIn({ returnTo: '/me' })}>sign in</button>
+        <button onClick={() => void login({ returnTo: '/me' })}>sign in</button>
       )}
     </main>
   );

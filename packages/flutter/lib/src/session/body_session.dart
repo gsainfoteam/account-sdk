@@ -24,7 +24,7 @@ class BodySession implements SessionAdapter {
   final Future<Map<String, Object?>> Function()? loginBody;
 
   @override
-  Future<SessionTokens> login(String idpAccessToken) async {
+  Future<SessionTokens> start(String idpAccessToken) async {
     final extra = await loginBody?.call() ?? const {};
 
     final response = await _post(paths.login, {'token': idpAccessToken, ...extra});
@@ -43,7 +43,7 @@ class BodySession implements SessionAdapter {
   }
 
   @override
-  Future<void> logout({String? accessToken, String? refreshToken}) async {
+  Future<void> end({String? accessToken, String? refreshToken}) async {
     await _post(
       paths.logout,
       {'refresh_token': refreshToken ?? ''},

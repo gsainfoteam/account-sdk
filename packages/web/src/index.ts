@@ -3,7 +3,7 @@ export {
   createAccountClient,
   type AccountClient,
   type CallbackResult,
-  type SignInOptions,
+  type LoginOptions,
 } from './client/create-account-client';
 export { AccountClientOptionsSchema, type AccountClientOptions } from './client/options';
 export { bodySession, type BodySessionOptions } from './session/body-session';

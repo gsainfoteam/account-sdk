@@ -22,7 +22,7 @@ import { type LoginCredential } from '../session/session-adapter';
 import { STORAGE_KEYS } from '../storage/keys';
 import { saveTransaction, takeTransaction } from '../storage/transactions';
 
-export interface SignInOptions {
+export interface LoginOptions {
   /** Where to send the user after the callback. Handed back by {@link AccountClient.handleCallback}. */
   returnTo?: string;
   prompt?: Prompt;
@@ -54,7 +54,7 @@ export interface AccountClient {
    * Signing out does not end the IdP's own login session. The first sign-in after a sign-out therefore
    * asks for `prompt=login`, so the user can switch accounts.
    */
-  signIn(options?: SignInOptions): Promise<void>;
+  login(options?: LoginOptions): Promise<void>;
 
   /**
    * Validates the callback, exchanges the code and logs in to the service backend.
@@ -77,7 +77,7 @@ export interface AccountClient {
   retryLogin(body: unknown): Promise<void>;
 
   /** Ends the service session. Fails silently on the server side because the user is signed out locally either way. */
-  signOut(): Promise<void>;
+  logout(): Promise<void>;
 
   /**
    * Gets a new access token from the service backend.
@@ -159,10 +159,10 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
     });
   };
 
-  const login = async (credential: LoginCredential, body?: unknown): Promise<void> => {
+  const startSession = async (credential: LoginCredential, body?: unknown): Promise<void> => {
     try {
-      const tokens = await session.login(credential, body);
-      localStorage.removeItem(STORAGE_KEYS.signedOut);
+      const tokens = await session.start(credential, body);
+      localStorage.removeItem(STORAGE_KEYS.loggedOut);
       authenticate(tokens.accessToken);
     } catch (error) {
       const accountError = toAccountError(error);
@@ -228,13 +228,13 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
       return initializing;
     },
 
-    async signIn({ returnTo, prompt } = {}) {
-      const signedOut = localStorage.getItem(STORAGE_KEYS.signedOut) !== null;
+    async login({ returnTo, prompt } = {}) {
+      const loggedOut = localStorage.getItem(STORAGE_KEYS.loggedOut) !== null;
       const { url, transaction } = await createAuthorization(await metadata(), {
         clientId,
         redirectUri: redirectUri(),
         scopes,
-        prompt: prompt ?? (signedOut ? 'login' : undefined),
+        prompt: prompt ?? (loggedOut ? 'login' : undefined),
       });
 
       saveTransaction(transactions, transaction, returnTo);
@@ -248,7 +248,7 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
       if (!pending) {
         pending = (async () => {
           const { credential, returnTo } = await credentialOf(url);
-          await login(credential);
+          await startSession(credential);
           return { returnTo };
         })().catch((error: unknown) => {
           const accountError = toAccountError(error);
@@ -266,17 +266,17 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
         throw new AccountError('unauthenticated', { description: 'no login to retry' });
       }
 
-      await login(pendingCredential, body);
+      await startSession(pendingCredential, body);
     },
 
-    async signOut() {
+    async logout() {
       const { accessToken } = store.getState();
 
       pendingCredential = null;
-      localStorage.setItem(STORAGE_KEYS.signedOut, '1');
+      localStorage.setItem(STORAGE_KEYS.loggedOut, '1');
       unauthenticate();
 
-      await session.logout(accessToken).catch(() => undefined);
+      await session.end(accessToken).catch(() => undefined);
     },
 
     async refresh(staleToken = store.getState().accessToken) {

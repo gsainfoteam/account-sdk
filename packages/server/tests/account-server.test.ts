@@ -97,7 +97,7 @@ describe('exchangeCode', () => {
       clientSecret: 's',
       fetch,
     });
-    const { tokens, user } = await server.signInWithCode({
+    const { tokens, user } = await server.loginWithCode({
       code: 'x',
       codeVerifier: 'v',
       redirectUri: 'r',

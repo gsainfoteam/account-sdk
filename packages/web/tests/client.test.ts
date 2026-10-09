@@ -23,12 +23,12 @@ function setup(routes: Record<string, Route>, overrides: Partial<AccountClientOp
   return { ...servers, client, redirect };
 }
 
-async function signInAndReturn(
+async function loginAndReturn(
   client: ReturnType<typeof setup>['client'],
   redirect: ReturnType<typeof setup>['redirect'],
   query = '',
 ) {
-  await client.signIn({ returnTo: '/notices/1' });
+  await client.login({ returnTo: '/notices/1' });
   const authorize = new URL(redirect.mock.calls.at(-1)![0]);
   const state = authorize.searchParams.get('state')!;
   const callback = `http://localhost:3000/auth/callback?code=code-1&state=${state}&iss=https://api.account.gistory.me${query}`;
@@ -56,10 +56,10 @@ describe('createAccountClient', () => {
   });
 });
 
-describe('signIn', () => {
+describe('login', () => {
   it('redirects to the IdP with an absolute redirect_uri and no prompt', async () => {
     const { client, redirect } = setup({});
-    const { authorize, state } = await signInAndReturn(client, redirect);
+    const { authorize, state } = await loginAndReturn(client, redirect);
     expect(authorize.origin + authorize.pathname).toBe('https://account.gistory.me/authorize');
     expect(authorize.searchParams.get('redirect_uri')).toBe('http://localhost:3000/auth/callback');
     expect(authorize.searchParams.get('scope')).toBe('name email');
@@ -71,14 +71,14 @@ describe('signIn', () => {
     const { client, redirect } = setup({
       [`${API}/auth/logout`]: () => new Response(null, { status: 201 }),
     });
-    await client.signOut();
-    const { authorize } = await signInAndReturn(client, redirect);
+    await client.logout();
+    const { authorize } = await loginAndReturn(client, redirect);
     expect(authorize.searchParams.get('prompt')).toBe('login');
   });
 
   it('adds offline_access with prompt=consent only when asked', async () => {
     const { client, redirect } = setup({}, { offlineAccess: true });
-    const { authorize } = await signInAndReturn(client, redirect);
+    const { authorize } = await loginAndReturn(client, redirect);
     expect(authorize.searchParams.get('scope')).toBe('name email offline_access');
     expect(authorize.searchParams.get('prompt')).toBe('consent');
   });
@@ -95,7 +95,7 @@ describe('handleCallback with the browser exchange and a cookie session', () => 
 
   it('exchanges the code, logs in to the service and returns where the user was', async () => {
     const { client, redirect, callsTo } = setup(routes);
-    const { callback } = await signInAndReturn(client, redirect);
+    const { callback } = await loginAndReturn(client, redirect);
     await expect(client.handleCallback(callback)).resolves.toEqual({ returnTo: '/notices/1' });
     expect(client.store.getState()).toMatchObject({
       status: 'authenticated',
@@ -106,7 +106,7 @@ describe('handleCallback with the browser exchange and a cookie session', () => 
 
   it('exchanges once when StrictMode runs the callback twice', async () => {
     const { client, redirect, callsTo } = setup(routes);
-    const { callback } = await signInAndReturn(client, redirect);
+    const { callback } = await loginAndReturn(client, redirect);
     await Promise.all([client.handleCallback(callback), client.handleCallback(callback)]);
     expect(callsTo('api.account.gistory.me/oauth/token')).toHaveLength(1);
     expect(callsTo(`${API}/auth/login`)).toHaveLength(1);
@@ -126,7 +126,7 @@ describe('handleCallback with the browser exchange and a cookie session', () => 
 
   it('reports the reason the user was turned away', async () => {
     const { client, redirect } = setup(routes);
-    const { state } = await signInAndReturn(client, redirect);
+    const { state } = await loginAndReturn(client, redirect);
     await expect(
       client.handleCallback(
         `http://localhost:3000/auth/callback?error=access_denied&error_description=user_cancelled&state=${state}`,
@@ -148,7 +148,7 @@ describe('a service that asks for consent before login (house-moving-out-be)', (
               { status: 403 },
             ),
     });
-    const { callback } = await signInAndReturn(client, redirect);
+    const { callback } = await loginAndReturn(client, redirect);
 
     await expect(client.handleCallback(callback)).rejects.toMatchObject({
       code: 'session_rejected',
@@ -209,7 +209,7 @@ describe('the backend exchange with a body session (chatbot)', () => {
       fetch: servers.fetch,
       redirect,
     });
-    const { callback, authorize } = await signInAndReturn(client, redirect);
+    const { callback, authorize } = await loginAndReturn(client, redirect);
     expect(authorize.searchParams.get('nonce')).toBeTruthy();
 
     await client.handleCallback(callback);

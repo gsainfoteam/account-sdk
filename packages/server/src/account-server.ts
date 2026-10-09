@@ -31,7 +31,7 @@ export interface AccountServer {
   /** Exchanges a code the frontend received for IdP tokens, as a confidential client. */
   exchangeCode(params: ExchangeCodeParams): Promise<TokenResponse>;
   /** {@link AccountServer.exchangeCode} followed by {@link AccountServer.getUserInfo}. */
-  signInWithCode(params: ExchangeCodeParams): Promise<{ tokens: TokenResponse; user: UserInfo }>;
+  loginWithCode(params: ExchangeCodeParams): Promise<{ tokens: TokenResponse; user: UserInfo }>;
   /**
    * Looks a user up while they are not present, with a cached client credentials token.
    *
@@ -104,7 +104,7 @@ export function createAccountServer(input: AccountServerOptions): AccountServer 
       return exchangeCode(await metadata(), client, params, { fetch });
     },
 
-    async signInWithCode(params) {
+    async loginWithCode(params) {
       const tokens = await server.exchangeCode(params);
       const user = await server.getUserInfo(tokens.accessToken);
 

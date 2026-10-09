@@ -23,7 +23,7 @@ export function RequireAuth({
 
   useEffect(() => {
     if (status === 'unauthenticated' && redirect) {
-      void client.signIn({ returnTo: window.location.pathname + window.location.search });
+      void client.login({ returnTo: window.location.pathname + window.location.search });
     }
   }, [client, redirect, status]);
 

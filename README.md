@@ -22,13 +22,13 @@ npm 패키지는 GitHub Packages 에서 받으므로 설치하려면 인증이 �
 
 IdP 가 발급한 authorization code 를 누가 교환하느냐에 따라 두 가지로 나뉜다.
 
-|                  | A. 브라우저나 앱이 교환            | B. 백엔드가 교환                                      |
-| ---------------- | ---------------------------------- | ----------------------------------------------------- |
-| 웹 설정          | `exchange: 'browser'`              | `exchange: 'backend'`                                 |
-| IdP client 종류  | public (secret 없음)               | confidential (secret 있음)                            |
-| 백엔드가 받는 것 | IdP access token                   | code 와 PKCE verifier                                 |
-| 백엔드가 할 일   | `getUserInfo(token)`               | `signInWithCode({ code, codeVerifier, redirectUri })` |
-| 지금 쓰는 서비스 | ziggle, house-moving-out, pot-g 앱 | chatbot, pot-g 매니저 웹                              |
+|                  | A. 브라우저나 앱이 교환            | B. 백엔드가 교환                                     |
+| ---------------- | ---------------------------------- | ---------------------------------------------------- |
+| 웹 설정          | `exchange: 'browser'`              | `exchange: 'backend'`                                |
+| IdP client 종류  | public (secret 없음)               | confidential (secret 있음)                           |
+| 백엔드가 받는 것 | IdP access token                   | code 와 PKCE verifier                                |
+| 백엔드가 할 일   | `getUserInfo(token)`               | `loginWithCode({ code, codeVerifier, redirectUri })` |
+| 지금 쓰는 서비스 | ziggle, house-moving-out, pot-g 앱 | chatbot, pot-g 매니저 웹                             |
 
 새 서비스라면 A 를 권한다. 백엔드에 IdP secret 을 둘 필요가 없다.
 
@@ -38,11 +38,11 @@ IdP 가 발급한 authorization code 를 누가 교환하느냐에 따라 두 �
 
 ## 이름 규칙
 
-- `signIn`, `signOut`: 사용자 관점의 전체 흐름이다. IdP 로 보내고, callback 을 처리하고, 서비스 세션을 만드는 데까지를 말한다.
+- `login`, `logout`: 사용자 관점의 전체 흐름이다. IdP 로 보내고, callback 을 처리하고, 서비스 세션을 만드는 데까지를 말한다.
 - `login`, `refresh`, `logout`: 서비스 백엔드의 세션 endpoint 를 한 번 호출하는 것이다. `SessionAdapter` 의 메서드이며
   `/auth/login` 같은 경로와 이름이 같다.
 
-`signIn()` 한 번 안에서 `session.login()` 이 불린다.
+`login()` 한 번 안에서 `session.start()` 이 불린다.
 
 ## IdP 와 맞춘 것
 

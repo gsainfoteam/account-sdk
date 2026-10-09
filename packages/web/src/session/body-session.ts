@@ -37,7 +37,7 @@ export function bodySession({
   };
 
   return {
-    async login(credential, body) {
+    async start(credential, body) {
       const extra = isPlainObject(body) ? body : {};
 
       const response =
@@ -71,7 +71,7 @@ export function bodySession({
       return keep(await readTokens(response, refresh));
     },
 
-    async logout(accessToken) {
+    async end(accessToken) {
       const refreshToken = storage.getItem(storageKey);
       storage.removeItem(storageKey);
 

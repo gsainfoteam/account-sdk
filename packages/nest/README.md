@@ -50,7 +50,7 @@ export class AuthService {
 
   // B 방식: 프론트가 넘긴 code 교환 (clientSecret 필요)
   async loginWithCode(code: string, codeVerifier: string, redirectUri: string) {
-    const { user } = await this.account.signInWithCode({ code, codeVerifier, redirectUri });
+    const { user } = await this.account.loginWithCode({ code, codeVerifier, redirectUri });
     return this.issueSession(user);
   }
 

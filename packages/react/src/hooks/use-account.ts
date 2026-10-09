@@ -4,8 +4,8 @@ import { useStore } from 'zustand';
 import { useAccountClient } from '../context/account-context';
 
 export interface UseAccountResult extends AccountState {
-  signIn: AccountClient['signIn'];
-  signOut: AccountClient['signOut'];
+  login: AccountClient['login'];
+  logout: AccountClient['logout'];
   retryLogin: AccountClient['retryLogin'];
   fetch: AccountClient['fetch'];
 }
@@ -18,8 +18,8 @@ export function useAccount(): UseAccountResult {
   return {
     ...state,
 
-    signIn: client.signIn,
-    signOut: client.signOut,
+    login: client.login,
+    logout: client.logout,
     retryLogin: client.retryLogin,
     fetch: client.fetch,
   };

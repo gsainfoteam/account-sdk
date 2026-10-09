@@ -13,7 +13,7 @@ class SecureTokenStore implements TokenStore {
 
   String get _access => '$prefix:access-token';
   String get _refresh => '$prefix:refresh-token';
-  String get _signedOut => '$prefix:signed-out';
+  String get _loggedOut => '$prefix:logged-out';
 
   @override
   Future<StoredSession?> read() async {
@@ -41,14 +41,14 @@ class SecureTokenStore implements TokenStore {
   }
 
   @override
-  Future<bool> readSignedOut() async => await _storage.read(key: _signedOut) != null;
+  Future<bool> readLoggedOut() async => await _storage.read(key: _loggedOut) != null;
 
   @override
-  Future<void> writeSignedOut(bool value) async {
+  Future<void> writeLoggedOut(bool value) async {
     if (value) {
-      await _storage.write(key: _signedOut, value: '1');
+      await _storage.write(key: _loggedOut, value: '1');
     } else {
-      await _storage.delete(key: _signedOut);
+      await _storage.delete(key: _loggedOut);
     }
   }
 }

@@ -23,7 +23,7 @@ await account.ready();
 account.store.subscribe((state) => render(state));
 
 // 로그인 버튼
-await account.signIn({ returnTo: location.pathname });
+await account.login({ returnTo: location.pathname });
 
 // redirect URI 페이지
 const { returnTo } = await account.handleCallback();

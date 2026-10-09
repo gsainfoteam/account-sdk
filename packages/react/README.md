@@ -105,7 +105,7 @@ function Callback() {
 ### 3. 상태와 동작
 
 ```tsx
-const { status, error, signIn, signOut, retryLogin, fetch } = useAccount();
+const { status, error, login, logout, retryLogin, fetch } = useAccount();
 ```
 
 - `status`: `loading`, `authenticated`, `unauthenticated` 중 하나다.

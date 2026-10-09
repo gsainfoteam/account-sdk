@@ -86,12 +86,12 @@ class AccountClient {
   /// PKCE, `state` checking and the code exchange are done by `package:oauth2`. An `iss` in the callback
   /// must be one of the IdP's hosts.
   ///
-  /// Signing out does not end the IdP's own login session, so the first sign-in after [signOut] asks for
+  /// Signing out does not end the IdP's own login session, so the first sign-in after [logout] asks for
   /// `prompt=login` and the user can switch accounts. With [AccountScope.offlineAccess] it asks for
   /// `prompt=consent`, which account-fe requires for that scope.
   ///
   /// Throws an [AccountException], such as [AccountCancelledException] when the user backs out.
-  Future<void> signIn() async {
+  Future<void> login() async {
     final metadata = await discover(issuer, client: _http);
     _checkScopes(metadata);
 
@@ -107,22 +107,22 @@ class AccountClient {
     _checkIssuer(metadata, parameters);
 
     final idp = await _exchange(grant, parameters);
-    final tokens = await session.login(idp.credentials.accessToken);
+    final tokens = await session.start(idp.credentials.accessToken);
 
     await _authenticate(tokens.accessToken, tokens.refreshToken);
-    await _store.writeSignedOut(false);
+    await _store.writeLoggedOut(false);
   }
 
   /// Clears the stored session and tells the service backend.
   /// A failure on the server side is ignored because the device is signed out either way.
-  Future<void> signOut() async {
+  Future<void> logout() async {
     final stored = await _store.read();
 
     await _unauthenticate();
-    await _store.writeSignedOut(true);
+    await _store.writeLoggedOut(true);
 
     try {
-      await session.logout(accessToken: stored?.accessToken, refreshToken: stored?.refreshToken);
+      await session.end(accessToken: stored?.accessToken, refreshToken: stored?.refreshToken);
     } on AccountException {
       return;
     }
@@ -198,7 +198,7 @@ class AccountClient {
   }
 
   Future<AccountPrompt?> _prompt() async {
-    if (await _store.readSignedOut()) return AccountPrompt.login;
+    if (await _store.readLoggedOut()) return AccountPrompt.login;
     if (scopes.contains(AccountScope.offlineAccess)) return AccountPrompt.consent;
 
     return null;

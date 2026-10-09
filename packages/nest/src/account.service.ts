@@ -27,8 +27,8 @@ export class AccountService implements AccountServer {
     return this.server.exchangeCode(params);
   }
 
-  signInWithCode(params: ExchangeCodeParams): Promise<{ tokens: TokenResponse; user: UserInfo }> {
-    return this.server.signInWithCode(params);
+  loginWithCode(params: ExchangeCodeParams): Promise<{ tokens: TokenResponse; user: UserInfo }> {
+    return this.server.loginWithCode(params);
   }
 
   getUserInfoBySub(sub: string): Promise<UserInfo> {

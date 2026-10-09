@@ -31,7 +31,7 @@ export function cookieSession({
   const { login, refresh, logout } = { ...SESSION_PATHS, ...paths };
 
   return {
-    async login(credential, body) {
+    async start(credential, body) {
       if (credential.type !== 'idp_token') {
         throw new AccountError('invalid_request', {
           description: "cookieSession needs exchange: 'browser'",
@@ -50,7 +50,7 @@ export function cookieSession({
       return readTokens(response, refresh);
     },
 
-    async logout(accessToken) {
+    async end(accessToken) {
       await request({ path: logout, accessToken: accessToken ?? undefined });
     },
   };

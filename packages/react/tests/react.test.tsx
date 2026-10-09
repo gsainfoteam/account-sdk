@@ -64,7 +64,7 @@ describe('AccountProvider', () => {
 });
 
 describe('RequireAuth', () => {
-  it('sends a signed-out user to the IdP and remembers where they were', async () => {
+  it('sends a logged-out user to the IdP and remembers where they were', async () => {
     const { client, redirect } = setup({
       [`${API}/auth/refresh`]: () => new Response(null, { status: 401 }),
     });
@@ -111,7 +111,7 @@ describe('AccountCallback', () => {
         }),
       [`${API}/auth/login`]: () => Response.json({ access_token: 'service' }),
     });
-    await client.signIn({ returnTo: '/notices/1' });
+    await client.login({ returnTo: '/notices/1' });
     const state = new URL(redirect.mock.calls[0]![0]).searchParams.get('state');
     window.history.replaceState(null, '', `/auth/callback?code=c-1&state=${state}`);
 

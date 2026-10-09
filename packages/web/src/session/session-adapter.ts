@@ -2,7 +2,7 @@ import { type IdTokenClaims } from '@gsainfoteam/account-core';
 import * as z from 'zod/mini';
 
 /**
- * What the client hands to {@link SessionAdapter.login}, depending on the `exchange` option:
+ * What the client hands to {@link SessionAdapter.start}, depending on the `exchange` option:
  * the IdP tokens, or the authorization code with its PKCE verifier.
  */
 export type LoginCredential =
@@ -40,10 +40,10 @@ export type SessionTokens = z.output<typeof SessionTokensSchema>;
  */
 export interface SessionAdapter {
   /** @throws {@link AccountError} `session_rejected` with the backend's body in `details` when it refuses. */
-  login(credential: LoginCredential, body?: unknown): Promise<SessionTokens>;
+  start(credential: LoginCredential, body?: unknown): Promise<SessionTokens>;
   /** @returns `null` when there is no session to restore. */
   refresh(): Promise<SessionTokens | null>;
-  logout(accessToken: string | null): Promise<void>;
+  end(accessToken: string | null): Promise<void>;
 }
 
 /** Paths of the session endpoints. Any path left out uses {@link SESSION_PATHS}. */

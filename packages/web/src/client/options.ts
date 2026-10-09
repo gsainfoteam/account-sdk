@@ -9,9 +9,9 @@ const nonEmpty = () => z.string().check(z.minLength(1));
 const method = () => z.custom<(...args: never[]) => unknown>(isFunction);
 
 const SessionAdapterShapeSchema = z.looseObject({
-  login: method(),
+  start: method(),
   refresh: method(),
-  logout: method(),
+  end: method(),
 });
 
 /** Options of {@link createAccountClient}. Validated at creation, so a missing env value fails at startup. */

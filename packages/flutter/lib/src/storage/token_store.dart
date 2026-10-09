@@ -14,7 +14,7 @@ abstract interface class TokenStore {
 
   Future<void> clear();
 
-  Future<bool> readSignedOut();
+  Future<bool> readLoggedOut();
 
-  Future<void> writeSignedOut(bool value);
+  Future<void> writeLoggedOut(bool value);
 }

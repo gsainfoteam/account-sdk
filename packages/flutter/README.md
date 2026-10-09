@@ -34,7 +34,7 @@ dio.interceptors.add(AccountInterceptor(account, dio));
 account.states.listen((state) => print(state.status));
 
 try {
-  await account.signIn();
+  await account.login();
 } on AccountCancelledException {
   // 사용자가 취소했다
 }
