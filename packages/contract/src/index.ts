@@ -10,3 +10,5 @@ export {
 } from './scopes';
 
 export { DENIAL_REASONS, type DenialReason } from './denial-reasons';
+
+export { SCOPE_CLAIMS, type ClaimsOf, type UserClaims } from './claims';
