@@ -7,6 +7,7 @@ import { AccountError } from '../errors/account-error';
 import { type Fetch } from '../http/fetch';
 import { parse } from '../internal/validate';
 
+/** Claims of an id_token account-be signs. Profile claims appear only for the granted scopes. */
 export const IdTokenClaimsSchema = z.looseObject({
   iss: z.string(),
   sub: z.string().check(z.minLength(1)),
@@ -30,7 +31,6 @@ export function parseIdTokenClaims(value: unknown): IdTokenClaims {
   return parse(IdTokenClaimsSchema, value, 'invalid_id_token', 'id_token claims');
 }
 
-// createRemoteJWKSet 이 키 캐시와 kid 교체 시 재요청 간격을 관리하므로, 호출마다 새로 만들면 그 캐시가 사라진다.
 const jwksByFetch = new Map<Fetch | undefined, Map<string, JWTVerifyGetKey>>();
 
 function jwksOf(metadata: AccountMetadata, fetch: Fetch | undefined): JWTVerifyGetKey {
@@ -45,13 +45,24 @@ function jwksOf(metadata: AccountMetadata, fetch: Fetch | undefined): JWTVerifyG
 }
 
 export interface VerifyIdTokenOptions {
+  /** The client id the token was issued to. */
   audience: string;
+  /** The nonce sent in the authorization request. When given, the token must carry it. */
   nonce?: string;
   clockToleranceSec?: number;
   currentDate?: Date;
   fetch?: Fetch;
 }
 
+/**
+ * Verifies an id_token that did not come straight from the token endpoint, such as one an app sends
+ * to its backend: signature against the IdP's JWKS, issuer, audience, expiry and nonce.
+ *
+ * @remarks
+ * Keys are fetched once per JWKS URI and refreshed by jose when an unknown `kid` shows up.
+ *
+ * @throws {@link AccountError} `invalid_id_token`.
+ */
 export async function verifyIdToken(
   metadata: AccountMetadata,
   token: string,

@@ -1,6 +1,7 @@
 import { type AccountServerOptions } from '@gsainfoteam/account-server';
 import { ConfigurableModuleBuilder } from '@nestjs/common';
 
+/** Injection token of the underlying {@link AccountServer}. */
 export const ACCOUNT_SERVER = Symbol('ACCOUNT_SERVER');
 
 export const { ConfigurableModuleClass, MODULE_OPTIONS_TOKEN, OPTIONS_TYPE, ASYNC_OPTIONS_TYPE } =

@@ -9,6 +9,7 @@ export interface AccountProviderProps {
   children?: ReactNode;
 }
 
+/** Makes the client available to the hooks and components below and restores the session on mount. */
 export function AccountProvider({ client, children }: AccountProviderProps): ReactNode {
   useEffect(() => {
     void client.ready();

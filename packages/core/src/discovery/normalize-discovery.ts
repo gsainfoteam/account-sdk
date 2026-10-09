@@ -3,18 +3,35 @@ import * as z from 'zod/mini';
 import { API_HOST_PREFIX, DEFAULT_ID_TOKEN_SIGNING_ALGS, FALLBACK_ENDPOINTS } from '../constants';
 import { parse } from '../internal/validate';
 
+/** IdP endpoints and capabilities, normalized from its OpenID discovery document. */
 export interface AccountMetadata {
+  /** The `issuer` the discovery document states. */
   issuer: string;
+  /**
+   * Issuer values accepted in a callback `iss` parameter and in an id_token `iss` claim.
+   *
+   * account-be signs id_tokens with a different setting than the one it advertises, so the SDK accepts
+   * every host the IdP owns: the advertised issuer, the login host and the API host.
+   */
   issuers: readonly string[];
+  /** Login page on account-fe that starts the authorization code flow. */
   authorizationEndpoint: string;
   tokenEndpoint: string;
   userinfoEndpoint: string;
   jwksUri: string;
+  /**
+   * Where and how to revoke a token.
+   *
+   * account-be revokes with `DELETE /oauth/token` instead of the RFC 7009 `POST` to a revocation endpoint.
+   * Once the IdP advertises `revocation_endpoint` this switches to the standard request.
+   */
   revocation: { endpoint: string; method: 'POST' | 'DELETE' };
+  /** Scopes the IdP advertises, kept as received so scopes the SDK does not know yet still show up. */
   scopesSupported: readonly string[];
   idTokenSigningAlgs: readonly string[];
 }
 
+/** Shape of the OpenID discovery document the IdP serves. */
 export const DiscoveryDocumentSchema = z.looseObject({
   issuer: z.string(),
   authorization_endpoint: z.url(),
@@ -29,15 +46,23 @@ export const DiscoveryDocumentSchema = z.looseObject({
 
 export type DiscoveryDocument = z.infer<typeof DiscoveryDocumentSchema>;
 
-// 지금 IdP discovery 문서의 결함을 여기서만 흡수한다. IdP 가 고쳐지면 이 함수만 단순해진다.
-// - issuer 와 endpoint 들을 account-be 의 BASE_URL 로 만들어서, 스테이징은 `account.account.gistory.me` 처럼
-//   존재하지 않는 호스트를 가리킨다. 그래서 문서를 실제로 받아 온 호스트를 기준으로 endpoint 를 다시 만든다.
-// - id_token 의 iss 는 discovery 의 issuer 와 다른 env(JWT_ISSUER)에서 온다. 둘 다 IdP 가 가진 호스트이므로
-//   API origin 과 로그인 화면 origin 을 모두 받아들인다.
-// - `scopes_supported` 가 `scope_supported` 로 잘못 나간다.
-// - 표준 revocation endpoint 대신 `DELETE /oauth/token` 을 쓴다.
-// 같은 이유로 oauth4webapi 의 processDiscoveryResponse 는 쓸 수 없다. 문서의 issuer 가 요청한 URL 과
-// 같아야 통과하기 때문이다.
+/**
+ * Builds {@link AccountMetadata} from a discovery document and the URL it was fetched from.
+ *
+ * @remarks
+ * This is the only place that works around defects in the IdP's discovery document:
+ * - account-be derives the issuer and endpoints from its `BASE_URL`, and on staging that points to
+ *   `account.account.gistory.me`, a host that does not exist. Endpoints are rebuilt on the host the
+ *   document was actually fetched from: API endpoints on `api.<host>` and the login page on `<host>`.
+ * - id_tokens carry an `iss` from a separate setting, so every host the IdP owns is accepted.
+ * - The supported scopes are advertised as `scope_supported` instead of `scopes_supported`.
+ * - Revocation is `DELETE /oauth/token` instead of a standard revocation endpoint.
+ *
+ * For the same reasons `processDiscoveryResponse` from oauth4webapi cannot be used: it requires the
+ * document's issuer to equal the URL that was requested. When the IdP is fixed these rules become no-ops.
+ *
+ * @throws {@link AccountError} `discovery_failed` when the document does not match {@link DiscoveryDocumentSchema}.
+ */
 export function normalizeDiscovery(input: unknown, fetchedFrom: string): AccountMetadata {
   const doc = parse(DiscoveryDocumentSchema, input, 'discovery_failed', 'discovery document');
 

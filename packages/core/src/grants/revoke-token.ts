@@ -16,6 +16,13 @@ export interface RevokeParams {
   tokenTypeHint: 'access_token' | 'refresh_token';
 }
 
+/**
+ * Revokes an access or refresh token.
+ *
+ * @remarks
+ * account-be accepts `DELETE /oauth/token` instead of the RFC 7009 `POST`, so the request method
+ * follows {@link AccountMetadata.revocation}.
+ */
 export async function revokeToken(
   metadata: AccountMetadata,
   client: ClientCredentials,
@@ -33,7 +40,6 @@ export async function revokeToken(
       {
         ...base,
         additionalParameters: { token_type_hint: tokenTypeHint },
-        // account-be 는 RFC 7009 의 POST 대신 `DELETE /oauth/token` 으로 받는다.
         [oauth.customFetch]: (url, init) =>
           fetch(url, { ...init, method: metadata.revocation.method }),
       },

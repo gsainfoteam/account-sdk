@@ -136,7 +136,6 @@ describe('getUserInfoBySub', () => {
     const fetch = idp({
       '/oauth/token': () =>
         Response.json({ ...tokenBody, access_token: `client-token-${++issued}` }),
-      // account-be 는 Redis 에서 사라진 토큰에 500 을 돌려준다.
       '/oauth/userinfo': ({ headers }) =>
         headers.get('authorization') === 'Bearer client-token-1'
           ? new Response('Internal server error', { status: 500 })

@@ -12,7 +12,10 @@ import {
 } from '../internal/oauth4webapi';
 import { parse } from '../internal/validate';
 
-// account-be User 모델에서 profile 과 picture 만 nullable 이다.
+/**
+ * The userinfo body account-be returns. Fields outside the granted scopes are left out.
+ * Only `profile` and `picture` can be `null`, matching the nullable columns of the account-be user model.
+ */
 export const UserInfoResponseSchema = z.looseObject({
   sub: z.string().check(z.minLength(1)),
   name: z.optional(z.string()),
@@ -25,6 +28,7 @@ export const UserInfoResponseSchema = z.looseObject({
   is_phone_number_verified: z.optional(z.boolean()),
 });
 
+/** {@link UserInfoResponseSchema} converted to camelCase. */
 export const UserInfoSchema = z.pipe(
   UserInfoResponseSchema,
   z.transform((raw) => ({
@@ -44,18 +48,25 @@ export type UserInfoResponse = z.input<typeof UserInfoSchema>;
 export type UserInfo = z.output<typeof UserInfoSchema>;
 
 export interface FetchUserInfoOptions extends RequestOptions {
+  /** The user to look up with a client credentials token. account-be reads it from the query string. */
   sub?: string;
 }
 
-// 표준은 모르는 토큰에 401 이다. 지금 account-be 는 Redis 조회 실패를 그대로 흘려 500 을 돌려주므로
-// 그 경우는 server_error 로 남는다. account-be 를 고치면 invalid_token 으로 들어온다.
+/**
+ * Fetches the user behind an access token.
+ *
+ * @throws {@link AccountError} `invalid_token` when the IdP rejects the token with 401 or 403.
+ *
+ * @remarks
+ * account-be currently answers an unknown token with 500 because a Redis lookup failure escapes,
+ * so that case surfaces as `server_error` until account-be is fixed.
+ */
 export async function fetchUserInfo(
   metadata: AccountMetadata,
   client: Pick<ClientCredentials, 'clientId'>,
   accessToken: string,
   options: FetchUserInfoOptions = {},
 ): Promise<UserInfo> {
-  // account-be 는 client_credentials 토큰일 때 조회할 사용자를 query 로 받는다.
   const endpoint = new URL(metadata.userinfoEndpoint);
   if (options.sub) endpoint.searchParams.set('sub', options.sub);
   const as = { ...authorizationServer(metadata), userinfo_endpoint: endpoint.toString() };

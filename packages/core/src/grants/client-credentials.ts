@@ -12,6 +12,11 @@ import {
   toAccountError,
 } from '../internal/oauth4webapi';
 
+/**
+ * Gets an access token for the client itself, to look users up while they are not present.
+ *
+ * @param scopes Must be among the scopes registered for the client.
+ */
 export async function requestClientCredentials(
   metadata: AccountMetadata,
   client: Required<ClientCredentials>,

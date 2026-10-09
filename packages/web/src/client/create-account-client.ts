@@ -23,6 +23,7 @@ import { STORAGE_KEYS } from '../storage/keys';
 import { saveTransaction, takeTransaction } from '../storage/transactions';
 
 export interface SignInOptions {
+  /** Where to send the user after the callback. Handed back by {@link AccountClient.handleCallback}. */
   returnTo?: string;
   prompt?: Prompt;
 }
@@ -31,20 +32,77 @@ export interface CallbackResult {
   returnTo: string | undefined;
 }
 
+/** Browser client for the IdP and the service backend's session. */
 export interface AccountClient {
   readonly store: StoreApi<AccountState>;
+  /**
+   * Restores the session through {@link SessionAdapter.refresh}. Safe to call more than once.
+   *
+   * @remarks
+   * Skipped on the callback page, where {@link AccountClient.handleCallback} creates the session and a
+   * concurrent refresh would race it.
+   */
   ready(): Promise<void>;
+  /**
+   * Redirects to the IdP login page.
+   *
+   * @remarks
+   * Signing out does not end the IdP's own login session. The first sign-in after a sign-out therefore
+   * asks for `prompt=login`, so the user can switch accounts.
+   */
   signIn(options?: SignInOptions): Promise<void>;
+  /**
+   * Validates the callback, exchanges the code and logs in to the service backend.
+   *
+   * @remarks
+   * React StrictMode runs effects twice, and a code can be exchanged only once. Calls for the same
+   * callback share one attempt.
+   *
+   * @throws {@link AccountError} such as `state_mismatch`, `user_cancelled` or `session_rejected`.
+   */
   handleCallback(url?: string): Promise<CallbackResult>;
+  /**
+   * Sends the login again with the same IdP token and an extra body, for example the consent a service
+   * asked for after rejecting the first attempt with `session_rejected`.
+   *
+   * @remarks
+   * Only logins made with the `browser` exchange can be retried; an authorization code works once.
+   */
   retryLogin(body: unknown): Promise<void>;
+  /** Ends the service session. Fails silently on the server side because the user is signed out locally either way. */
   signOut(): Promise<void>;
   getAccessToken(): string | null;
+  /**
+   * Gets a new access token from the service backend.
+   *
+   * @param staleToken The token a request was rejected with. If another caller already replaced it,
+   * that newer token is returned without refreshing again.
+   * @returns The new token, or `null` when there is no session to refresh.
+   */
   refresh(staleToken?: string | null): Promise<string | null>;
+  /** `fetch` that sends the access token and retries once after refreshing on 401. */
   fetch: Fetch;
 }
 
 const SIGNED_OUT_KEY = STORAGE_KEYS.signedOut;
 
+/**
+ * Creates the browser client.
+ *
+ * @example
+ * ```ts
+ * export const account = createAccountClient({
+ *   issuer: 'production',
+ *   clientId: import.meta.env.VITE_ACCOUNT_CLIENT_ID,
+ *   redirectUri: '/auth/callback',
+ *   scopes: ['name', 'email'],
+ *   exchange: 'browser',
+ *   session: cookieSession({ baseUrl: import.meta.env.VITE_API_URL }),
+ * });
+ * ```
+ *
+ * @throws {@link AccountError} `invalid_request` when an option is missing or empty.
+ */
 export function createAccountClient(input: AccountClientOptions): AccountClient {
   const parsed = AccountClientOptionsSchema.safeParse(input);
   if (!parsed.success) {
@@ -93,7 +151,6 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
       authenticate(tokens.accessToken);
     } catch (error) {
       const accountError = toAccountError(error);
-      // 같은 IdP 토큰으로 다시 보낼 수 있을 때만 남긴다. code 는 한 번 쓰면 끝이라 재시도할 수 없다.
       pendingCredential =
         credential.type === 'idp_token' && AccountError.is(accountError, 'session_rejected')
           ? credential
@@ -146,7 +203,6 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
 
     ready() {
       initializing ??= (async () => {
-        // callback 페이지에서는 AccountCallback 이 세션을 만든다. 여기서 refresh 를 하면 그 결과와 경합한다.
         if (
           isCallbackUrl(window.location.href) &&
           window.location.pathname === new URL(redirectUri()).pathname
@@ -166,7 +222,6 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
 
     async signIn({ returnTo, prompt } = {}) {
       const current = await metadata();
-      // 로그아웃해도 IdP 로그인 세션은 남는다. 다른 계정으로 바꿀 수 있게 로그아웃 직후 한 번은 로그인 화면을 띄운다.
       const signedOut = localStorage.getItem(SIGNED_OUT_KEY) !== null;
       const { url, transaction } = await createAuthorization(current, {
         clientId,
@@ -179,7 +234,6 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
     },
 
     handleCallback(url = window.location.href) {
-      // React StrictMode 는 effect 를 두 번 실행한다. 같은 callback 을 두 번 교환하면 두 번째는 invalid_grant 다.
       const key = readCallbackState(url) ?? url;
       let pending = callbacks.get(key);
       if (!pending) {
@@ -215,7 +269,6 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
       await refreshMutex.acquire();
       try {
         const { accessToken } = store.getState();
-        // 기다리는 동안 다른 요청이 이미 갱신했다면 그 토큰을 쓴다.
         if (accessToken && accessToken !== staleToken) return accessToken;
         const tokens = await session.refresh();
         if (!tokens) {

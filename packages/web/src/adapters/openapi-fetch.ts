@@ -8,6 +8,16 @@ import { type Middleware } from 'openapi-fetch';
 
 import { type AccountClient } from '../client/create-account-client';
 
+/**
+ * openapi-fetch middleware that sends the access token and retries once after refreshing on 401.
+ * The retry goes through `options.fetch`, which skips the middleware, so it cannot loop.
+ *
+ * @example
+ * ```ts
+ * const api = createFetchClient<paths>({ baseUrl });
+ * api.use(createAccountMiddleware(account));
+ * ```
+ */
 export function createAccountMiddleware(client: AccountClient): Middleware {
   return {
     async onRequest({ request }) {
@@ -23,7 +33,6 @@ export function createAccountMiddleware(client: AccountClient): Middleware {
       if (!token) return response;
       const retry = new Request(request);
       retry.headers.set(AUTHORIZATION_HEADER, bearer(token));
-      // options.fetch 는 미들웨어를 다시 거치지 않으므로 재시도가 또 401 이어도 반복되지 않는다.
       return options.fetch(retry);
     },
   };

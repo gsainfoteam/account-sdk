@@ -21,7 +21,10 @@ export const StoredTransactionSchema = z.object({
 
 export type StoredTransaction = z.infer<typeof StoredTransactionSchema>;
 
-// state 를 키로 따로 저장해서, 여러 탭에서 동시에 로그인을 시작해도 서로의 verifier 를 덮어쓰지 않는다.
+/**
+ * Stores a pending authorization under its own `state`, so sign-ins started in several tabs at once
+ * do not overwrite each other's verifier.
+ */
 export function saveTransaction(
   storage: Storage,
   transaction: AuthorizationTransaction,
@@ -32,6 +35,7 @@ export function saveTransaction(
   storage.setItem(PREFIX + transaction.state, JSON.stringify(stored));
 }
 
+/** Removes and returns the transaction for `state`, or `null` when it is missing, malformed or older than an authorization code can live. */
 export function takeTransaction(storage: Storage, state: string | null): StoredTransaction | null {
   if (!state) return null;
   const raw = storage.getItem(PREFIX + state);

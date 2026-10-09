@@ -5,8 +5,13 @@ import { AccountError, fromOAuthError } from '../errors/account-error';
 import { isAuthFailure } from '../http/bearer';
 import { type RequestOptions } from '../http/fetch';
 
-// oauth4webapi 는 issuer 를 하나만 받는다. IdP 가 issuer 를 두 가지로 내보내는 동안에는, 받은 값이
-// metadata.issuers 에 있는지 먼저 확인하고 그 값을 issuer 로 넣어 라이브러리 검증을 그대로 통과시킨다.
+/**
+ * Describes the IdP to oauth4webapi.
+ *
+ * @remarks
+ * oauth4webapi accepts a single issuer. While the IdP uses more than one, a given `issuer` is first
+ * checked against {@link AccountMetadata.issuers} and then used, so the library validation still runs.
+ */
 export function authorizationServer(
   metadata: AccountMetadata,
   issuer?: string,
@@ -33,6 +38,7 @@ export function clientAuthentication(clientSecret: string | undefined): oauth.Cl
   return clientSecret ? oauth.ClientSecretPost(clientSecret) : oauth.None();
 }
 
+/** HTTP options for oauth4webapi. Plain `http:` is allowed only for an account-be running locally. */
 export function httpOptions<Method, Body = undefined>(
   metadata: AccountMetadata,
   { fetch, signal }: RequestOptions,
@@ -45,11 +51,17 @@ export function httpOptions<Method, Body = undefined>(
             fetch(url, init as RequestInit),
         }
       : {}),
-    // 로컬에서 띄운 account-be(http://localhost:3000)에 붙을 때만 http 를 허용한다.
     [oauth.allowInsecureRequests]: new URL(metadata.tokenEndpoint).protocol === 'http:',
   };
 }
 
+/**
+ * Maps any error thrown while talking to the IdP to an {@link AccountError}.
+ *
+ * @remarks
+ * A failed `fetch` is a `TypeError`, but so are oauth4webapi's argument errors; those carry a code
+ * starting with `ERR_` and are not reported as network errors.
+ */
 export function toAccountError(error: unknown): AccountError {
   if (AccountError.is(error)) return error;
   if (error instanceof oauth.AuthorizationResponseError) {
@@ -73,7 +85,6 @@ export function toAccountError(error: unknown): AccountError {
       cause: error,
     });
   }
-  // fetch 실패도 TypeError 지만, oauth4webapi 가 잘못된 인자에 던지는 TypeError 에는 ERR_ 로 시작하는 code 가 있다.
   if (
     error instanceof TypeError &&
     !String((error as { code?: unknown }).code ?? '').startsWith('ERR_')

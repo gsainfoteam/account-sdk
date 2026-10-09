@@ -5,11 +5,25 @@ import { type AccountError, type CallbackResult } from '@gsainfoteam/account-web
 import { useAccountClient } from '../context/account-context';
 
 export interface AccountCallbackProps {
+  /** Called once with where to return, typically to navigate there. */
   onSuccess: (result: CallbackResult) => void;
   onError: (error: AccountError) => void;
   fallback?: ReactNode;
 }
 
+/**
+ * Render on the redirect URI route. Completes the sign-in and reports the result once, even under
+ * StrictMode where the effect runs twice.
+ *
+ * @example
+ * ```tsx
+ * <AccountCallback
+ *   fallback={<Spinner />}
+ *   onSuccess={({ returnTo }) => navigate({ to: returnTo ?? '/' })}
+ *   onError={() => navigate({ to: '/' })}
+ * />
+ * ```
+ */
 export function AccountCallback({
   onSuccess,
   onError,
@@ -20,7 +34,6 @@ export function AccountCallback({
   const fail = useEffectEvent(onError);
 
   useEffect(() => {
-    // StrictMode 가 effect 를 두 번 돌려도 교환은 한 번이지만, 결과를 두 번 받으면 앱이 두 번 navigate 한다.
     let active = true;
     client.handleCallback().then(
       (result) => active && succeed(result),

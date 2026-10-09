@@ -4,8 +4,10 @@ import { type AccountMetadata } from '../discovery/normalize-discovery';
 import { AccountError } from '../errors/account-error';
 import { authorizationServer, oauthClient, toAccountError } from '../internal/oauth4webapi';
 
+/** Values taken from a validated callback URL. */
 export interface CallbackParams {
   code: string;
+  /** The state saved when the authorization started. Without one the callback cannot be trusted. */
   state: string;
   iss?: string;
 }
@@ -15,21 +17,31 @@ export interface ParseCallbackOptions {
   state: string | null | undefined;
 }
 
+/** Reads `state` from a callback URL without validating anything, to look up its transaction. */
 export function readCallbackState(url: string | URL): string | null {
   return new URL(url).searchParams.get('state');
 }
 
+/** Tells whether a URL carries an authorization response, successful or not. */
 export function isCallbackUrl(url: string | URL): boolean {
   const params = new URL(url).searchParams;
   return params.has('code') || params.has('error');
 }
 
+/**
+ * Validates the callback the IdP redirected to and returns its code.
+ *
+ * Checks `state` before anything else, so a forged redirect cannot even report an error to the app.
+ * An `iss` parameter (RFC 9207) must be one of {@link AccountMetadata.issuers}.
+ *
+ * @throws {@link AccountError} `state_mismatch`, `issuer_mismatch`, `missing_code`,
+ * or the reason account-fe gave such as `user_cancelled`.
+ */
 export function parseCallback(
   metadata: AccountMetadata,
   url: string | URL,
   options: ParseCallbackOptions,
 ): CallbackParams {
-  // oauth4webapi 는 expectedState 를 빼면 state 가 없는 응답을 기대하는 것으로 해석한다.
   if (!options.state) throw new AccountError('state_mismatch');
 
   const params = new URL(url).searchParams;
@@ -47,7 +59,6 @@ export function parseCallback(
     if (!code) throw new AccountError('missing_code');
     return { code, state: options.state, iss };
   } catch (error) {
-    // iss 는 위에서 이미 판정했으므로, 여기서 나는 처리 에러는 state 가 없거나 다를 때뿐이다.
     if (error instanceof oauth.OperationProcessingError)
       throw new AccountError('state_mismatch', { cause: error });
     throw toAccountError(error);

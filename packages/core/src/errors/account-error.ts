@@ -1,4 +1,9 @@
-// account-fe 는 거절 사유를 `access_denied` 의 error_description 에 싣는다. 앱이 사유별로 안내하도록 code 로 올린다.
+/**
+ * Reasons account-fe gives for turning a user away.
+ *
+ * account-fe redirects back with `error=access_denied` and puts the reason in `error_description`.
+ * The SDK lifts that reason into {@link AccountError.code} so an app can react to each case.
+ */
 export const DENIAL_REASONS = [
   'user_cancelled',
   'verification_required',
@@ -8,6 +13,7 @@ export const DENIAL_REASONS = [
 
 export type DenialReason = (typeof DENIAL_REASONS)[number];
 
+/** Error codes defined by OAuth 2.0 (RFC 6749) that the IdP returns. */
 export type OAuthErrorCode =
   | 'access_denied'
   | 'invalid_request'
@@ -20,6 +26,7 @@ export type OAuthErrorCode =
   | 'invalid_client'
   | 'unsupported_grant_type';
 
+/** Errors the SDK raises itself while validating responses or talking to a service backend. */
 export type SdkErrorCode =
   | 'state_mismatch'
   | 'issuer_mismatch'
@@ -32,6 +39,7 @@ export type SdkErrorCode =
   | 'session_rejected'
   | 'unknown';
 
+/** Every code an {@link AccountError} can carry. */
 export type AccountErrorCode = DenialReason | OAuthErrorCode | SdkErrorCode;
 
 const OAUTH_ERROR_CODES: ReadonlySet<string> = new Set<OAuthErrorCode>([
@@ -48,13 +56,34 @@ const OAUTH_ERROR_CODES: ReadonlySet<string> = new Set<OAuthErrorCode>([
 ]);
 
 export interface AccountErrorOptions {
+  /** Human-readable detail, such as the IdP's `error_description`. */
   description?: string;
+  /** HTTP status of the response that caused the error, if any. */
   status?: number;
-  // 서비스 백엔드가 거절하며 돌려준 body. house-be 의 requiredConsents 처럼 앱이 읽어야 하는 값이 들어 있다.
+  /**
+   * Body a service backend sent when it rejected a login.
+   *
+   * For example house-moving-out-be answers `403` with `requiredConsents`, which the app needs to show the consent form.
+   */
   details?: unknown;
   cause?: unknown;
 }
 
+/**
+ * The single error type every package in the SDK throws.
+ *
+ * Branch on {@link AccountError.code} rather than on the message.
+ *
+ * @example
+ * ```ts
+ * try {
+ *   await client.handleCallback();
+ * } catch (error) {
+ *   if (AccountError.is(error, 'user_cancelled')) return navigate('/');
+ *   throw error;
+ * }
+ * ```
+ */
 export class AccountError extends Error {
   override readonly name = 'AccountError';
   readonly code: AccountErrorCode;
@@ -72,7 +101,13 @@ export class AccountError extends Error {
     this.details = options.details;
   }
 
-  // 번들러가 클래스를 복제하면 instanceof 가 틀리므로 name 과 code 로 판별한다.
+  /**
+   * Tells whether `value` is an {@link AccountError}, optionally with a given code.
+   *
+   * @remarks
+   * Checks `name` and `code` instead of `instanceof`, because a bundler that duplicates this module
+   * would make `instanceof` fail for errors thrown by the other copy.
+   */
   static is(value: unknown, code?: AccountErrorCode): value is AccountError {
     return (
       typeof value === 'object' &&
@@ -84,6 +119,12 @@ export class AccountError extends Error {
   }
 }
 
+/**
+ * Turns an OAuth error response into an {@link AccountError}.
+ *
+ * `access_denied` with one of {@link DENIAL_REASONS} as its description becomes that reason.
+ * Unknown codes become `unknown` and keep the original code in `description`.
+ */
 export function fromOAuthError(
   error: string,
   description?: string | null,

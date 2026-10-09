@@ -19,4 +19,20 @@ import { AccountService } from './account.service';
   ],
   exports: [AccountService],
 })
+/**
+ * Registers {@link AccountService} from {@link AccountServerOptions}.
+ *
+ * @example
+ * ```ts
+ * AccountModule.forRootAsync({
+ *   isGlobal: true,
+ *   inject: [ConfigService],
+ *   useFactory: (config: ConfigService) => ({
+ *     issuer: 'production',
+ *     clientId: config.getOrThrow('ACCOUNT_CLIENT_ID'),
+ *     clientSecret: config.get('ACCOUNT_CLIENT_SECRET'),
+ *   }),
+ * });
+ * ```
+ */
 export class AccountModule extends ConfigurableModuleClass {}

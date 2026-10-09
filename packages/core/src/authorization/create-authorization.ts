@@ -5,33 +5,49 @@ import { type AccountMetadata } from '../discovery/normalize-discovery';
 import { AccountError } from '../errors/account-error';
 import { type Scope } from '../identity/scopes';
 
+/** OpenID Connect `prompt` values account-fe understands. */
 export type Prompt = 'none' | 'login' | 'consent';
 
+/**
+ * Everything needed to validate the callback and exchange the code.
+ *
+ * Keep it where the callback can read it: `sessionStorage` in a browser, memory in an app.
+ */
 export interface AuthorizationTransaction {
   state: string;
   codeVerifier: string;
   nonce?: string;
   redirectUri: string;
   scopes: Scope[];
+  /** Epoch milliseconds, used to drop transactions older than an authorization code can live. */
   createdAt: number;
 }
 
 export interface CreateAuthorizationParams {
   clientId: string;
+  /** Absolute URL registered for the client on the IdP. */
   redirectUri: string;
   scopes: readonly Scope[];
   prompt?: Prompt;
 }
 
-// account-fe `routes/_auth-required/authorize.tsx` 의 검증 규칙을 요청을 만드는 쪽에서 맞춘다.
-// - openid 가 있으면 nonce 가 필요하고, 없으면 nonce 를 보내면 거절된다.
-// - offline_access 는 prompt 가 login 이나 consent 일 때만 받는다. OIDC Core 11 절의 요구다.
+/**
+ * Builds the authorization URL with PKCE (`S256`), `state` and, for `openid`, a `nonce`.
+ *
+ * @remarks
+ * Applies the rules account-fe enforces in `routes/_auth-required/authorize.tsx`, so a request
+ * is never rejected after the user has already been sent away:
+ * - a `nonce` is sent only with `openid`, which requires it and which is the only scope that allows it;
+ * - `offline_access` gets `prompt=consent` unless `login` was asked, as OIDC Core section 11 requires;
+ * - scopes the IdP does not advertise are rejected here instead of on the login page.
+ *
+ * @throws {@link AccountError} `invalid_scope` when a scope is not in {@link AccountMetadata.scopesSupported}.
+ */
 export async function createAuthorization(
   metadata: AccountMetadata,
   params: CreateAuthorizationParams,
 ): Promise<{ url: string; transaction: AuthorizationTransaction }> {
   const scopes = [...new Set(params.scopes)];
-  // 지원하지 않는 scope 는 account-fe 화면까지 가서야 거절되므로, IdP 가 광고한 목록과 미리 대조한다.
   const unsupported = metadata.scopesSupported.length
     ? scopes.filter((scope) => !metadata.scopesSupported.includes(scope))
     : [];

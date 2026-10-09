@@ -8,10 +8,18 @@ export interface BodySessionOptions {
   baseUrl: string;
   paths?: SessionPaths;
   fetch?: Fetch;
+  /** Where the refresh token is kept. Defaults to `localStorage`. */
   storage?: Storage;
   storageKey?: string;
 }
 
+/**
+ * Session for backends that return the refresh token in the body and take it back in the body,
+ * such as the chatbot backend. Use it when cookies cannot be shared with the API origin.
+ *
+ * Login sends `{ code, code_verifier, redirect_uri }` for the `backend` exchange, or the IdP token as a
+ * bearer token for the `browser` exchange. Refresh and logout send `{ refresh_token }`.
+ */
 export function bodySession({
   baseUrl,
   paths = {},

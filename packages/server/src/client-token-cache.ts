@@ -6,6 +6,7 @@ export interface ClientTokenCache {
   invalidate(): void;
 }
 
+/** Caches a client credentials token until shortly before it expires. Concurrent callers share one request. */
 export function createClientTokenCache(request: () => Promise<TokenResponse>): ClientTokenCache {
   let token: { value: string; expiresAt: number } | undefined;
   const mutex = new Mutex();

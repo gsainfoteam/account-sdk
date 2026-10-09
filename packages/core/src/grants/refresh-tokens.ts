@@ -16,6 +16,11 @@ import {
   toAccountError,
 } from '../internal/oauth4webapi';
 
+/**
+ * Trades a refresh token for new tokens. account-be rotates the refresh token, so store the new one.
+ *
+ * @throws {@link AccountError} `invalid_grant` when the refresh token is unknown, used or expired.
+ */
 export async function refreshTokens(
   metadata: AccountMetadata,
   client: ClientCredentials,

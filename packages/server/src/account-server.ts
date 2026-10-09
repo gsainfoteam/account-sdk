@@ -19,16 +19,47 @@ import * as z from 'zod/mini';
 import { createClientTokenCache } from './client-token-cache';
 import { AccountServerOptionsSchema, type AccountServerOptions } from './options';
 
+/** Talks to the IdP on behalf of a service backend. */
 export interface AccountServer {
   metadata(): Promise<AccountMetadata>;
+  /**
+   * Checks an IdP access token a frontend sent at login and returns its user.
+   *
+   * @throws {@link AccountError} `invalid_token` when the IdP rejects the token.
+   */
   getUserInfo(accessToken: string): Promise<UserInfo>;
+  /** Exchanges a code the frontend received for IdP tokens, as a confidential client. */
   exchangeCode(params: ExchangeCodeParams): Promise<TokenResponse>;
+  /** {@link AccountServer.exchangeCode} followed by {@link AccountServer.getUserInfo}. */
   signInWithCode(params: ExchangeCodeParams): Promise<{ tokens: TokenResponse; user: UserInfo }>;
+  /**
+   * Looks a user up while they are not present, with a cached client credentials token.
+   *
+   * @remarks
+   * When the IdP restarts it forgets its tokens, and account-be then answers 500 instead of 401.
+   * Either way the token is replaced and the lookup retried once.
+   */
   getUserInfoBySub(sub: string): Promise<UserInfo>;
+  /** Verifies an id_token issued to this client, such as one a mobile app sends to its backend. */
   verifyIdToken(idToken: string, options?: { nonce?: string }): Promise<IdTokenClaims>;
   revoke(params: RevokeParams): Promise<void>;
 }
 
+/**
+ * Creates the IdP client for a service backend.
+ *
+ * @example
+ * ```ts
+ * const account = createAccountServer({
+ *   issuer: 'production',
+ *   clientId: process.env.ACCOUNT_CLIENT_ID!,
+ *   clientSecret: process.env.ACCOUNT_CLIENT_SECRET,
+ * });
+ * const user = await account.getUserInfo(idpAccessToken);
+ * ```
+ *
+ * @throws {@link AccountError} `invalid_request` when an option is missing or empty.
+ */
 export function createAccountServer(input: AccountServerOptions): AccountServer {
   const parsed = AccountServerOptionsSchema.safeParse(input);
   if (!parsed.success) {
@@ -80,8 +111,6 @@ export function createAccountServer(input: AccountServerOptions): AccountServer 
       try {
         return await fetchUserInfo(await metadata(), client, token, { fetch, sub });
       } catch (error) {
-        // IdP 가 재시작해 Redis 의 토큰이 사라졌을 수 있다. account-be 는 이때 401 대신 500 을 돌려주므로
-        // 둘 다 새 토큰으로 한 번만 다시 시도한다.
         if (!AccountError.is(error, 'invalid_token') && !AccountError.is(error, 'server_error'))
           throw error;
         clientToken.invalidate();

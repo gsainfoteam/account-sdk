@@ -18,14 +18,29 @@ import {
 
 export interface ExchangeCodeParams {
   code: string;
+  /** The PKCE verifier from the {@link AuthorizationTransaction}. */
   codeVerifier: string;
+  /** Must equal the `redirect_uri` of the authorization request. */
   redirectUri: string;
+  /** The nonce sent with `openid`. The id_token must carry the same value. */
   nonce?: string;
+  /** The `iss` from the callback, when the party that received it passes it along. */
   iss?: string;
 }
 
-// state 는 callback 을 받은 쪽(브라우저나 앱)이 이미 검증했다. 서버가 code 를 넘겨받는 B 방식에서도
-// 같은 함수를 쓰도록 state 검사는 건너뛰고, oauth4webapi 가 요구하는 검증된 callback 파라미터만 만든다.
+/**
+ * Exchanges an authorization code for tokens.
+ *
+ * Works for a public client in the browser and for a confidential client on a server that received
+ * the code from its frontend.
+ *
+ * @remarks
+ * `state` is not checked here: the party that received the callback already did, with {@link parseCallback}.
+ * That is what lets a server reuse this function for codes handed over by its frontend.
+ *
+ * @throws {@link AccountError} `invalid_grant` for a used or expired code, `invalid_id_token`,
+ * `issuer_mismatch` or `network_error`.
+ */
 export async function exchangeCode(
   metadata: AccountMetadata,
   client: ClientCredentials,
