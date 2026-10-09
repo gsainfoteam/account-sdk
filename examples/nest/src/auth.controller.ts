@@ -1,4 +1,4 @@
-import { AccountError, AccountService, type UserInfo } from '@gsainfoteam/account-nest';
+import { AccountError, type UserInfo } from '@gsainfoteam/account-nest';
 import {
   BadGatewayException,
   Controller,
@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { type Request, type Response } from 'express';
 
+import { AccountService } from './account';
 import { SessionService } from './session.service';
 
 const REFRESH_COOKIE = 'refresh_token';

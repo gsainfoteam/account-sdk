@@ -10,11 +10,18 @@ const account = createAccountServer({
   issuer: 'production',
   clientId: process.env.ACCOUNT_CLIENT_ID!,
   clientSecret: process.env.ACCOUNT_CLIENT_SECRET,
-  clientCredentialsScopes: ['name', 'email'], // getUserInfoBySub 를 쓸 때만. client 에 등록한 scope 여야 한다
+  requiredScopes: ['name', 'email'], // client 에 필수로 등록한 scope
+  clientCredentialsScopes: ['name'], // getUserInfoBySub 를 쓸 때만. client 에 등록한 scope 여야 한다
 });
 
 const user = await account.getUserInfo(idpAccessToken);
+user.name; // string
+user.studentId; // string | undefined
 ```
+
+- `requiredScopes` 의 필드는 `getUserInfo` 와 `loginWithCode` 결과에서 필수 타입이 된다. 응답에 빠져 있으면 `missing_claims` 로 실패한다.
+- `getUserInfoBySub` 결과는 `clientCredentialsScopes` 의 필드가 필수 타입이 된다.
+- `requiredScopes` 에는 client 에 **필수로** 등록한 scope 만 넣는다. 선택 scope 를 넣으면 그 scope 를 거부한 사용자는 로그인하지 못한다.
 
 | 메서드                             | 하는 일                                                  | secret    |
 | ---------------------------------- | -------------------------------------------------------- | --------- |

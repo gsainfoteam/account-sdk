@@ -58,6 +58,8 @@ IdP 가 발급한 authorization code 를 누가 교환하느냐에 따라 두 �
   account-be 와 SDK 가 모두 이 패키지를 import 하고, Dart enum 은 `pnpm contract:dart` 가 여기서 생성한다.
   배포가 엇갈려 운영 IdP 와 어긋나면 live 테스트가 실패하고, 실행 중에는 `login()` 이 브라우저를 열기 전에 discovery 와
   대조해 `invalid_scope` 로 실패한다.
+- scope 마다 어떤 사용자 필드가 오는지도 contract 의 `SCOPE_CLAIMS` 한 곳에 둔다. 서버 SDK 는 이 표로 `requiredScopes` 의 필드를
+  필수 타입으로 만들고, 응답에 빠져 있으면 `missing_claims` 로 실패한다.
 
 ## 개발
 
@@ -88,7 +90,8 @@ Flutter 패키지는 `packages/flutter` 에서 `flutter analyze` 와 `flutter te
 [`examples/web`](examples/web) 은 Vite, React, TanStack Router 로 만든 프론트다.
 [`examples/nest`](examples/nest) 는 ziggle-be 처럼 CommonJS 로 빌드한 Nest 백엔드다. 둘을 함께 띄우면 A 방식 전체를 확인할 수 있다.
 
-1. 스테이징 IdP 에 client 를 등록하고 redirect URI 로 `http://localhost:5173/auth/callback` 을 넣는다.
+1. 스테이징 IdP 에 client 를 등록하고 redirect URI 로 `http://localhost:5173/auth/callback` 을 넣는다. `name` 은 필수 scope 로 등록한다.
+   `examples/nest` 가 `requiredScopes: ['name']` 으로 선언되어 있다.
 2. `.env.example` 을 `.env` 로 복사하고 `ACCOUNT_TEST_CLIENT_ID` 에 client id 를 넣는다. mise 가 `.env` 를 읽어 각 task 에 넣어 준다.
 3. `mise run example:api` 와 `mise run example:web` 을 각각 띄우고 http://localhost:5173 을 연다.
 

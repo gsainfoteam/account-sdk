@@ -16,7 +16,21 @@ Bun 은 버전 제한이 없다.
 
 ## 등록
 
+scope 는 코드에 고정하고, issuer 나 secret 처럼 환경마다 다른 값은 모듈을 등록할 때 넘긴다.
+
 ```ts
+// account.ts
+import { defineAccount } from '@gsainfoteam/account-nest';
+
+export const { AccountModule, AccountService } = defineAccount({
+  requiredScopes: ['name', 'student_id'], // client 에 필수로 등록한 scope
+  clientCredentialsScopes: ['name'], // getUserInfoBySub 를 쓸 때만
+});
+export type AccountService = InstanceType<typeof AccountService>;
+```
+
+```ts
+// app.module.ts
 @Module({
   imports: [
     AccountModule.forRootAsync({
@@ -26,7 +40,6 @@ Bun 은 버전 제한이 없다.
         issuer: 'production',
         clientId: config.getOrThrow('ACCOUNT_CLIENT_ID'),
         clientSecret: config.get('ACCOUNT_CLIENT_SECRET'),
-        clientCredentialsScopes: ['name', 'email'], // getUserInfoBySub 를 쓸 때만
       }),
     }),
   ],
@@ -34,7 +47,24 @@ Bun 은 버전 제한이 없다.
 export class AppModule {}
 ```
 
-옵션이 비어 있으면 첫 요청을 받을 때가 아니라 앱이 뜰 때 실패한다.
+- `export type` 줄은 꼭 같이 쓴다. 구조 분해로 꺼낸 클래스는 그 줄이 있어야 타입으로 쓸 수 있고, `@Inject` 없이 생성자 타입만으로 주입된다.
+- 옵션이 비어 있으면 첫 요청을 받을 때가 아니라 앱이 뜰 때 실패한다.
+- scope 를 선언할 필요가 없으면 `@gsainfoteam/account-nest` 의 `AccountModule` 과 `AccountService` 를 그대로 써도 된다.
+
+## scope 와 필드 타입
+
+`requiredScopes` 의 필드는 `getUserInfo` 결과에서 필수 타입이 된다. 응답에 빠져 있으면 SDK 가 그 자리에서 `missing_claims` 로 실패하므로,
+`undefined` 가 서비스 코드로 흘러가지 않는다. `getUserInfoBySub` 결과는 `clientCredentialsScopes` 를 따른다.
+
+```ts
+const user = await this.account.getUserInfo(token);
+user.studentId; // string
+user.email; // string | undefined (선언하지 않은 scope)
+```
+
+`requiredScopes` 에는 client 에 **필수로** 등록한 scope 만 넣는다. 사용자가 거부할 수 있는 선택 scope 를 넣으면, 거부한 사용자는 로그인하지 못한다.
+
+scope 가 다른 설정이 여러 개 필요하면 `defineAccount` 를 여러 번 부른다. 호출마다 주입 토큰이 따로 생긴다.
 
 ## 사용
 
@@ -67,6 +97,7 @@ export class AuthService {
 ```ts
 await this.account.getUserInfo(token).catch((error) => {
   if (AccountError.is(error, 'invalid_token')) throw new UnauthorizedException();
+  if (AccountError.is(error, 'missing_claims')) throw new InternalServerErrorException(); // client 의 scope 설정 문제
   throw new BadGatewayException();
 });
 ```

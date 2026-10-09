@@ -1,6 +1,6 @@
-import { AccountModule } from '@gsainfoteam/account-nest';
 import { Module } from '@nestjs/common';
 
+import { AccountModule } from './account';
 import { AuthController } from './auth.controller';
 import { SessionService } from './session.service';
 
