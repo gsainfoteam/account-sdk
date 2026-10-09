@@ -4,7 +4,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "start": "fnox exec -- node dist/main.js"
+    "start": "node dist/main.js"
   },
   "dependencies": {
     "@gsainfoteam/account-nest": "workspace:^",

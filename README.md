@@ -60,7 +60,7 @@ IdP 가 발급한 authorization code 를 누가 교환하느냐에 따라 두 �
 
 ## 개발
 
-[mise](https://mise.jdx.dev) 로 Node, pnpm, Flutter, fnox 버전을 맞춘다.
+[mise](https://mise.jdx.dev) 로 Node, pnpm, Flutter 버전을 맞춘다.
 
 ```bash
 mise install
@@ -88,7 +88,7 @@ Flutter 패키지는 `packages/flutter` 에서 `flutter analyze` 와 `flutter te
 [`examples/nest`](examples/nest) 는 ziggle-be 처럼 CommonJS 로 빌드한 Nest 백엔드다. 둘을 함께 띄우면 A 방식 전체를 확인할 수 있다.
 
 1. 스테이징 IdP 에 client 를 등록하고 redirect URI 로 `http://localhost:5173/auth/callback` 을 넣는다.
-2. `fnox.toml` 의 `ACCOUNT_TEST_CLIENT_ID` 에 client id 를 넣는다.
+2. `.env.example` 을 `.env` 로 복사하고 `ACCOUNT_TEST_CLIENT_ID` 에 client id 를 넣는다. mise 가 `.env` 를 읽어 각 task 에 넣어 준다.
 3. `mise run example:api` 와 `mise run example:web` 을 각각 띄우고 http://localhost:5173 을 연다.
 
 ### 배포

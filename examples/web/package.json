@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "fnox exec -- sh -c 'VITE_ACCOUNT_CLIENT_ID=$ACCOUNT_TEST_CLIENT_ID vite'",
+    "dev": "VITE_ACCOUNT_CLIENT_ID=$ACCOUNT_TEST_CLIENT_ID vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit"
   },
