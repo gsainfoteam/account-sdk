@@ -289,8 +289,20 @@ importers:
         specifier: ^8.3.4
         version: 8.3.4(@types/node@24.19.1)(yaml@2.9.1)
 
+  packages/contract:
+    devDependencies:
+      tsdown:
+        specifier: ^0.23.0
+        version: 0.23.0(publint@0.3.25)(typescript@6.0.3)
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
+
   packages/core:
     dependencies:
+      '@gsainfoteam/account-contract':
+        specifier: workspace:^
+        version: link:../contract
       es-toolkit:
         specifier: ^1.52.0
         version: 1.52.0

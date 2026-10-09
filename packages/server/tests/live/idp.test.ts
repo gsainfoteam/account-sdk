@@ -8,9 +8,10 @@ const environments: Environment[] = ['production', 'staging'];
 describe.each(environments)('%s IdP', (environment) => {
   it('advertises exactly the scopes the SDK knows', async () => {
     const metadata = await discover(environment);
-    expect([...metadata.scopesSupported].sort(), 'run pnpm sync:scopes').toEqual(
-      [...SCOPES].sort(),
-    );
+    expect(
+      [...metadata.scopesSupported].sort(),
+      'account-be and @gsainfoteam/account-contract disagree',
+    ).toEqual([...SCOPES].sort());
   });
 
   it('serves JWKS and the token endpoint where the normalized metadata points', async () => {

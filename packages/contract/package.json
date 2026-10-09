@@ -1,0 +1,41 @@
+{
+  "name": "@gsainfoteam/account-contract",
+  "version": "0.0.0",
+  "description": "Values the Infoteam account IdP and its SDKs share, such as the scopes the IdP accepts and the reasons account-fe gives for turning a user away",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gsainfoteam/account-sdk.git",
+    "directory": "packages/contract"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.cts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "tsdown": "^0.23.0",
+    "typescript": "~6.0.3"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

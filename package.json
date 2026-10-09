@@ -11,7 +11,7 @@
     "format": "prettier --check .",
     "version:packages": "changeset version && node scripts/sync-flutter-version.mjs",
     "release": "pnpm build && changeset publish",
-    "sync:scopes": "node scripts/sync-scopes.mjs"
+    "contract:dart": "node scripts/generate-dart-contract.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^3.0.3",

@@ -1,3 +1,7 @@
+import 'denial_reasons.generated.dart';
+
+export 'denial_reasons.generated.dart';
+
 /// 이 패키지가 던지는 모든 에러. 하위 클래스로 switch 해서 경우마다 처리한다.
 sealed class AccountException implements Exception {
   const AccountException();
@@ -9,23 +13,6 @@ final class AccountCancelledException extends AccountException {
 
   @override
   String toString() => 'AccountCancelledException';
-}
-
-/// account-fe 가 사용자를 돌려보낸 사유. `access_denied` 응답의 `error_description` 에서 읽는다.
-enum AccountDenialReason {
-  userCancelled('user_cancelled'),
-  verificationRequired('verification_required'),
-  consentRequired('consent_required'),
-  loginRequired('login_required'),
-  other('');
-
-  const AccountDenialReason(this.wire);
-
-  /// account-fe 가 `error_description` 에 담아 보내는 값.
-  final String wire;
-
-  static AccountDenialReason parse(String? wire) =>
-      values.firstWhere((reason) => reason.wire == wire, orElse: () => other);
 }
 
 /// IdP 가 돌려주는 OAuth 2.0 에러 코드.

@@ -1,18 +1,9 @@
+import { DENIAL_REASONS } from '@gsainfoteam/account-contract';
 import { isError } from 'es-toolkit';
 import * as z from 'zod/mini';
 
-/**
- * account-fe 가 사용자를 돌려보낼 때 알려 주는 사유.
- *
- * account-fe 는 `error=access_denied` 로 redirect 하고 사유를 `error_description` 에 담는다.
- * SDK 는 그 사유를 {@link AccountError.code} 로 올려서, 앱이 경우마다 다르게 대응할 수 있게 한다.
- */
-export const DenialReasonSchema = z.enum([
-  'user_cancelled',
-  'verification_required',
-  'consent_required',
-  'login_required',
-]);
+/** account-fe 가 사용자를 돌려보낼 때 알려 주는 사유. 목록은 `@gsainfoteam/account-contract` 에서 온다. */
+export const DenialReasonSchema = z.enum(DENIAL_REASONS);
 
 /** IdP 가 돌려주는 OAuth 2.0(RFC 6749) 에러 코드. */
 export const OAuthErrorCodeSchema = z.enum([

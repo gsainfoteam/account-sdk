@@ -7,14 +7,15 @@
 
 ## 패키지
 
-| 패키지                                           | 쓰는 곳                                          | 배포            |
-| ------------------------------------------------ | ------------------------------------------------ | --------------- |
-| [`@gsainfoteam/account-react`](packages/react)   | React 앱. web 을 포함한다                        | GitHub Packages |
-| [`@gsainfoteam/account-web`](packages/web)       | React 를 쓰지 않는 웹 앱                         | GitHub Packages |
-| [`@gsainfoteam/account-nest`](packages/nest)     | NestJS 백엔드. server 를 포함한다                | GitHub Packages |
-| [`@gsainfoteam/account-server`](packages/server) | NestJS 를 쓰지 않는 Node, Bun 백엔드             | GitHub Packages |
-| [`@gsainfoteam/account-core`](packages/core)     | 위 패키지들의 공용 코어. 직접 설치할 일은 드물다 | GitHub Packages |
-| [`gsainfoteam_account`](packages/flutter)        | Flutter 앱                                       | pub.dev         |
+| 패키지                                               | 쓰는 곳                                                          | 배포            |
+| ---------------------------------------------------- | ---------------------------------------------------------------- | --------------- |
+| [`@gsainfoteam/account-react`](packages/react)       | React 앱. web 을 포함한다                                        | GitHub Packages |
+| [`@gsainfoteam/account-web`](packages/web)           | React 를 쓰지 않는 웹 앱                                         | GitHub Packages |
+| [`@gsainfoteam/account-nest`](packages/nest)         | NestJS 백엔드. server 를 포함한다                                | GitHub Packages |
+| [`@gsainfoteam/account-server`](packages/server)     | NestJS 를 쓰지 않는 Node, Bun 백엔드                             | GitHub Packages |
+| [`@gsainfoteam/account-core`](packages/core)         | 위 패키지들의 공용 코어. 직접 설치할 일은 드물다                 | GitHub Packages |
+| [`@gsainfoteam/account-contract`](packages/contract) | IdP 와 SDK 가 함께 쓰는 값(scope, 거절 사유). account-be 도 쓴다 | GitHub Packages |
+| [`gsainfoteam_account`](packages/flutter)            | Flutter 앱                                                       | pub.dev         |
 
 npm 패키지는 GitHub Packages 에서 받으므로 설치하려면 인증이 필요하다. 설정 방법은 각 패키지 README 에 있다.
 
@@ -53,10 +54,10 @@ IdP 가 발급한 authorization code 를 누가 교환하느냐에 따라 두 �
 - 언어를 넘어 공유하는 값(IdP 주소, 경로, 저장소 키 namespace)은
   [`packages/core/src/constants/idp.json`](packages/core/src/constants/idp.json) 하나에 둔다. Flutter 패키지는 테스트로
   이 파일과 값이 같은지 확인한다.
-- account-be 의 scope 는 소스에 고정된 닫힌 집합이라, SDK 도 TypeScript 유니온과 Dart enum 으로 둔다. 이 목록은 손으로
-  적지 않고 `pnpm sync:scopes` 가 운영 IdP discovery 의 `scopes_supported` 에서 생성한다(`*.generated.*`).
-  account-be 에 scope 가 추가되면 스크립트를 돌리고 SDK 를 배포한다. 생성한 목록이 IdP 와 어긋나면 live 테스트가 실패하고,
-  실행 중에는 `login()` 이 브라우저를 열기 전에 discovery 와 대조해 `invalid_scope` 로 실패한다.
+- IdP 가 받는 scope 와 account-fe 의 거절 사유는 [`@gsainfoteam/account-contract`](packages/contract) 하나에 둔다.
+  account-be 와 SDK 가 모두 이 패키지를 import 하고, Dart enum 은 `pnpm contract:dart` 가 여기서 생성한다.
+  배포가 엇갈려 운영 IdP 와 어긋나면 live 테스트가 실패하고, 실행 중에는 `login()` 이 브라우저를 열기 전에 discovery 와
+  대조해 `invalid_scope` 로 실패한다.
 
 ## 개발
 
@@ -77,7 +78,7 @@ pnpm examples:build # examples 빌드
 
 mise run check      # 위 검사를 CI 와 같은 순서로 실행
 mise run test:live  # 운영과 스테이징 IdP 에 실제로 요청하는 테스트
-pnpm sync:scopes    # 운영 IdP discovery 에서 scope 목록(TS, Dart) 다시 생성
+pnpm contract:dart  # packages/contract 에서 Dart enum 다시 생성
 ```
 
 Flutter 패키지는 `packages/flutter` 에서 `flutter analyze` 와 `flutter test` 로 검사한다.

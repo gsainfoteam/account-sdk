@@ -1,20 +1,20 @@
+import {
+  CLIENT_SCOPES,
+  OFFLINE_ACCESS_SCOPE,
+  OPENID_SCOPE,
+  SCOPES,
+  TOKEN_SCOPES,
+} from '@gsainfoteam/account-contract';
 import { isString } from 'es-toolkit';
 import * as z from 'zod/mini';
 
-import { ClientScopeSchema } from './client-scopes.generated';
+export { OFFLINE_ACCESS_SCOPE, OPENID_SCOPE, SCOPES };
 
-export { ClientScopeSchema };
-
-/** id_token 을 받게 하는 OpenID Connect scope. 이 scope 가 있으면 `nonce` 도 보낸다. */
-export const OPENID_SCOPE = 'openid';
-/** refresh token 을 받게 하는 OpenID Connect scope. 이 scope 가 있으면 `prompt=consent` 도 붙인다. */
-export const OFFLINE_ACCESS_SCOPE = 'offline_access';
-
+/** 사용자 정보에 접근하게 해 주는 scope. 목록은 `@gsainfoteam/account-contract` 에서 온다. */
+export const ClientScopeSchema = z.enum(CLIENT_SCOPES);
 /** 어떤 토큰이 발급될지를 바꾸는 scope. */
-export const TokenScopeSchema = z.enum([OPENID_SCOPE, OFFLINE_ACCESS_SCOPE]);
+export const TokenScopeSchema = z.enum(TOKEN_SCOPES);
 export const ScopeSchema = z.union([ClientScopeSchema, TokenScopeSchema]);
-/** SDK 가 아는 모든 scope. */
-export const SCOPES: readonly Scope[] = [...ClientScopeSchema.options, ...TokenScopeSchema.options];
 
 export type ClientScope = z.infer<typeof ClientScopeSchema>;
 export type TokenScope = z.infer<typeof TokenScopeSchema>;

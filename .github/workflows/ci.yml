@@ -19,6 +19,8 @@ jobs:
 
       - run: pnpm format
 
+      - run: pnpm contract:dart --check
+
       - run: pnpm typecheck
 
       - run: pnpm lint

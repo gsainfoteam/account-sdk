@@ -89,7 +89,7 @@ describe('normalizeDiscovery', () => {
 
 describe('scopes', () => {
   it('match what the IdP advertises', () => {
-    expect([...SCOPES].sort(), 'run pnpm sync:scopes').toEqual(
+    expect([...SCOPES].sort(), 'account-be and @gsainfoteam/account-contract disagree').toEqual(
       [...production.scope_supported].sort(),
     );
   });
