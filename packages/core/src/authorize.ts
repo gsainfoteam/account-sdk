@@ -5,7 +5,6 @@ import { type Scope } from './scopes';
 
 export type Prompt = 'none' | 'login' | 'consent';
 
-// callback 에서 검증하고 교환하는 데 필요한 값. 브라우저면 sessionStorage, 앱이면 메모리에 둔다.
 export interface AuthorizationTransaction {
   state: string;
   codeVerifier: string;

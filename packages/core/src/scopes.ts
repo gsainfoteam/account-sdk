@@ -1,4 +1,4 @@
-// IdP 가 받는 scope 전체. account-be `src/oauth/types/scope.type.ts` 와 맞춘다.
+// account-be `src/oauth/types/scope.type.ts` 와 맞춘다.
 export const CLIENT_SCOPES = [
   'name',
   'profile',

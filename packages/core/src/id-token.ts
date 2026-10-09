@@ -32,7 +32,6 @@ export interface RemoteJwksOptions {
   fetch?: Fetch;
 }
 
-// 키 캐시, kid 가 바뀔 때 다시 받기, 재요청 간격 제한은 jose 가 맡는다.
 export function createRemoteJwks(
   metadata: AccountMetadata,
   options: RemoteJwksOptions = {},
@@ -46,13 +45,11 @@ export function createRemoteJwks(
 export interface VerifyIdTokenOptions {
   jwks: JwksSource;
   audience: string;
-  // authorize 요청에 보낸 nonce. 넘기면 반드시 일치해야 한다.
   nonce?: string;
   clockToleranceSec?: number;
   currentDate?: Date;
 }
 
-// token endpoint 를 거치지 않고 손에 들어온 id_token(앱이 서버로 넘긴 토큰 등)을 검증한다.
 export async function verifyIdToken(
   metadata: AccountMetadata,
   token: string,

@@ -10,7 +10,6 @@ import {
 } from './oauth';
 import { type ClientCredentials } from './token';
 
-// account-be `UserInfoResDto` 의 직렬화 결과. scope 에 없는 필드는 빠진다.
 export interface UserInfoResponse {
   sub: string;
   name?: string;
@@ -50,7 +49,6 @@ export function toUserInfo(raw: UserInfoResponse): UserInfo {
 }
 
 export interface FetchUserInfoOptions extends RequestOptions {
-  // client_credentials 토큰으로 다른 사용자를 조회할 때 그 사용자의 sub
   sub?: string;
 }
 

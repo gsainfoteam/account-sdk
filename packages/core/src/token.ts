@@ -24,7 +24,6 @@ export interface TokenResponse {
   scopes: Scope[];
 }
 
-// client_secret 이 있으면 confidential client, 없으면 public client 다.
 export interface ClientCredentials {
   clientId: string;
   clientSecret?: string;
@@ -34,9 +33,7 @@ export interface ExchangeCodeParams {
   code: string;
   codeVerifier: string;
   redirectUri: string;
-  // authorize 요청에 nonce 를 보냈다면(openid) 같은 값. id_token 의 nonce 와 대조한다.
   nonce?: string;
-  // callback 에 실려 온 iss. 서버가 브라우저에게서 code 를 넘겨받을 때도 함께 받으면 대조할 수 있다.
   iss?: string;
 }
 

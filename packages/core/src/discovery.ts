@@ -5,21 +5,17 @@ import { parseScopes, type Scope } from './scopes';
 
 export type Environment = 'production' | 'staging';
 
-// IdP 는 `api.<host>` 에 API 를, `<host>` 에 로그인 화면(account-fe)을 둔다.
 export const ENVIRONMENTS: Readonly<Record<Environment, string>> = {
   production: 'https://api.account.gistory.me',
   staging: 'https://api.stg.account.gistory.me',
 };
 
-// 환경 이름이나 IdP API origin 을 받는다.
 export type IssuerInput = Environment | (string & {});
 
 export type Fetch = typeof globalThis.fetch;
 
 export interface AccountMetadata {
-  // discovery 문서가 말하는 issuer
   issuer: string;
-  // id_token `iss` 와 callback `iss` 검증에서 받아들이는 값들
   issuers: readonly string[];
   authorizationEndpoint: string;
   tokenEndpoint: string;

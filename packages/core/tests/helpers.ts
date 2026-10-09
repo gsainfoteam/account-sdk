@@ -13,7 +13,6 @@ export interface TestSigner {
   sign(claims: JWTPayload): Promise<string>;
 }
 
-// account-be 의 키처럼 ES256 키를 만들어 JWKS 와 서명 함수를 돌려준다.
 export async function createSigner(kid = 'test-key'): Promise<TestSigner> {
   const { privateKey, publicKey } = await generateKeyPair('ES256');
   const jwk = { ...(await exportJWK(publicKey)), kid, use: 'sig', alg: 'ES256' };

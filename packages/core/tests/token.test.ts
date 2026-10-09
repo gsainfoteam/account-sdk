@@ -9,7 +9,6 @@ import {
 } from '../src';
 import { createSigner, jsonResponse, metadata } from './helpers';
 
-// account-be `TokenResDto` 직렬화 결과와 같은 모양
 const tokenBody = {
   access_token: 'at-1',
   token_type: 'Bearer',

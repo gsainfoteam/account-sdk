@@ -12,7 +12,6 @@ export interface CallbackParams {
 
 export interface ParseCallbackOptions {
   clientId: string;
-  // signIn 때 저장해 둔 state. 저장된 값이 없으면 검증할 수 없으므로 실패로 본다.
   state: string | null | undefined;
 }
 

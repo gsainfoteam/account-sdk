@@ -1,5 +1,4 @@
-// account-fe 가 `error=access_denied` 와 함께 `error_description` 으로 돌려주는 거절 사유.
-// 앱이 사유별로 다르게 안내해야 하므로 description 을 그대로 code 로 올린다.
+// account-fe 는 거절 사유를 `access_denied` 의 error_description 에 싣는다. 앱이 사유별로 안내하도록 code 로 올린다.
 export const DENIAL_REASONS = [
   'user_cancelled',
   'verification_required',
