@@ -1,0 +1,23 @@
+{
+  "name": "@gsainfoteam/account-example-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "fnox exec -- sh -c 'VITE_ACCOUNT_CLIENT_ID=$ACCOUNT_TEST_CLIENT_ID vite'",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@gsainfoteam/account-react": "workspace:^",
+    "@tanstack/react-router": "^1.170.41",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.4"
+  }
+}

@@ -11,3 +11,11 @@ run = ["pnpm typecheck", "pnpm lint", "pnpm build", "pnpm test"]
 [tasks."test:live"]
 description = "스테이징 IdP 에 실제로 요청하는 테스트. fnox 가 테스트 client 자격 증명을 넣어 준다"
 run = "fnox exec -- pnpm --filter @gsainfoteam/account-server test:live"
+
+[tasks."example:api"]
+description = "examples/nest 를 스테이징 IdP 에 붙여 띄운다"
+run = "pnpm --filter @gsainfoteam/account-example-nest build && pnpm --filter @gsainfoteam/account-example-nest start"
+
+[tasks."example:web"]
+description = "examples/web 개발 서버를 띄운다. example:api 와 함께 쓴다"
+run = "pnpm --filter @gsainfoteam/account-example-web dev"
