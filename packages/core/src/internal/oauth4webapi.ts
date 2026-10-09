@@ -1,9 +1,12 @@
 import * as oauth from 'oauth4webapi';
+import * as z from 'zod/mini';
 
 import { type AccountMetadata } from '../discovery/normalize-discovery';
 import { AccountError, fromOAuthError } from '../errors/account-error';
 import { isAuthFailure } from '../http/bearer';
 import { type RequestOptions } from '../http/fetch';
+
+const ArgumentErrorSchema = z.object({ code: z.string().check(z.startsWith('ERR_')) });
 
 /**
  * Describes the IdP to oauth4webapi.
@@ -39,7 +42,7 @@ export function clientAuthentication(clientSecret: string | undefined): oauth.Cl
 }
 
 /** HTTP options for oauth4webapi. Only `https:` endpoints are allowed. */
-export function httpOptions<Method, Body = undefined>({
+export function httpOptions<Method extends string, Body extends BodyInit | undefined = undefined>({
   fetch,
   signal,
 }: RequestOptions): oauth.HttpRequestOptions<Method, Body> {
@@ -48,7 +51,7 @@ export function httpOptions<Method, Body = undefined>({
     ...(fetch
       ? {
           [oauth.customFetch]: (url: string, init: oauth.CustomFetchOptions<Method, Body>) =>
-            fetch(url, init as RequestInit),
+            fetch(url, init),
         }
       : {}),
   };
@@ -84,10 +87,7 @@ export function toAccountError(error: unknown): AccountError {
       cause: error,
     });
   }
-  if (
-    error instanceof TypeError &&
-    !String((error as { code?: unknown }).code ?? '').startsWith('ERR_')
-  ) {
+  if (error instanceof TypeError && !ArgumentErrorSchema.safeParse(error).success) {
     return new AccountError('network_error', { description: error.message, cause: error });
   }
   return new AccountError('unknown', { cause: error });

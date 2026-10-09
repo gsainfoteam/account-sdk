@@ -3,6 +3,7 @@ import {
   ScopeSchema,
   type AuthorizationTransaction,
 } from '@gsainfoteam/account-core';
+import { attempt } from 'es-toolkit';
 import * as z from 'zod/mini';
 
 import { STORAGE_KEYS } from './keys';
@@ -61,9 +62,6 @@ function isExpired(transaction: StoredTransaction): boolean {
 
 function safeJson(raw: string | null): unknown {
   if (raw === null) return undefined;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return undefined;
-  }
+  const [, value] = attempt<unknown>(() => JSON.parse(raw));
+  return value;
 }

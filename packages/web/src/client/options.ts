@@ -1,20 +1,27 @@
 import {
   ScopeSchema,
-  SESSION_PATHS,
   type Fetch,
   type IssuerInput,
 } from '@gsainfoteam/account-core';
+import { isFunction, isString } from 'es-toolkit';
 import * as z from 'zod/mini';
 
 import { type SessionAdapter } from '../session/session-adapter';
 
-const isFunction = (value: unknown): boolean => typeof value === 'function';
 const nonEmpty = () => z.string().check(z.minLength(1));
+
+const method = () => z.custom<(...args: never[]) => unknown>(isFunction);
+
+const SessionAdapterShapeSchema = z.looseObject({
+  login: method(),
+  refresh: method(),
+  logout: method(),
+});
 
 /** Options of {@link createAccountClient}. Validated at creation, so a missing env value fails at startup. */
 export const AccountClientOptionsSchema = z.object({
   /** `'production'`, `'staging'` or the `https:` API origin of another account-be deployment. */
-  issuer: z.custom<IssuerInput>((value) => typeof value === 'string' && value.length > 0),
+  issuer: z.custom<IssuerInput>((value) => isString(value) && value.length > 0),
   clientId: nonEmpty(),
   /** Callback path or URL registered for the client. A path is resolved against the current origin. */
   redirectUri: nonEmpty(),
@@ -31,14 +38,7 @@ export const AccountClientOptionsSchema = z.object({
    */
   exchange: z.enum(['browser', 'backend']),
   /** How to start, refresh and end the service backend's session. See {@link cookieSession} and {@link bodySession}. */
-  session: z.custom<SessionAdapter>(
-    (value) =>
-      typeof value === 'object' &&
-      value !== null &&
-      Object.keys(SESSION_PATHS).every((key) =>
-        isFunction((value as unknown as Record<string, unknown>)[key]),
-      ),
-  ),
+  session: z.custom<SessionAdapter>((value) => SessionAdapterShapeSchema.safeParse(value).success),
   fetch: z.optional(z.custom<Fetch>(isFunction)),
   /** Where pending authorizations are kept. Defaults to `sessionStorage`. */
   transactionStorage: z.optional(z.custom<Storage>()),

@@ -1,3 +1,4 @@
+import { isError } from 'es-toolkit';
 import * as z from 'zod/mini';
 
 /**
@@ -112,7 +113,7 @@ export class AccountError extends Error {
    * would make `instanceof` fail for errors thrown by the other copy.
    */
   static is(value: unknown, code?: AccountErrorCode): value is AccountError {
-    if (!(value instanceof Error)) return false;
+    if (!isError(value)) return false;
     const shape = AccountErrorShapeSchema.safeParse(value);
     return shape.success && (code === undefined || shape.data.code === code);
   }

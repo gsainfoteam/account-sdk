@@ -10,6 +10,11 @@ export type IssuerInput = Environment | (string & {});
 
 /** Returns the OpenID discovery URL of the IdP, which is always served from the API host. */
 export function discoveryUrlOf(issuer: IssuerInput): string {
-  const base = Object.hasOwn(ENVIRONMENTS, issuer) ? ENVIRONMENTS[issuer as Environment] : issuer;
+  const base = isEnvironment(issuer) ? ENVIRONMENTS[issuer] : issuer;
   return new URL(DISCOVERY_PATH, base).toString();
+}
+
+/** Tells whether `issuer` names a known {@link Environment} rather than an origin. */
+export function isEnvironment(issuer: string): issuer is Environment {
+  return Object.hasOwn(ENVIRONMENTS, issuer);
 }

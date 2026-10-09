@@ -1,3 +1,4 @@
+import { isError } from 'es-toolkit';
 import { createRemoteJWKSet, customFetch, jwtVerify, type JWTVerifyGetKey } from 'jose';
 import * as z from 'zod/mini';
 
@@ -79,7 +80,10 @@ export async function verifyIdToken(
       currentDate: options.currentDate,
     }));
   } catch (cause) {
-    throw new AccountError('invalid_id_token', { description: (cause as Error).message, cause });
+    throw new AccountError('invalid_id_token', {
+      description: isError(cause) ? cause.message : String(cause),
+      cause,
+    });
   }
   const claims = parseIdTokenClaims(payload);
   if (options.nonce !== undefined && claims.nonce !== options.nonce) {

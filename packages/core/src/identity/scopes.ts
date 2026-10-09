@@ -1,3 +1,4 @@
+import { isString } from 'es-toolkit';
 import * as z from 'zod/mini';
 
 /**
@@ -29,6 +30,6 @@ export function isScope(value: unknown): value is Scope {
 /** Parses a space-separated scope string, dropping values the SDK does not know instead of failing. */
 export function parseScopes(value: string | readonly string[] | undefined | null): Scope[] {
   if (!value) return [];
-  const list = typeof value === 'string' ? value.split(' ') : value;
+  const list = isString(value) ? value.split(' ') : value;
   return list.filter(isScope);
 }

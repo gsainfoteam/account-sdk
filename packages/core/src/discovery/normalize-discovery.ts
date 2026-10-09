@@ -1,3 +1,4 @@
+import { uniq } from 'es-toolkit';
 import * as z from 'zod/mini';
 
 import { API_HOST_PREFIX, DEFAULT_ID_TOKEN_SIGNING_ALGS, FALLBACK_ENDPOINTS } from '../constants';
@@ -73,7 +74,7 @@ export function normalizeDiscovery(input: unknown, fetchedFrom: string): Account
 
   return {
     issuer: doc.issuer,
-    issuers: [...new Set([doc.issuer, frontOrigin, apiOrigin])],
+    issuers: uniq([doc.issuer, frontOrigin, apiOrigin]),
     authorizationEndpoint: new URL(
       new URL(doc.authorization_endpoint).pathname,
       frontOrigin,

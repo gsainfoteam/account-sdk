@@ -1,3 +1,4 @@
+import { difference, uniq } from 'es-toolkit';
 import * as oauth from 'oauth4webapi';
 
 import { CODE_CHALLENGE_METHOD } from '../constants';
@@ -47,9 +48,9 @@ export async function createAuthorization(
   metadata: AccountMetadata,
   params: CreateAuthorizationParams,
 ): Promise<{ url: string; transaction: AuthorizationTransaction }> {
-  const scopes = [...new Set(params.scopes)];
+  const scopes = uniq(params.scopes);
   const unsupported = metadata.scopesSupported.length
-    ? scopes.filter((scope) => !metadata.scopesSupported.includes(scope))
+    ? difference<string>(scopes, metadata.scopesSupported)
     : [];
   if (unsupported.length) {
     throw new AccountError('invalid_scope', { description: unsupported.join(' ') });

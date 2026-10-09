@@ -1,3 +1,5 @@
+import { attemptAsync } from 'es-toolkit';
+
 import { discoveryUrlOf, type IssuerInput } from './environments';
 import { normalizeDiscovery, type AccountMetadata } from './normalize-discovery';
 import { AccountError } from '../errors/account-error';
@@ -42,11 +44,11 @@ async function fetchDiscovery(
   url: string,
   { fetch = globalThis.fetch, signal }: DiscoverOptions,
 ): Promise<AccountMetadata> {
-  let response: Response;
-  try {
-    response = await fetch(url, { headers: { accept: 'application/json' }, signal });
-  } catch (cause) {
-    throw new AccountError('network_error', { description: `GET ${url}`, cause });
+  const [networkError, response] = await attemptAsync(() =>
+    fetch(url, { headers: { accept: 'application/json' }, signal }),
+  );
+  if (!response) {
+    throw new AccountError('network_error', { description: `GET ${url}`, cause: networkError });
   }
   if (!response.ok) {
     throw new AccountError('discovery_failed', {
@@ -54,11 +56,12 @@ async function fetchDiscovery(
       status: response.status,
     });
   }
-  let doc: unknown;
-  try {
-    doc = await response.json();
-  } catch (cause) {
-    throw new AccountError('discovery_failed', { description: `${url} is not JSON`, cause });
+  const [parseError, doc] = await attemptAsync<unknown>(() => response.json());
+  if (parseError) {
+    throw new AccountError('discovery_failed', {
+      description: `${url} is not JSON`,
+      cause: parseError,
+    });
   }
   return normalizeDiscovery(doc, url);
 }

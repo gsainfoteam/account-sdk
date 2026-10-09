@@ -1,3 +1,4 @@
+import { attemptAsync } from 'es-toolkit';
 import { decodeJwt } from 'jose';
 import * as oauth from 'oauth4webapi';
 import * as z from 'zod/mini';
@@ -33,6 +34,8 @@ export interface ClientCredentials {
   clientSecret?: string;
 }
 
+const WithIdTokenSchema = z.object({ id_token: z.string() });
+
 /**
  * Picks the issuer to validate the id_token in `response` against.
  *
@@ -47,12 +50,10 @@ export async function asForIdTokenOf(
   response: Response,
 ): Promise<oauth.AuthorizationServer> {
   if (!response.ok) return authorizationServer(metadata);
-  const body = (await response
-    .clone()
-    .json()
-    .catch(() => undefined)) as { id_token?: unknown } | undefined;
-  if (typeof body?.id_token !== 'string') return authorizationServer(metadata);
-  const iss = decodeJwt(body.id_token).iss;
+  const [, body] = await attemptAsync<unknown>(() => response.clone().json());
+  const parsed = WithIdTokenSchema.safeParse(body);
+  if (!parsed.success) return authorizationServer(metadata);
+  const iss = decodeJwt(parsed.data.id_token).iss;
   return authorizationServer(metadata, iss && metadata.issuers.includes(iss) ? iss : undefined);
 }
 
