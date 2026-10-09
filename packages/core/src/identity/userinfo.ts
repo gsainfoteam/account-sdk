@@ -1,9 +1,17 @@
+import {
+  SCOPE_CLAIMS,
+  type ClaimsOf,
+  type ClientScope,
+  type UserClaims,
+} from '@gsainfoteam/account-contract';
 import * as oauth from 'oauth4webapi';
 import * as z from 'zod/mini';
 
 import { type AccountMetadata } from '../discovery/normalize-discovery';
+import { AccountError } from '../errors/account-error';
 import { type ClientCredentials } from '../grants/token-response';
 import { type RequestOptions } from '../http/fetch';
+import { type Camel, type CamelCase, type OrUndefined, type Simplify } from '../internal/case';
 import {
   authorizationServer,
   httpOptions,
@@ -13,60 +21,107 @@ import {
 import { parse } from '../internal/validate';
 
 /**
- * account-be 가 돌려주는 userinfo body. 허용된 scope 밖의 필드는 빠진다.
+ * account-be 가 내주는 사용자 claim 전부. 타입은 `@gsainfoteam/account-contract` 의 `UserClaims` 와 묶여 있어서,
+ * contract 에 claim 이 추가되거나 바뀌면 여기서 컴파일 에러가 난다.
  * `null` 이 될 수 있는 건 `profile` 과 `picture` 뿐이다. account-be 사용자 모델에서 nullable 인 컬럼과 같다.
  */
+const UserClaimsSchema = z.object({
+  name: z.string(),
+  profile: z.nullable(z.string()),
+  picture: z.nullable(z.string()),
+  email: z.string(),
+  student_id: z.string(),
+  is_student_id_verified: z.boolean(),
+  phone_number: z.string(),
+  is_phone_number_verified: z.boolean(),
+}) satisfies z.ZodMiniType<UserClaims>;
+
+/** account-be 가 돌려주는 userinfo body. 허용된 scope 밖의 claim 은 빠진다. */
 export const UserInfoResponseSchema = z.looseObject({
   sub: z.string().check(z.minLength(1)),
-  name: z.optional(z.string()),
-  profile: z.optional(z.nullable(z.string())),
-  picture: z.optional(z.nullable(z.string())),
-  email: z.optional(z.string()),
-  student_id: z.optional(z.string()),
-  is_student_id_verified: z.optional(z.boolean()),
-  phone_number: z.optional(z.string()),
-  is_phone_number_verified: z.optional(z.boolean()),
+  ...z.partial(UserClaimsSchema).shape,
 });
+
+type BaseUserInfo = Simplify<{ sub: string } & Partial<Camel<UserClaims>>>;
 
 /** {@link UserInfoResponseSchema} 를 camelCase 로 바꾼 것. */
 export const UserInfoSchema = z.pipe(
   UserInfoResponseSchema,
-  z.transform((raw) => ({
-    sub: raw.sub,
-    name: raw.name,
-    profile: raw.profile,
-    picture: raw.picture,
-    email: raw.email,
-    studentId: raw.student_id,
-    isStudentIdVerified: raw.is_student_id_verified,
-    phoneNumber: raw.phone_number,
-    isPhoneNumberVerified: raw.is_phone_number_verified,
-  })),
+  z.transform((raw): BaseUserInfo => {
+    const user: { sub: string } & OrUndefined<Camel<UserClaims>> = {
+      sub: raw.sub,
+      name: raw.name,
+      profile: raw.profile,
+      picture: raw.picture,
+      email: raw.email,
+      studentId: raw.student_id,
+      isStudentIdVerified: raw.is_student_id_verified,
+      phoneNumber: raw.phone_number,
+      isPhoneNumberVerified: raw.is_phone_number_verified,
+    };
+
+    return user;
+  }),
 );
 
 export type UserInfoResponse = z.input<typeof UserInfoSchema>;
-export type UserInfo = z.output<typeof UserInfoSchema>;
 
-export interface FetchUserInfoOptions extends RequestOptions {
+/**
+ * userinfo 로 조회한 사용자.
+ *
+ * `S` 로 준 scope 의 필드는 반드시 들어 있는 타입이 되고, 나머지 필드는 optional 이다.
+ * `S` 는 {@link hasScopeClaims} 같은 런타임 검사를 거친 값에만 붙는다.
+ */
+export type UserInfo<S extends ClientScope = never> = Simplify<BaseUserInfo & Camel<ClaimsOf<S>>>;
+
+const CAMEL_CLAIMS = {
+  name: 'name',
+  profile: 'profile',
+  picture: 'picture',
+  email: 'email',
+  student_id: 'studentId',
+  is_student_id_verified: 'isStudentIdVerified',
+  phone_number: 'phoneNumber',
+  is_phone_number_verified: 'isPhoneNumberVerified',
+} as const satisfies { [K in keyof UserClaims]: CamelCase<K> };
+
+function missingClaims(user: UserInfo, scopes: readonly ClientScope[]): (keyof UserClaims)[] {
+  return scopes
+    .flatMap((scope) => SCOPE_CLAIMS[scope])
+    .filter((claim) => user[CAMEL_CLAIMS[claim]] === undefined);
+}
+
+/** `user` 에 `scopes` 의 claim 이 모두 들어 있는지 알려 준다. `null` 은 들어 있는 것으로 본다. */
+export function hasScopeClaims<S extends ClientScope>(
+  user: UserInfo,
+  scopes: readonly S[],
+): user is UserInfo<S> {
+  return missingClaims(user, scopes).length === 0;
+}
+
+export interface FetchUserInfoOptions<S extends ClientScope = never> extends RequestOptions {
   /** client credentials 토큰으로 조회할 사용자. account-be 는 query string 에서 읽는다. */
   sub?: string;
+  /** claim 이 반드시 들어 있어야 하는 scope. 하나라도 빠지면 `missing_claims` 로 실패한다. */
+  requiredScopes?: readonly S[];
 }
 
 /**
  * access token 의 주인을 조회한다.
  *
  * @throws {@link AccountError} IdP 가 토큰을 401 이나 403 으로 거절하면 `invalid_token`.
+ * `requiredScopes` 의 claim 이 빠져 있으면 `missing_claims`.
  *
  * @remarks
  * 지금 account-be 는 모르는 토큰에 500 을 돌려준다. Redis 조회 실패가 그대로 새어 나가기 때문이다.
  * 그래서 account-be 가 고쳐지기 전까지 이 경우는 `server_error` 로 나온다.
  */
-export async function fetchUserInfo(
+export async function fetchUserInfo<S extends ClientScope = never>(
   metadata: AccountMetadata,
   client: Pick<ClientCredentials, 'clientId'>,
   accessToken: string,
-  options: FetchUserInfoOptions = {},
-): Promise<UserInfo> {
+  options: FetchUserInfoOptions<S> = {},
+): Promise<UserInfo<S>> {
   const endpoint = new URL(metadata.userinfoEndpoint);
   if (options.sub) endpoint.searchParams.set('sub', options.sub);
 
@@ -87,7 +142,14 @@ export async function fetchUserInfo(
       response,
     );
 
-    return parse(UserInfoSchema, body, 'server_error', 'userinfo response');
+    const user = parse(UserInfoSchema, body, 'server_error', 'userinfo response');
+    const scopes = options.requiredScopes ?? [];
+
+    if (hasScopeClaims(user, scopes)) return user;
+
+    throw new AccountError('missing_claims', {
+      description: missingClaims(user, scopes).join(' '),
+    });
   } catch (error) {
     throw toAccountError(error);
   }

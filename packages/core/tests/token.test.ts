@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import {
   exchangeCode,
@@ -229,6 +229,54 @@ describe('fetchUserInfo', () => {
       code: 'server_error',
       description: expect.stringContaining('is_student_id_verified'),
     });
+  });
+
+  it('types the claims of the required scopes as present once they are checked', async () => {
+    const fetch = mockFetch(
+      jsonResponse({
+        sub: 'user-1',
+        name: '홍길동',
+        student_id: '20240000',
+        is_student_id_verified: true,
+      }),
+    );
+    const user = await fetchUserInfo(metadata, { clientId: 'client-1' }, 'at-1', {
+      fetch,
+      requiredScopes: ['name', 'student_id'],
+    });
+
+    expect(user).toMatchObject({
+      name: '홍길동',
+      studentId: '20240000',
+      isStudentIdVerified: true,
+    });
+    expectTypeOf(user.name).toEqualTypeOf<string>();
+    expectTypeOf(user.isStudentIdVerified).toEqualTypeOf<boolean>();
+    expectTypeOf(user.email).toEqualTypeOf<string | undefined>();
+  });
+
+  it('fails with missing_claims when a required scope was not granted', async () => {
+    const fetch = mockFetch(jsonResponse({ sub: 'user-1', student_id: '20240000' }));
+    await expect(
+      fetchUserInfo(metadata, { clientId: 'client-1' }, 'at-1', {
+        fetch,
+        requiredScopes: ['name', 'student_id'],
+      }),
+    ).rejects.toMatchObject({
+      code: 'missing_claims',
+      description: 'name is_student_id_verified',
+    });
+  });
+
+  it('counts a null profile as present', async () => {
+    const fetch = mockFetch(jsonResponse({ sub: 'user-1', profile: null }));
+    const user = await fetchUserInfo(metadata, { clientId: 'client-1' }, 'at-1', {
+      fetch,
+      requiredScopes: ['profile'],
+    });
+
+    expect(user.profile).toBeNull();
+    expectTypeOf(user.profile).toEqualTypeOf<string | null>();
   });
 
   it('reports an unknown token as invalid_token', async () => {

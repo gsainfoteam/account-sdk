@@ -30,6 +30,7 @@ export const SdkErrorCodeSchema = z.enum([
   'network_error',
   'unauthenticated',
   'session_rejected',
+  'missing_claims',
   'unknown',
 ]);
 

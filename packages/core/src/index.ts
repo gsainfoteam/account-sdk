@@ -59,6 +59,7 @@ export {
 } from './identity/scopes';
 export {
   fetchUserInfo,
+  hasScopeClaims,
   UserInfoResponseSchema,
   UserInfoSchema,
   type FetchUserInfoOptions,
