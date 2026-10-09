@@ -44,6 +44,16 @@ describe('createAuthorization', () => {
     expect(await promptOf('login')).toBe('login');
   });
 
+  it('rejects a scope the IdP does not advertise', async () => {
+    const narrowed = { ...metadata, scopesSupported: ['name', 'email'] };
+    await expect(
+      createAuthorization(narrowed, { ...base, scopes: ['name', 'student_id'] }),
+    ).rejects.toMatchObject({
+      code: 'invalid_scope',
+      description: 'student_id',
+    });
+  });
+
   it('leaves prompt out when nothing needs it', async () => {
     const { url } = await createAuthorization(metadata, { ...base, scopes: ['name'] });
     expect(new URL(url).searchParams.has('prompt')).toBe(false);

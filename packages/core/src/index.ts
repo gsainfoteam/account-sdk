@@ -47,6 +47,7 @@ export {
   ClientScopeSchema,
   isScope,
   parseScopes,
+  SCOPES,
   ScopeSchema,
   TokenScopeSchema,
   type ClientScope,

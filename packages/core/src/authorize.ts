@@ -1,6 +1,7 @@
 import * as oauth from 'oauth4webapi';
 
 import { type AccountMetadata } from './discovery';
+import { AccountError } from './errors';
 import { type Scope } from './scopes';
 
 export type Prompt = 'none' | 'login' | 'consent';
@@ -29,6 +30,13 @@ export async function createAuthorization(
   params: CreateAuthorizationParams,
 ): Promise<{ url: string; transaction: AuthorizationTransaction }> {
   const scopes = [...new Set(params.scopes)];
+  // 지원하지 않는 scope 는 account-fe 화면까지 가서야 거절되므로, IdP 가 광고한 목록과 미리 대조한다.
+  const unsupported = metadata.scopesSupported.length
+    ? scopes.filter((scope) => !metadata.scopesSupported.includes(scope))
+    : [];
+  if (unsupported.length) {
+    throw new AccountError('invalid_scope', { description: unsupported.join(' ') });
+  }
   const codeVerifier = oauth.generateRandomCodeVerifier();
   const state = oauth.generateRandomState();
   const nonce = scopes.includes('openid') ? oauth.generateRandomNonce() : undefined;

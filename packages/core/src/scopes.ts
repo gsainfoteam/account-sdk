@@ -11,6 +11,7 @@ export const ClientScopeSchema = z.enum([
 ]);
 export const TokenScopeSchema = z.enum(['openid', 'offline_access']);
 export const ScopeSchema = z.union([ClientScopeSchema, TokenScopeSchema]);
+export const SCOPES: readonly Scope[] = [...ClientScopeSchema.options, ...TokenScopeSchema.options];
 
 export type ClientScope = z.infer<typeof ClientScopeSchema>;
 export type TokenScope = z.infer<typeof TokenScopeSchema>;

@@ -1,7 +1,6 @@
 import * as z from 'zod/mini';
 
 import { AccountError } from './errors';
-import { parseScopes, type Scope } from './scopes';
 import { parse } from './validate';
 
 export type Environment = 'production' | 'staging';
@@ -23,7 +22,7 @@ export interface AccountMetadata {
   userinfoEndpoint: string;
   jwksUri: string;
   revocation: { endpoint: string; method: 'POST' | 'DELETE' };
-  scopesSupported: readonly Scope[];
+  scopesSupported: readonly string[];
   idTokenSigningAlgs: readonly string[];
 }
 
@@ -76,7 +75,7 @@ export function normalizeDiscovery(input: unknown, fetchedFrom: string): Account
     revocation: doc.revocation_endpoint
       ? { endpoint: onApi(doc.revocation_endpoint), method: 'POST' }
       : { endpoint: `${apiOrigin}/oauth/token`, method: 'DELETE' },
-    scopesSupported: parseScopes(doc.scopes_supported ?? doc.scope_supported),
+    scopesSupported: doc.scopes_supported ?? doc.scope_supported ?? [],
     idTokenSigningAlgs: doc.id_token_signing_alg_values_supported ?? ['ES256'],
   };
 }
