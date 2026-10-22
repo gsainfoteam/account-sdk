@@ -22,10 +22,16 @@ export type ResolvedSession<Claims extends Record<string, unknown>> = {
   subject: string;
 } & (keyof Claims extends never ? { claims?: Claims } : { claims: Claims });
 
-/** 검증한 서비스 access token. `sub` 는 `resolve` 가 정한 subject, `sid` 는 로그인 한 번의 id 다. */
+/**
+ * 검증한 서비스 access token. `sub` 는 `resolve` 가 정한 subject, `sid` 는 로그인 한 번의 id 다.
+ * `auth_time`(초)과 `amr` 은 그 로그인에서 사용자가 IdP 에 언제, 어떻게 로그인했는지다. refresh 해도 그대로 이어진다.
+ * 2FA 나 최근 재인증이 필요한 작업에서 확인한다. IdP 가 기록하기 전의 로그인에는 없다.
+ */
 export type Session<Claims extends Record<string, unknown> = Record<never, never>> = {
   sub: string;
   sid: string;
+  auth_time?: number;
+  amr?: string[];
 } & Claims;
 
 /**
@@ -135,6 +141,12 @@ const SessionOptionsSchema = z.looseObject({
 
 const TicketSchema = z.looseObject({ claims: z.unknown() });
 const AccessTokenSchema = z.looseObject({ sub: z.string(), sid: z.string() });
+const AuthContextSchema = z.object({
+  auth_time: z.optional(z.number()),
+  amr: z.optional(z.array(z.string())),
+});
+
+type AuthContext = z.output<typeof AuthContextSchema>;
 
 export function createSessionManager<
   RequiredScope extends ClientScope,
@@ -163,18 +175,19 @@ export function createSessionManager<
     subject: string,
     sessionId: string,
     claims: Claims,
+    auth: AuthContext,
   ): Promise<IssuedTokens> => {
     const refreshToken = randomBytes(32).toString('base64url');
     await store.save({
       tokenHash: hash(refreshToken),
       sessionId,
       subject,
-      claims: z.parse(JsonObjectSchema, claims),
+      claims: z.parse(JsonObjectSchema, JSON.parse(JSON.stringify({ ...claims, ...auth }))),
       expiresAt: new Date(Date.now() + refreshTtl * 1000),
       usedAt: null,
     });
 
-    const accessToken = await new SignJWT({ ...claims, sid: sessionId })
+    const accessToken = await new SignJWT({ ...claims, ...auth, sid: sessionId })
       .setProtectedHeader({ alg: 'HS256' })
       .setSubject(subject)
       .setIssuer(clientId)
@@ -237,7 +250,8 @@ export function createSessionManager<
       const claims = z.parse(claimsSchema, resolved.claims ?? {});
       if (onLogin === 'replace') await store.deleteSubject(resolved.subject);
 
-      return { tokens: await issue(resolved.subject, randomUUID(), claims) };
+      const auth = { auth_time: idTokenClaims.auth_time, amr: idTokenClaims.amr };
+      return { tokens: await issue(resolved.subject, randomUUID(), claims, auth) };
     },
 
     async refresh(refreshToken) {
@@ -254,12 +268,13 @@ export function createSessionManager<
       }
 
       const claims = z.safeParse(claimsSchema, record.claims);
-      if (!claims.success) return null;
+      const auth = AuthContextSchema.safeParse(record.claims);
+      if (!claims.success || !auth.success) return null;
 
       await store.markUsed(tokenHash, now);
       await store.deleteUsed(record.sessionId, new Date(now.getTime() - REUSE_GRACE_MS));
 
-      return issue(record.subject, record.sessionId, claims.data);
+      return issue(record.subject, record.sessionId, claims.data, auth.data);
     },
 
     async logout({ accessToken, refreshToken }) {
@@ -275,10 +290,11 @@ export function createSessionManager<
       if (!verified) return null;
 
       const claims = z.safeParse(claimsSchema, verified.payload);
-      if (!claims.success) return null;
+      const auth = AuthContextSchema.safeParse(verified.payload);
+      if (!claims.success || !auth.success) return null;
       if (store.isActive && !(await store.isActive(verified.sid))) return null;
 
-      return { ...claims.data, sub: verified.sub, sid: verified.sid };
+      return { ...claims.data, ...auth.data, sub: verified.sub, sid: verified.sid };
     },
   };
 

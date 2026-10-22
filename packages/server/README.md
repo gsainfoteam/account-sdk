@@ -22,6 +22,8 @@ user.studentId; // string | undefined
 
 - `loginWithCode` 는 code 를 confidential client 로 교환하고, 그 응답의 id_token 으로 사용자를 만든다. 그래서 프론트는 `openid` 를 요청해야 한다(웹과 Flutter SDK 는 항상 요청한다).
 - 프론트가 보낸 IdP access token 으로는 로그인하지 않는다. account-be 의 access token 에는 대상 client 가 없어서, 누구나 등록할 수 있는 다른 client 의 토큰으로도 로그인이 되기 때문이다.
+- `loginWithCode(params, { maxAge: 300, amr: ['hwk'] })` 처럼 로그인 방식을 요구할 수 있다. IdP 로그인이 5분보다 오래됐거나 패스키가 아니면
+  `insufficient_authentication` 이다. account 에 2FA 가 생기면 같은 자리에서 확인한다.
 - `requiredScopes` 의 필드는 `loginWithCode` 결과에서 필수 타입이 된다. id_token 에 빠져 있으면 `missing_claims` 로 실패한다.
 - `getUserInfoBySub` 결과는 `clientCredentialsScopes` 의 필드가 필수 타입이 된다.
 - `requiredScopes` 에는 client 에 **필수로** 등록한 scope 만 넣는다. 선택 scope 를 넣으면 그 scope 를 거부한 사용자는 로그인하지 못한다.

@@ -107,6 +107,8 @@ describe('cookie transport (web)', () => {
     await expect((await me(body.access_token)).json()).resolves.toEqual({
       sub: 'local-idp-user-1',
       sid: expect.any(String),
+      auth_time: expect.any(Number),
+      amr: ['pwd'],
       devicePk: 7,
     });
     expect((await me('forged')).status).toBe(401);
@@ -121,6 +123,9 @@ describe('cookie transport (web)', () => {
     expect(refreshed.status).toBe(200);
     const second = cookieOf(refreshed);
     expect(second).not.toBe(first);
+
+    const { access_token } = (await refreshed.json()) as { access_token: string };
+    await expect((await me(access_token)).json()).resolves.toMatchObject({ amr: ['pwd'] });
 
     expect((await post('/auth/refresh', undefined, { cookie: first })).status).toBe(200);
 

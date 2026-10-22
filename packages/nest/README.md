@@ -86,6 +86,8 @@ me(@CurrentSession() session: Session) {
   클라이언트가 `retryLogin(body)` 를 부르면 ticket 으로 같은 사용자의 `resolve` 가 다시 불린다. ticket 은 `secret` 에서 유도한 키로 암호화했고 5분 동안 유효하다.
 - **단일 세션:** `onLogin: 'replace'` 면 로그인할 때 같은 subject 의 다른 세션을 모두 끝낸다.
 - **WebSocket 같은 곳:** guard 대신 `account.verifySession(accessToken)` 을 부른다.
+- **2FA, 최근 재인증:** 세션에는 사용자가 IdP 에 언제(`auth_time`, 초), 어떻게(`amr`: 비밀번호 `pwd`, 패스키 `hwk`) 로그인했는지가 있다.
+  refresh 해도 처음 로그인 값이 이어진다. 민감한 작업 앞에서 이 값을 확인하고, 모자라면 프론트가 `login({ prompt: 'login' })` 으로 다시 로그인하게 한다.
 
 ### store
 

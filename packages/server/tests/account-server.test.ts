@@ -128,6 +128,22 @@ describe('loginWithCode', async () => {
     });
   });
 
+  it('checks how recently and how the user signed in to the IdP when asked', async () => {
+    const fetch = idpIssuing({ sub: 'user-1', auth_time: now - 600, amr: ['pwd'] });
+    const server = serverOf(fetch);
+
+    await expect(server.loginWithCode(login, { maxAge: 300 })).rejects.toMatchObject({
+      code: 'insufficient_authentication',
+    });
+    await expect(server.loginWithCode(login, { amr: ['hwk'] })).rejects.toMatchObject({
+      code: 'insufficient_authentication',
+      description: 'the IdP login used pwd, not hwk',
+    });
+    await expect(
+      server.loginWithCode(login, { maxAge: 900, amr: ['pwd', 'hwk'] }),
+    ).resolves.toBeTruthy();
+  });
+
   it('fails with missing_claims when a required scope was not granted', async () => {
     const fetch = idpIssuing({ sub: 'user-1', name: '홍길동' });
     await expect(

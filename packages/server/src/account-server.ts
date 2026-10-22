@@ -21,6 +21,17 @@ import * as z from 'zod/mini';
 import { createClientTokenCache } from './client-token-cache';
 import { AccountServerOptionsSchema, type AccountServerOptions } from './options';
 
+/**
+ * {@link AccountServer.loginWithCode} 가 확인하는 로그인 방식. 2FA 나 최근 재인증이 필요한 작업 앞에서 쓴다.
+ * 프론트는 `login({ prompt: 'login' })` 으로 사용자가 다시 로그인하게 한다.
+ */
+export interface AuthenticationRequirement {
+  /** IdP 로그인이 이 시간(초) 안에 있었어야 한다. id_token 의 `auth_time` 으로 확인한다. */
+  maxAge?: number;
+  /** 로그인 방식(RFC 8176 `amr`) 중 하나 이상이 있어야 한다. 비밀번호는 `pwd`, 패스키는 `hwk` 다. */
+  amr?: readonly string[];
+}
+
 /** {@link AccountServer.loginWithCode} 에 넘기는 값. 프론트가 callback 에서 받아 그대로 보낸다. */
 export interface LoginWithCodeParams extends ExchangeCodeParams {
   /** authorization 요청에 보낸 nonce. id_token 을 다른 로그인에서 가져와 재사용하지 못하게 한다. */
@@ -46,10 +57,12 @@ export interface AccountServer<
    * 등록할 수 있는 다른 client 의 토큰으로도 로그인할 수 있게 된다. account-be 의 access token 에는 대상 client 가 없다.
    *
    * @throws {@link AccountError} code 가 이미 쓰였거나 만료됐으면 `invalid_grant`. id_token 이 없거나 nonce 가 다르면
-   * `invalid_id_token`. 필수 scope 의 claim 이 빠졌으면 `missing_claims`.
+   * `invalid_id_token`. 필수 scope 의 claim 이 빠졌으면 `missing_claims`. `requirement` 를 채우지 못하면
+   * `insufficient_authentication`.
    */
   loginWithCode(
     params: LoginWithCodeParams,
+    requirement?: AuthenticationRequirement,
   ): Promise<{ tokens: TokenResponse; user: UserInfo<RequiredScope> }>;
   /**
    * 캐시한 client credentials 토큰으로, 사용자가 없는 상황에서 사용자를 조회한다.
@@ -137,7 +150,7 @@ export function createAccountServer<
   const server: AccountServer<RequiredScopes[number], LookupScopes[number]> = {
     metadata,
 
-    async loginWithCode(params) {
+    async loginWithCode(params, requirement = {}) {
       requireSecret('loginWithCode');
 
       const tokens = await exchangeCode(await metadata(), client, params, { fetch });
@@ -147,6 +160,7 @@ export function createAccountServer<
         });
       }
 
+      checkAuthentication(tokens.idTokenClaims, requirement);
       const user = userInfoFromIdToken<RequiredScopes[number]>(
         tokens.idTokenClaims,
         requiredScopes,
@@ -213,4 +227,22 @@ export function createAccountServer<
   };
 
   return server;
+}
+
+function checkAuthentication(
+  claims: IdTokenClaims,
+  { maxAge, amr }: AuthenticationRequirement,
+): void {
+  const now = Math.floor(Date.now() / 1000);
+
+  if (maxAge !== undefined && (claims.auth_time === undefined || now - claims.auth_time > maxAge)) {
+    throw new AccountError('insufficient_authentication', {
+      description: `the IdP login is older than ${maxAge} s`,
+    });
+  }
+  if (amr && !amr.some((method) => claims.amr?.includes(method))) {
+    throw new AccountError('insufficient_authentication', {
+      description: `the IdP login used ${claims.amr?.join(' ') || 'an unknown method'}, not ${amr.join(' or ')}`,
+    });
+  }
 }
