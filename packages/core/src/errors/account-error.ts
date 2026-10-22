@@ -5,9 +5,18 @@ import * as z from 'zod/mini';
 /** account-fe 가 사용자를 돌려보낼 때 알려 주는 사유. 목록은 `@gsainfoteam/account-contract` 에서 온다. */
 export const DenialReasonSchema = z.enum(DENIAL_REASONS);
 
-/** IdP 가 돌려주는 OAuth 2.0(RFC 6749) 에러 코드. */
+/**
+ * IdP 가 돌려주는 OAuth 2.0(RFC 6749) 에러 코드와, `prompt=none` 에 대한 OIDC Core 3.1.2.6절의 코드.
+ *
+ * @remarks
+ * 예전 account-fe 는 `login_required` 와 `consent_required` 를 `access_denied` 의 `error_description` 으로 보냈다.
+ * 그 경우는 {@link fromOAuthError} 가 같은 코드로 바꾼다.
+ */
 export const OAuthErrorCodeSchema = z.enum([
   'access_denied',
+  'login_required',
+  'consent_required',
+  'interaction_required',
   'invalid_request',
   'invalid_scope',
   'unauthorized_client',
