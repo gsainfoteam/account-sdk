@@ -49,15 +49,22 @@ export async function asForIdTokenOf(
   metadata: AccountMetadata,
   response: Response,
 ): Promise<oauth.AuthorizationServer> {
-  if (!response.ok) return authorizationServer(metadata);
+  const idToken = await idTokenOf(response);
+  if (!idToken) return authorizationServer(metadata);
+
+  const iss = decodeJwt(idToken).iss;
+
+  return authorizationServer(metadata, iss && metadata.issuers.includes(iss) ? iss : undefined);
+}
+
+/** 성공한 토큰 응답의 id_token 을, 응답 body 를 소비하지 않고 읽는다. */
+export async function idTokenOf(response: Response): Promise<string | undefined> {
+  if (!response.ok) return undefined;
 
   const [, body] = await attemptAsync<unknown>(() => response.clone().json());
   const parsed = WithIdTokenSchema.safeParse(body);
-  if (!parsed.success) return authorizationServer(metadata);
 
-  const iss = decodeJwt(parsed.data.id_token).iss;
-
-  return authorizationServer(metadata, iss && metadata.issuers.includes(iss) ? iss : undefined);
+  return parsed.success ? parsed.data.id_token : undefined;
 }
 
 /** oauth4webapi 의 토큰 응답을 {@link TokenResponse} 로 바꾼다. */
