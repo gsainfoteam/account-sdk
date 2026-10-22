@@ -9,6 +9,8 @@ export const ENVIRONMENTS: Readonly<typeof idp.environments> = idp.environments;
 /** IdP 는 API 를 `api.<host>` 에서, 로그인 페이지를 `<host>` 에서 제공한다. */
 export const API_HOST_PREFIX: string = idp.apiHostPrefix;
 export const DISCOVERY_PATH: string = idp.discoveryPath;
+/** client 의 공개 등록 정보. `{clientId}` 를 바꿔 쓴다. */
+export const CLIENT_REGISTRATION_PATH: string = idp.clientRegistrationPath;
 /** discovery 문서에 빠져 있을 때 쓰는 endpoint. */
 export const FALLBACK_ENDPOINTS: Readonly<typeof idp.fallbackEndpoints> = idp.fallbackEndpoints;
 export const DEFAULT_ID_TOKEN_SIGNING_ALGS: readonly string[] = idp.idTokenSigningAlgs;
@@ -16,6 +18,8 @@ export const DEFAULT_ID_TOKEN_SIGNING_ALGS: readonly string[] = idp.idTokenSigni
 export const AUTHORIZATION_CODE_TTL_MS: number = idp.authorizationCodeTtlSeconds * 1000;
 /** 서비스 백엔드 세션 endpoint 의 기본 경로. ziggle-be 와 house-moving-out-be 를 따른다. */
 export const SESSION_PATHS: Readonly<typeof idp.sessionPaths> = idp.sessionPaths;
+/** redirect URI 를 주지 않았을 때 IdP 에 등록할 callback 경로. */
+export const CALLBACK_PATH: string = idp.callbackPath;
 /** SDK 가 저장소에 쓰는 모든 키의 접두어. */
 export const STORAGE_NAMESPACE: string = idp.storageNamespace;
 

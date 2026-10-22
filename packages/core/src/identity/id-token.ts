@@ -3,12 +3,17 @@ import { createRemoteJWKSet, customFetch, jwtVerify, type JWTVerifyGetKey } from
 import * as z from 'zod/mini';
 
 import { ID_TOKEN_CLOCK_TOLERANCE_SEC } from '../constants';
+import { UserClaimsSchema } from './user-claims';
 import { type AccountMetadata } from '../discovery/normalize-discovery';
 import { AccountError } from '../errors/account-error';
 import { type Fetch } from '../http/fetch';
 import { parse } from '../internal/validate';
 
-/** account-be 가 서명하는 id_token 의 claim. 프로필 claim 은 허용된 scope 의 것만 들어 있다. */
+/**
+ * account-be 가 서명하는 id_token 의 claim. 사용자 claim 은 허용된 scope 의 것만 들어 있다.
+ *
+ * `auth_time` 과 `amr`(RFC 8176)은 사용자가 IdP 에 언제, 어떻게 로그인했는지다. 그 기록이 생기기 전의 세션에는 없다.
+ */
 export const IdTokenClaimsSchema = z.looseObject({
   iss: z.string(),
   sub: z.string().check(z.minLength(1)),
@@ -17,13 +22,9 @@ export const IdTokenClaimsSchema = z.looseObject({
   iat: z.number(),
   nonce: z.optional(z.string()),
   auth_time: z.optional(z.number()),
+  amr: z.optional(z.array(z.string())),
   scope: z.optional(z.string()),
-  name: z.optional(z.string()),
-  profile: z.optional(z.nullable(z.string())),
-  picture: z.optional(z.nullable(z.string())),
-  email: z.optional(z.string()),
-  student_id: z.optional(z.string()),
-  phone_number: z.optional(z.string()),
+  ...z.partial(UserClaimsSchema).shape,
 });
 
 export type IdTokenClaims = z.infer<typeof IdTokenClaimsSchema>;

@@ -7,6 +7,8 @@ import {
 import * as oauth from 'oauth4webapi';
 import * as z from 'zod/mini';
 
+import { type IdTokenClaims } from './id-token';
+import { UserClaimsSchema } from './user-claims';
 import { type AccountMetadata } from '../discovery/normalize-discovery';
 import { AccountError } from '../errors/account-error';
 import { type ClientCredentials } from '../grants/token-response';
@@ -19,22 +21,6 @@ import {
   toAccountError,
 } from '../internal/oauth4webapi';
 import { parse } from '../internal/validate';
-
-/**
- * account-be 가 내주는 사용자 claim 전부. 타입은 `@gsainfoteam/account-contract` 의 `UserClaims` 와 묶여 있어서,
- * contract 에 claim 이 추가되거나 바뀌면 여기서 컴파일 에러가 난다.
- * `null` 이 될 수 있는 건 `profile` 과 `picture` 뿐이다. account-be 사용자 모델에서 nullable 인 컬럼과 같다.
- */
-const UserClaimsSchema = z.object({
-  name: z.string(),
-  profile: z.nullable(z.string()),
-  picture: z.nullable(z.string()),
-  email: z.string(),
-  student_id: z.string(),
-  is_student_id_verified: z.boolean(),
-  phone_number: z.string(),
-  is_phone_number_verified: z.boolean(),
-}) satisfies z.ZodMiniType<UserClaims>;
 
 /** account-be 가 돌려주는 userinfo body. 허용된 scope 밖의 claim 은 빠진다. */
 export const UserInfoResponseSchema = z.looseObject({
@@ -99,6 +85,31 @@ export function hasScopeClaims<S extends ClientScope>(
   return missingClaims(user, scopes).length === 0;
 }
 
+function requireScopeClaims<S extends ClientScope>(
+  user: UserInfo,
+  scopes: readonly S[],
+): UserInfo<S> {
+  if (hasScopeClaims(user, scopes)) return user;
+
+  throw new AccountError('missing_claims', {
+    description: missingClaims(user, scopes).join(' '),
+  });
+}
+
+/**
+ * 검증한 id_token 의 claim 으로 사용자를 만든다. id_token 에는 userinfo 와 같은 claim 이 들어 있다.
+ *
+ * @throws {@link AccountError} `requiredScopes` 의 claim 이 빠져 있으면 `missing_claims`.
+ */
+export function userInfoFromIdToken<S extends ClientScope = never>(
+  claims: IdTokenClaims,
+  requiredScopes: readonly S[] = [],
+): UserInfo<S> {
+  const user = parse(UserInfoSchema, claims, 'invalid_id_token', 'id_token claims');
+
+  return requireScopeClaims(user, requiredScopes);
+}
+
 export interface FetchUserInfoOptions<S extends ClientScope = never> extends RequestOptions {
   /** client credentials 토큰으로 조회할 사용자. account-be 는 query string 에서 읽는다. */
   sub?: string;
@@ -143,13 +154,8 @@ export async function fetchUserInfo<S extends ClientScope = never>(
     );
 
     const user = parse(UserInfoSchema, body, 'server_error', 'userinfo response');
-    const scopes = options.requiredScopes ?? [];
 
-    if (hasScopeClaims(user, scopes)) return user;
-
-    throw new AccountError('missing_claims', {
-      description: missingClaims(user, scopes).join(' '),
-    });
+    return requireScopeClaims(user, options.requiredScopes ?? []);
   } catch (error) {
     throw toAccountError(error);
   }
