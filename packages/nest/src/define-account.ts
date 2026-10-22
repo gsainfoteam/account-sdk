@@ -7,8 +7,11 @@ import {
 } from '@gsainfoteam/account-server';
 import {
   ConfigurableModuleBuilder,
+  Inject,
+  Logger,
   Module,
   type CanActivate,
+  type OnApplicationBootstrap,
   type ConfigurableModuleAsyncOptions,
   type ConfigurableModuleCls,
   type Type,
@@ -50,7 +53,14 @@ export interface SessionDefinition<Claims extends Record<string, unknown>> {
 export type AccountModuleOptions = Omit<
   AccountServerOptions,
   'requiredScopes' | 'clientCredentialsScopes'
->;
+> & {
+  /**
+   * 앱이 뜰 때 IdP 에 등록한 client 가 선언한 scope 와 맞는지 확인한다({@link AccountServer.verifyRegistration}).
+   * `error` 면 맞지 않을 때 앱이 뜨지 않고, `warn` 이면 로그만 남긴다. IdP 에 닿지 못하면 어느 쪽이든 로그만 남긴다.
+   * 기본은 `error`.
+   */
+  verifyRegistration?: 'error' | 'warn' | 'off';
+};
 
 /** 세션을 정의한 계정의 `forRoot` 옵션. */
 export type AccountSessionModuleOptions<
@@ -131,6 +141,7 @@ abstract class AccountServerToken<
   abstract getUserInfoBySub: AccountServer<RequiredScope, LookupScope>['getUserInfoBySub'];
   abstract verifyIdToken: AccountServer<RequiredScope, LookupScope>['verifyIdToken'];
   abstract revoke: AccountServer<RequiredScope, LookupScope>['revoke'];
+  abstract verifyRegistration: AccountServer<RequiredScope, LookupScope>['verifyRegistration'];
 }
 
 abstract class SessionAccountServerToken<
@@ -152,6 +163,7 @@ interface AccountRuntime {
   service: AccountServer<ClientScope, ClientScope> &
     Partial<SessionVerifier<Record<string, unknown>>>;
   session?: SessionRuntime;
+  verifyRegistration: NonNullable<AccountModuleOptions['verifyRegistration']>;
 }
 
 /**
@@ -217,9 +229,13 @@ export function defineAccount(
     Record<string, unknown>
   > {}
 
-  const createRuntime = ({ session, ...options }: AnyModuleOptions): AccountRuntime => {
+  const createRuntime = ({
+    session,
+    verifyRegistration = 'error',
+    ...options
+  }: AnyModuleOptions): AccountRuntime => {
     const server = createAccountServer({ ...options, ...scopes });
-    if (!sessionDefinition) return { service: server };
+    if (!sessionDefinition) return { service: server, verifyRegistration };
 
     if (!session) {
       throw new AccountError('invalid_request', {
@@ -238,6 +254,7 @@ export function defineAccount(
     return {
       service: { ...server, verifySession: manager.verify },
       session: { manager, cookie: cookieSettings(session.cookie, paths) },
+      verifyRegistration,
     };
   };
 
@@ -262,7 +279,29 @@ export function defineAccount(
     controllers: sessionDefinition ? [createSessionController(SESSION_RUNTIME, paths)] : [],
     exports: [AccountService],
   })
-  class AccountModule extends ConfigurableModuleClass {}
+  class AccountModule extends ConfigurableModuleClass implements OnApplicationBootstrap {
+    constructor(@Inject(RUNTIME) private readonly runtime: AccountRuntime) {
+      super();
+    }
+
+    async onApplicationBootstrap(): Promise<void> {
+      const { service, verifyRegistration } = this.runtime;
+      if (verifyRegistration === 'off') return;
+
+      try {
+        await service.verifyRegistration();
+      } catch (error) {
+        const mismatch = AccountError.is(error, 'invalid_client');
+        if (mismatch && verifyRegistration === 'error') throw error;
+
+        new Logger('AccountModule').warn(
+          mismatch
+            ? `IdP registration does not match: ${error.description}`
+            : `could not check the IdP registration: ${String(error)}`,
+        );
+      }
+    }
+  }
 
   return sessionDefinition
     ? { AccountModule, AccountService, ...createSessionGuards(AccountService) }

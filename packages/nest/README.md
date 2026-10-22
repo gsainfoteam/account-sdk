@@ -66,6 +66,9 @@ me(@CurrentSession() session: Session) {
 - `export type AccountService` 줄은 꼭 같이 쓴다. 구조 분해로 꺼낸 클래스는 그 줄이 있어야 타입으로 쓸 수 있고, `@Inject` 없이 생성자 타입만으로 주입된다.
 - guard 를 다른 모듈의 controller 에서 쓰려면 `isGlobal: true` 로 등록한다.
 - 옵션이 비어 있으면 첫 요청을 받을 때가 아니라 앱이 뜰 때 실패한다.
+- 앱이 뜰 때 IdP 에 등록한 client 를 읽어, `requiredScopes` 가 모두 필수 scope 인지, `clientCredentialsScopes` 가 등록되어 있는지,
+  인증 방식이 `client_secret_post` 인지 확인한다. 맞지 않으면 앱이 뜨지 않는다. `verifyRegistration: 'warn'` 이면 로그만 남기고,
+  IdP 에 닿지 못하면 어느 쪽이든 로그만 남긴다.
 
 ## 서비스 세션
 

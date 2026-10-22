@@ -130,4 +130,25 @@ describe('AccountModule', () => {
       }).compile(),
     ).rejects.toMatchObject({ code: 'invalid_request' });
   });
+
+  it('refuses to start when the IdP registration does not match the declared scopes', async () => {
+    const strict = await createFakeIdp({
+      clients: [{ clientId: 'c', clientSecret: 's', scopes: ['email'], optionalScopes: ['name'] }],
+    });
+    const named = defineAccount({ requiredScopes: ['name'] });
+    const start = async (verifyRegistration?: 'warn') => {
+      const moduleRef = await Test.createTestingModule({
+        imports: [
+          named.AccountModule.forRoot({ ...options, fetch: strict.fetch, verifyRegistration }),
+        ],
+      }).compile();
+      return moduleRef.createNestApplication({ logger: false }).init();
+    };
+
+    await expect(start()).rejects.toMatchObject({
+      code: 'invalid_client',
+      description: 'requiredScopes has name, which is not a required scope of the client',
+    });
+    await expect(start('warn')).resolves.toBeTruthy();
+  });
 });

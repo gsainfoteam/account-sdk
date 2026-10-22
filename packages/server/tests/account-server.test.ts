@@ -199,3 +199,47 @@ describe('getUserInfoBySub', () => {
     expect(issued).toBe(2);
   });
 });
+
+describe('verifyRegistration', () => {
+  const registered = (body: unknown) => idp({ '/client/c/public': () => Response.json(body) });
+
+  it('passes when the code matches the registration', async () => {
+    const server = createAccountServer({
+      issuer: 'production',
+      clientId: 'c',
+      clientSecret: 's',
+      requiredScopes: ['name'],
+      clientCredentialsScopes: ['email'],
+      fetch: registered({
+        scopes: ['name'],
+        optionalScopes: ['email'],
+        tokenEndpointAuthMethod: 'client_secret_post',
+      }),
+    });
+
+    await expect(server.verifyRegistration()).resolves.toBeUndefined();
+  });
+
+  it('lists every mismatch', async () => {
+    const server = createAccountServer({
+      issuer: 'production',
+      clientId: 'c',
+      clientSecret: 's',
+      requiredScopes: ['name', 'email'],
+      clientCredentialsScopes: ['student_id'],
+      fetch: registered({
+        scopes: ['name'],
+        optionalScopes: ['email'],
+        tokenEndpointAuthMethod: 'client_secret_basic',
+      }),
+    });
+
+    await expect(server.verifyRegistration()).rejects.toMatchObject({
+      code: 'invalid_client',
+      description:
+        'requiredScopes has email, which is not a required scope of the client; ' +
+        'clientCredentialsScopes has student_id, which the client does not have; ' +
+        'the client authenticates with client_secret_basic, not client_secret_post',
+    });
+  });
+});

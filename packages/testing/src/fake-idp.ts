@@ -14,7 +14,10 @@ import { fakeUser } from './fake-user';
 /** 가짜 IdP 의 사용자. `sub` 말고는 필요한 claim 만 넣는다. */
 export type FakeUser = { sub: string } & Partial<UserClaims>;
 
-/** IdP 에 등록한 client. 하나도 주지 않으면 어떤 client id 와 secret 이든 받는다. */
+/**
+ * IdP 에 등록한 client. 하나도 주지 않으면 어떤 client id 와 secret 이든 받고, 모든 scope 를 필수로 등록한
+ * `client_secret_post` client 로 본다.
+ */
 export interface FakeClient {
   clientId: string;
   /** 주면 token endpoint 가 이 secret 을 요구한다. */
@@ -201,7 +204,9 @@ export async function createFakeIdp(options: FakeIdpOptions = {}): Promise<FakeI
 
     const registered = /^\/client\/([^/]+)\/public$/.exec(path)?.[1];
     if (registered) {
-      const client = clients.get(decodeURIComponent(registered));
+      const clientId = decodeURIComponent(registered);
+      const client =
+        clients.size === 0 ? { clientId, scopes: [...CLIENT_SCOPES] } : clients.get(clientId);
       if (!client) return Response.json({ statusCode: 404 }, { status: 404 });
 
       return Response.json({

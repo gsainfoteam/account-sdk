@@ -2,6 +2,7 @@ import {
   AccountError,
   discover,
   exchangeCode,
+  fetchClientRegistration,
   fetchUserInfo,
   requestClientCredentials,
   revokeToken,
@@ -61,6 +62,16 @@ export interface AccountServer<
   /** 이 client 에 발급된 id_token 을 검증한다. 모바일 앱이 백엔드로 보낸 id_token 같은 것이다. */
   verifyIdToken(idToken: string, options?: { nonce?: string }): Promise<IdTokenClaims>;
   revoke(params: RevokeParams): Promise<void>;
+  /**
+   * IdP 에 등록한 client 가 이 서버의 설정과 맞는지 확인한다. 서버가 뜰 때 한 번 부른다.
+   *
+   * - `requiredScopes` 는 모두 필수 scope 로 등록되어 있어야 한다. 선택 scope 면 거부한 사용자가 로그인하지 못한다.
+   * - `clientCredentialsScopes` 는 필수나 선택 scope 로 등록되어 있어야 한다.
+   * - `clientSecret` 을 쓰면 인증 방식이 `client_secret_post` 여야 한다.
+   *
+   * @throws {@link AccountError} 맞지 않으면 `invalid_client`, 틀린 점은 `description` 에 있다. IdP 에 닿지 못하면 그 에러.
+   */
+  verifyRegistration(): Promise<void>;
 }
 
 /**
@@ -174,6 +185,30 @@ export function createAccountServer<
 
     async revoke(params) {
       return revokeToken(await metadata(), client, params, { fetch });
+    },
+
+    async verifyRegistration() {
+      const registration = await fetchClientRegistration(await metadata(), clientId, { fetch });
+      const registered = [...registration.scopes, ...registration.optionalScopes];
+
+      const problems = [
+        ...(requiredScopes ?? [])
+          .filter((scope) => !registration.scopes.includes(scope))
+          .map(
+            (scope) => `requiredScopes has ${scope}, which is not a required scope of the client`,
+          ),
+        ...(clientCredentialsScopes ?? [])
+          .filter((scope) => !registered.includes(scope))
+          .map((scope) => `clientCredentialsScopes has ${scope}, which the client does not have`),
+        ...(clientSecret && registration.tokenEndpointAuthMethod !== 'client_secret_post'
+          ? [
+              `the client authenticates with ${registration.tokenEndpointAuthMethod ?? 'an unknown method'}, not client_secret_post`,
+            ]
+          : []),
+      ];
+      if (problems.length) {
+        throw new AccountError('invalid_client', { description: problems.join('; ') });
+      }
     },
   };
 

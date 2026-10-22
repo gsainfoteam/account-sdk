@@ -32,3 +32,4 @@ user.studentId; // string | undefined
 | `getUserInfoBySub(sub)`            | client credentials 토큰으로 사용자 조회. 토큰은 캐시한다 | 필요      |
 | `verifyIdToken(idToken)`           | 앱이 보낸 id_token 검증                                  | 필요 없음 |
 | `revoke({ token, tokenTypeHint })` | 토큰 폐기                                                | 필요 없음 |
+| `verifyRegistration()`             | IdP 등록이 `requiredScopes` 와 인증 방식에 맞는지 확인   | 필요 없음 |
