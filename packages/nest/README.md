@@ -11,8 +11,16 @@ GitHub Packages 에서 배포한다. 인증 설정은 [`@gsainfoteam/account-rea
 pnpm add @gsainfoteam/account-nest zod
 ```
 
-CommonJS(`module: commonjs`) 프로젝트에서도 쓸 수 있다. 다만 의존하는 oauth4webapi 와 jose 가 ESM 전용이라 Node 20.19 이상이 필요하다.
+ESM 으로만 배포한다. CommonJS(`module: commonjs`) 로 빌드하는 Nest 앱도 Node 20.19 이상이면 `require()` 로 그대로 불러온다.
 Bun 은 버전 제한이 없다.
+
+jest 는 ESM 을 `require()` 하지 못하므로, SDK 와 그 의존성(jose, oauth4webapi)만 변환하게 한다. 나머지 설정은 그대로 둔다.
+
+```js
+// jest 설정
+transform: { '^.+\\.(t|j)s$': ['ts-jest', { tsconfig: { allowJs: true } }] },
+transformIgnorePatterns: ['/node_modules/(?!\\.pnpm|@gsainfoteam|jose|oauth4webapi)'],
+```
 
 ## 등록
 
