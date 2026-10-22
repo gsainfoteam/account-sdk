@@ -15,9 +15,12 @@ final class AccountCancelledException extends AccountException {
   String toString() => 'AccountCancelledException';
 }
 
-/// IdP 가 돌려주는 OAuth 2.0 에러 코드.
+/// IdP 가 돌려주는 OAuth 2.0 에러 코드와, `prompt=none` 에 대한 OIDC Core 3.1.2.6절의 코드.
 enum OAuthErrorCode {
   accessDenied('access_denied'),
+  loginRequired('login_required'),
+  consentRequired('consent_required'),
+  interactionRequired('interaction_required'),
   invalidRequest('invalid_request'),
   invalidScope('invalid_scope'),
   unauthorizedClient('unauthorized_client'),
@@ -81,7 +84,9 @@ final class AccountOAuthException extends AccountException {
   String toString() => 'AccountOAuthException($error, $description)';
 }
 
-/// 서비스 백엔드가 요청을 거절했다. [body] 에 그 응답이 있다.
+/// 서비스 백엔드가 요청을 거절했다. [body] 에 거절 이유가 있다.
+///
+/// 로그인이 거절됐다면 [AccountClient.retryLogin] 으로 추가 입력(약관 동의 같은 것)을 보내 이어 갈 수 있다.
 final class AccountSessionRejectedException extends AccountException {
   const AccountSessionRejectedException(this.statusCode, this.body);
 

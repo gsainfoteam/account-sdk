@@ -18,12 +18,15 @@ abstract final class AccountConstants {
   static const apiHostPrefix = 'api.';
   static const discoveryPath = '/.well-known/openid-configuration';
 
+  /// client 의 공개 등록 정보. `{clientId}` 를 바꿔 쓴다.
+  static const clientRegistrationPath = '/client/{clientId}/public';
+
   /// discovery 문서에 `userinfo_endpoint` 가 없을 때 쓴다.
   static const fallbackUserinfoPath = '/oauth/userinfo';
   static const storageNamespace = 'gsainfoteam-account';
 
-  /// OAuth `state` 값에 넣는 무작위 바이트 수.
-  static const stateByteLength = 32;
+  /// OAuth `state`, `nonce`, PKCE verifier 에 넣는 무작위 바이트 수.
+  static const randomByteLength = 32;
   static const authFailureStatuses = {401, 403};
   static const unauthorizedStatus = 401;
 }

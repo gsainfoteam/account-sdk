@@ -1,0 +1,81 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+
+import '../constants.dart';
+import '../errors/account_exception.dart';
+import '../http/bearer.dart';
+import 'session_paths.dart';
+import 'session_tokens.dart';
+
+/// 서비스 백엔드가 로그인을 거절하며 준 ticket. 같은 사용자의 로그인을 IdP 를 다시 거치지 않고 이어 간다.
+final class SessionRejection implements Exception {
+  const SessionRejection(this.exception, this.ticket);
+
+  final AccountSessionRejectedException exception;
+  final String ticket;
+}
+
+/// `@gsainfoteam/account-nest` 세션 모듈의 endpoint 를 부른다. 앱에는 쿠키가 없으므로 `transport: 'body'` 로
+/// refresh token 을 body 로 주고받는다.
+class ApiSession {
+  ApiSession(this._http, this.api, this.paths);
+
+  final http.Client _http;
+  final Uri api;
+  final SessionPaths paths;
+
+  /// 서비스 백엔드에 로그인한다. 거절 응답에 ticket 이 있으면 [SessionRejection] 을 던진다.
+  Future<SessionTokens> start(Map<String, Object?> body) async {
+    final (status, json) = await _post(paths.login, body);
+    if (_ok(status)) return SessionTokens.fromJson(json);
+
+    if (json case {'ticket': final String ticket}) {
+      throw SessionRejection(AccountSessionRejectedException(status, json['details']), ticket);
+    }
+    throw AccountSessionRejectedException(status, json);
+  }
+
+  /// refresh token 이 더는 유효하지 않으면 `null` 을 돌려준다.
+  Future<SessionTokens?> refresh(String refreshToken) async {
+    final (status, json) = await _post(paths.refresh, {'refresh_token': refreshToken});
+    if (AccountConstants.authFailureStatuses.contains(status)) return null;
+    if (!_ok(status)) throw AccountSessionRejectedException(status, json);
+
+    return SessionTokens.fromJson(json);
+  }
+
+  Future<void> end({String? accessToken, String? refreshToken}) =>
+      _post(paths.logout, {'refresh_token': refreshToken ?? ''}, accessToken: accessToken);
+
+  Future<(int, Object?)> _post(
+    String path,
+    Map<String, Object?> body, {
+    String? accessToken,
+  }) async {
+    final url = api.replace(path: '${api.path.replaceFirst(RegExp(r'/$'), '')}$path');
+
+    final http.Response response;
+    try {
+      response = await _http.post(
+        url,
+        headers: {
+          'accept': 'application/json',
+          'content-type': 'application/json',
+          if (accessToken != null) authorizationHeader: bearer(accessToken),
+        },
+        body: jsonEncode({...body, 'transport': 'body'}),
+      );
+    } on Exception catch (cause) {
+      throw AccountNetworkException(cause);
+    }
+
+    try {
+      return (response.statusCode, jsonDecode(response.body));
+    } on FormatException {
+      return (response.statusCode, null);
+    }
+  }
+}
+
+bool _ok(int status) => status >= 200 && status < 300;
