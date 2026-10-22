@@ -1,4 +1,6 @@
-import { defineAccount } from '@gsainfoteam/account-nest';
+import { defineAccount, type SessionOf } from '@gsainfoteam/account-nest';
 
-export const { AccountModule, AccountService } = defineAccount({ requiredScopes: ['name'] });
+export const account = defineAccount({ requiredScopes: ['name'], session: {} });
+export const { AccountModule, AccountService, SessionGuard } = account;
 export type AccountService = InstanceType<typeof AccountService>;
+export type Session = SessionOf<typeof account>;
