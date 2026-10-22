@@ -19,31 +19,34 @@
 
 npm 패키지는 GitHub Packages 에서 받으므로 설치하려면 인증이 필요하다. 설정 방법은 각 패키지 README 에 있다.
 
-## 로그인 방식 고르기
+## 로그인 흐름
 
-IdP 가 발급한 authorization code 를 누가 교환하느냐에 따라 두 가지로 나뉜다.
+서비스마다 흐름은 하나다.
 
-|                  | A. 브라우저나 앱이 교환            | B. 백엔드가 교환                                     |
-| ---------------- | ---------------------------------- | ---------------------------------------------------- |
-| 웹 설정          | `exchange: 'browser'`              | `exchange: 'backend'`                                |
-| IdP client 종류  | public (secret 없음)               | confidential (secret 있음)                           |
-| 백엔드가 받는 것 | IdP access token                   | code 와 PKCE verifier                                |
-| 백엔드가 할 일   | `getUserInfo(token)`               | `loginWithCode({ code, codeVerifier, redirectUri })` |
-| 지금 쓰는 서비스 | ziggle, house-moving-out, pot-g 앱 | chatbot, pot-g 매니저 웹                             |
+1. 웹이나 앱이 PKCE, state, nonce 를 붙여 IdP 로 보낸다. scope 에는 항상 `openid` 가 들어간다.
+2. callback 의 code 를 서비스 백엔드에 넘긴다(`POST /auth/login`).
+3. 백엔드가 confidential client 로 code 를 교환하고, 그 응답의 id_token 으로 사용자를 확인한다(`loginWithCode`).
+4. 백엔드가 자기 세션(access token 과 refresh token)을 발급한다. 그 뒤로 IdP 토큰은 쓰지 않는다.
 
-새 서비스라면 A 를 권한다. 백엔드에 IdP secret 을 둘 필요가 없다.
+프론트가 IdP access token 을 백엔드에 넘기는 방식은 지원하지 않는다. account-be 의 access token 에는 대상 client 가 없어서,
+누구나 등록할 수 있는 다른 client 의 토큰으로도 로그인이 되기 때문이다. 백엔드가 직접 교환한 id_token 은 그럴 수 없다.
 
-어느 방식이든 IdP 토큰은 로그인할 때 한 번만 쓴다. 그 뒤로는 서비스 백엔드가 자기 세션(access token 과 refresh token)을
-발급하고, SDK 는 그 세션의 갱신과 만료를 맡는다. 그래서 기본값에서는 `offline_access` 를 요청하지 않는다. 이 scope 를
-요청하면 account-fe 가 로그인할 때마다 동의 화면을 띄우기 때문이다.
+IdP 토큰은 로그인할 때 한 번만 쓰므로 `offline_access` 는 요청하지 않는다. 이 scope 를 요청하면 account-fe 가 로그인할 때마다
+동의 화면을 띄운다.
+
+### 서비스마다 IdP 에서 한 번 할 일
+
+account-fe 의 client 설정 화면에서 한다.
+
+1. client 를 등록한다. redirect URI 로 웹 callback(`https://<서비스>/auth/callback`)과 앱 scheme 을 넣는다.
+2. 필수 scope 와 선택 scope 를 고른다. 백엔드 `requiredScopes` 에는 필수 scope 만 넣는다.
+3. 인증 방식을 `client_secret_post` 로 한다. 새로 등록하는 client 는 이것이 기본값이다.
+4. secret 을 받아 서비스 백엔드의 환경 변수에 넣는다.
 
 ## 이름 규칙
 
 - `login`, `logout`: 사용자 관점의 전체 흐름이다. IdP 로 보내고, callback 을 처리하고, 서비스 세션을 만드는 데까지를 말한다.
-- `login`, `refresh`, `logout`: 서비스 백엔드의 세션 endpoint 를 한 번 호출하는 것이다. `SessionAdapter` 의 메서드이며
-  `/auth/login` 같은 경로와 이름이 같다.
-
-`login()` 한 번 안에서 `session.start()` 이 불린다.
+- `/auth/login`, `/auth/refresh`, `/auth/logout`: 서비스 백엔드의 세션 endpoint 다. `login()` 한 번은 IdP 를 거쳐 `/auth/login` 까지 간다.
 
 ## IdP 와 맞춘 것
 
