@@ -52,7 +52,10 @@ export interface AccountClient {
    */
   ready(): Promise<void>;
 
-  /** {@link AccountClient.ready} 가 callback 을 처리하고 있다. 이동 직전의 화면이 깜빡이지 않게 가릴 때 쓴다. */
+  /**
+   * {@link AccountClient.ready} 가 callback 을 처리하거나 자동 로그인을 시도하고 있다. 곧 바뀌거나 떠날 화면이
+   * 깜빡이지 않게 가릴 때 쓴다.
+   */
   isHandlingRedirect(): boolean;
 
   /**
@@ -156,6 +159,11 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
 
   const refreshMutex = new Mutex();
   const callback = takeCallback(redirectUri(), transactions);
+  const trySilentLogin =
+    options.silentLogin === true &&
+    callback === null &&
+    transactions.getItem(STORAGE_KEYS.silentLoginTried) === null &&
+    localStorage.getItem(STORAGE_KEYS.loggedOut) === null;
   let callbackError: AccountError | null = null;
   let rejection: SessionRejection | null = null;
   let initializing: Promise<void> | undefined;
@@ -202,16 +210,46 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
         iss: params.iss,
       });
     } catch (error) {
-      callbackError = toAccountError(error);
+      const accountError = toAccountError(error);
+      if (transaction?.silent && SILENT_LOGIN_FAILURES.has(accountError.code)) {
+        unauthenticate();
+        return;
+      }
+
+      callbackError = accountError;
       unauthenticate(callbackError);
     }
+  };
+
+  const authorize = async (
+    returnTo: string,
+    prompt: Prompt | undefined,
+    silent: boolean,
+  ): Promise<void> => {
+    const loggedOut = localStorage.getItem(STORAGE_KEYS.loggedOut) !== null;
+    const { url, transaction } = await createAuthorization(await metadata(), {
+      clientId,
+      redirectUri: redirectUri(),
+      scopes: [OPENID_SCOPE, ...(await scopes())],
+      prompt: prompt ?? (loggedOut ? 'login' : undefined),
+    });
+
+    saveTransaction(transactions, transaction, { returnTo: sameOriginPath(returnTo), silent });
+    redirect(url);
   };
 
   const restoreSession = async (): Promise<void> => {
     try {
       const tokens = await session.refresh();
-      if (tokens) authenticate(tokens.accessToken);
-      else unauthenticate();
+      if (tokens) return authenticate(tokens.accessToken);
+
+      if (trySilentLogin) {
+        transactions.setItem(STORAGE_KEYS.silentLoginTried, '1');
+        await authorize(window.location.href, 'none', true);
+        return new Promise<never>(() => undefined);
+      }
+
+      unauthenticate();
     } catch (error) {
       unauthenticate(toAccountError(error));
     }
@@ -233,7 +271,7 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
     },
 
     isHandlingRedirect() {
-      return callback !== null && !settled;
+      return !settled && (callback !== null || trySilentLogin);
     },
 
     async requireAuth({ returnTo } = {}) {
@@ -246,16 +284,7 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
     },
 
     async login({ returnTo = window.location.href, prompt } = {}) {
-      const loggedOut = localStorage.getItem(STORAGE_KEYS.loggedOut) !== null;
-      const { url, transaction } = await createAuthorization(await metadata(), {
-        clientId,
-        redirectUri: redirectUri(),
-        scopes: [OPENID_SCOPE, ...(await scopes())],
-        prompt: prompt ?? (loggedOut ? 'login' : undefined),
-      });
-
-      saveTransaction(transactions, transaction, sameOriginPath(returnTo));
-      redirect(url);
+      await authorize(returnTo, prompt, false);
     },
 
     async retryLogin(body) {
@@ -327,6 +356,13 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
 
   return client;
 }
+
+/** 자동 로그인(`prompt=none`)이 실패한 이유 중, 사용자가 직접 로그인하면 되는 것. 에러로 알리지 않는다. */
+const SILENT_LOGIN_FAILURES = new Set<string>([
+  'login_required',
+  'consent_required',
+  'interaction_required',
+]);
 
 interface Callback {
   url: string;

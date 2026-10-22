@@ -42,6 +42,8 @@ export const account = createAccountClient({
 - 로그인 흐름은 하나다. 브라우저는 callback 의 code 를 서비스 백엔드에 넘기고, 백엔드가 confidential client 로 교환해 id_token 으로 사용자를 확인한다.
 - `scopes` 를 생략하면 IdP 에 등록한 필수와 선택 scope 를 요청한다. `openid` 는 항상 함께 요청한다.
 - `redirectUri` 를 생략하면 `/auth/callback` 이다. IdP 에 이 URL 을 등록만 하고, 라우트는 만들지 않는다.
+- `silentLogin: true` 면 세션이 없을 때 IdP 에 `prompt=none` 으로 한 번 다녀온다. IdP 에 이미 로그인한 사용자는 화면 없이 로그인되고,
+  아니면 에러 없이 비로그인으로 돌아온다. 탭마다 한 번만 시도하고, 로그아웃한 뒤에는 시도하지 않는다. 다녀오는 동안 Provider 의 `fallback` 이 보인다.
 - 백엔드 경로가 기본값(`/auth/login`, `/auth/refresh`, `/auth/logout`)과 다르면 `api: { baseUrl, paths: { refresh: '/auth/refresh-token' } }` 로 준다.
 
 ### 2. Provider

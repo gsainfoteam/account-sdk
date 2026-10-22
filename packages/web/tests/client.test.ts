@@ -269,3 +269,46 @@ describe('fetch', () => {
     expect(refreshes).toBe(2);
   });
 });
+
+describe('silentLogin', () => {
+  const signedOut = { [`${API}/auth/refresh`]: () => new Response(null, { status: 401 }) };
+
+  it('tries prompt=none once per tab when there is no session, and hides the page meanwhile', async () => {
+    const servers = setup(signedOut, { silentLogin: true });
+    expect(servers.client.isHandlingRedirect()).toBe(true);
+
+    void servers.client.ready();
+    await vi.waitFor(() => expect(servers.redirect).toHaveBeenCalledOnce());
+    expect(new URL(servers.redirect.mock.calls[0]![0]).searchParams.get('prompt')).toBe('none');
+
+    const again = servers.create();
+    expect(again.isHandlingRedirect()).toBe(false);
+    await again.ready();
+    expect(servers.redirect).toHaveBeenCalledOnce();
+  });
+
+  it('comes back signed out without an error when the IdP has no session either', async () => {
+    const servers = setup(signedOut, { silentLogin: true });
+    void servers.client.ready();
+    await vi.waitFor(() => expect(servers.redirect).toHaveBeenCalledOnce());
+    const state = new URL(servers.redirect.mock.calls[0]![0]).searchParams.get('state');
+
+    window.history.replaceState(null, '', `/auth/callback?error=login_required&state=${state}`);
+    const returned = servers.create();
+    await returned.ready();
+
+    expect(returned.store.getState()).toMatchObject({ status: 'unauthenticated', error: null });
+    servers.redirect.mockClear();
+    void returned.requireAuth();
+    await vi.waitFor(() => expect(servers.redirect).toHaveBeenCalledOnce());
+    expect(new URL(servers.redirect.mock.calls[0]![0]).searchParams.has('prompt')).toBe(false);
+  });
+
+  it('does not sign a user back in right after they signed out', async () => {
+    localStorage.setItem('gsainfoteam-account:logged-out', '1');
+    const { client, redirect } = setup(signedOut, { silentLogin: true });
+    await client.ready();
+
+    expect(redirect).not.toHaveBeenCalled();
+  });
+});

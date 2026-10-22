@@ -18,6 +18,8 @@ export const StoredTransactionSchema = z.object({
   scopes: z.array(ScopeSchema),
   createdAt: z.number(),
   returnTo: z.optional(z.string()),
+  /** `prompt=none` 으로 시작한 자동 로그인. 실패해도 사용자에게 알리지 않는다. */
+  silent: z.optional(z.boolean()),
 });
 
 export type StoredTransaction = z.infer<typeof StoredTransactionSchema>;
@@ -29,11 +31,11 @@ export type StoredTransaction = z.infer<typeof StoredTransactionSchema>;
 export function saveTransaction(
   storage: Storage,
   transaction: AuthorizationTransaction,
-  returnTo?: string,
+  extra: Pick<StoredTransaction, 'returnTo' | 'silent'> = {},
 ): void {
   pruneExpired(storage);
 
-  const stored: StoredTransaction = { ...transaction, returnTo };
+  const stored: StoredTransaction = { ...transaction, ...extra };
   storage.setItem(PREFIX + transaction.state, JSON.stringify(stored));
 }
 

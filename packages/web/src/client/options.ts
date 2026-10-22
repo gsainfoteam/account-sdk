@@ -33,6 +33,11 @@ export const AccountClientOptionsSchema = z.object({
    * 서비스 백엔드가 id_token 으로 사용자를 확인하기 때문이다.
    */
   scopes: z.optional(z.array(ClientScopeSchema)),
+  /**
+   * 세션이 없으면 IdP 에 `prompt=none` 으로 한 번 다녀온다. IdP 에 이미 로그인한 사용자는 화면 없이 로그인되고,
+   * 아니면 조용히 비로그인으로 돌아온다. 탭마다 한 번만 시도하고, 로그아웃한 뒤에는 시도하지 않는다.
+   */
+  silentLogin: z.optional(z.boolean()),
   fetch: z.optional(z.custom<Fetch>(isFunction)),
   /** 진행 중인 인가를 보관할 곳. 기본은 `sessionStorage`. */
   transactionStorage: z.optional(z.custom<Storage>()),
