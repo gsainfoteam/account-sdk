@@ -1,6 +1,7 @@
 import { clearDiscoveryCache } from '@gsainfoteam/account-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import production from '../../core/tests/fixtures/discovery.production.json' with { type: 'json' };
 import { createAccountClient, type AccountClientOptions } from '../src';
 import { fakeServers, type Route } from './fake-servers';
 
@@ -310,5 +311,50 @@ describe('silentLogin', () => {
     await client.ready();
 
     expect(redirect).not.toHaveBeenCalled();
+  });
+});
+
+describe('logout with the IdP', () => {
+  const routes = { [`${API}/auth/logout`]: () => new Response(null, { status: 204 }) };
+  const withEndSession = (servers: ReturnType<typeof setup>) => {
+    const original = servers.fetch.getMockImplementation()!;
+    servers.fetch.mockImplementation(async (input, init) =>
+      String(input).endsWith('/.well-known/openid-configuration')
+        ? Response.json({
+            ...production,
+            end_session_endpoint: 'https://account.gistory.me/logout',
+          })
+        : original(input, init),
+    );
+  };
+
+  it('ends the IdP session through the registered callback URL and comes back to returnTo', async () => {
+    const servers = setup(routes);
+    withEndSession(servers);
+    await servers.client.logout({ idp: true, returnTo: '/bye' });
+
+    const logout = new URL(servers.redirect.mock.calls[0]![0]);
+    expect(logout.origin + logout.pathname).toBe('https://account.gistory.me/logout');
+    expect(logout.searchParams.get('post_logout_redirect_uri')).toBe(
+      'http://localhost:3000/auth/callback',
+    );
+    expect(servers.callsTo(`${API}/auth/logout`)).toHaveLength(1);
+
+    window.history.replaceState(
+      null,
+      '',
+      `/auth/callback?state=${logout.searchParams.get('state')}`,
+    );
+    const returned = servers.create();
+    expect(window.location.pathname).toBe('/bye');
+    expect(returned.isHandlingRedirect()).toBe(false);
+  });
+
+  it('only ends the service session while the IdP does not advertise logout', async () => {
+    const servers = setup(routes);
+    await servers.client.logout({ idp: true });
+
+    expect(servers.redirect).not.toHaveBeenCalled();
+    expect(servers.client.store.getState().status).toBe('unauthenticated');
   });
 });

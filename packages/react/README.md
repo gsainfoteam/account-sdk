@@ -137,6 +137,16 @@ import { attachAccount } from '@gsainfoteam/account-react/axios';
 attachAccount(instance, account);
 ```
 
+### 6. 로그아웃
+
+```ts
+await logout(); // 서비스 세션만 끝낸다. 다음 로그인에서는 IdP 가 계정을 다시 고르게 한다
+await logout({ idp: true, returnTo: '/' }); // IdP 로그인 세션까지 끝낸다. 공용 PC 같은 경우
+```
+
+`idp: true` 는 IdP 의 로그아웃 페이지에 다녀온다. 돌아올 때는 IdP 에 등록한 callback URL 을 거치므로 따로 등록할 URL 이 없다.
+IdP 가 아직 로그아웃을 광고하지 않으면 서비스 세션만 끝낸다.
+
 ## 동작 방식
 
 - access token 은 메모리에만 둔다. refresh token 은 서비스 백엔드가 httpOnly 쿠키로 둔다. 새로 고침하면 refresh 로 복구한다.

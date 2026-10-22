@@ -3,6 +3,7 @@ export {
   createAccountClient,
   type AccountClient,
   type LoginOptions,
+  type LogoutOptions,
   type RequireAuthOptions,
 } from './client/create-account-client';
 export { AccountClientOptionsSchema, type AccountClientOptions } from './client/options';

@@ -27,6 +27,11 @@ export interface AccountMetadata {
    * IdP 가 `revocation_endpoint` 를 광고하면 표준 요청으로 바뀐다.
    */
   revocation: { endpoint: string; method: 'POST' | 'DELETE' };
+  /**
+   * IdP 세션까지 끝내는 account-fe 의 로그아웃 페이지(OpenID Connect RP-Initiated Logout).
+   * IdP 가 아직 광고하지 않으면 없다.
+   */
+  endSessionEndpoint: string | undefined;
   /** IdP 가 광고하는 scope. SDK 가 아직 모르는 scope 도 보이도록 받은 그대로 둔다. */
   scopesSupported: readonly string[];
   idTokenSigningAlgs: readonly string[];
@@ -40,6 +45,7 @@ export const DiscoveryDocumentSchema = z.looseObject({
   userinfo_endpoint: z.optional(z.url()),
   jwks_uri: z.url(),
   revocation_endpoint: z.optional(z.url()),
+  end_session_endpoint: z.optional(z.url()),
   scopes_supported: z.optional(z.array(z.string())),
   scope_supported: z.optional(z.array(z.string())),
   id_token_signing_alg_values_supported: z.optional(z.array(z.string())),
@@ -87,6 +93,9 @@ export function normalizeDiscovery(input: unknown, fetchedFrom: string): Account
     revocation: doc.revocation_endpoint
       ? { endpoint: onApi(pathOf(doc.revocation_endpoint)), method: 'POST' }
       : { endpoint: onApi(FALLBACK_ENDPOINTS.revocation), method: 'DELETE' },
+    endSessionEndpoint: doc.end_session_endpoint
+      ? onFront(pathOf(doc.end_session_endpoint))
+      : undefined,
 
     scopesSupported: doc.scopes_supported ?? doc.scope_supported ?? [],
     idTokenSigningAlgs: doc.id_token_signing_alg_values_supported ?? DEFAULT_ID_TOKEN_SIGNING_ALGS,

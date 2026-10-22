@@ -240,4 +240,39 @@ void main() {
     expect(servers.refreshes, 1);
     expect(client.accessToken, 'service-2');
   });
+
+  test('ends the IdP session in the browser when asked, returning to the redirect URI', () async {
+    final opened = <Uri>[];
+    final body = jsonObject(discovery);
+    final client = AccountClient(
+      issuer: AccountIssuer.production,
+      clientId: 'pot-g',
+      redirectUri: Uri.parse('pot-g-idp-login-redirect://callback'),
+      api: Uri.parse('https://api.pot-g.gistory.me'),
+      store: MemoryTokenStore(),
+      httpClient: MockClient((request) async {
+        if (request.url.path == '/.well-known/openid-configuration') {
+          return json({
+            ...body,
+            'end_session_endpoint': 'https://account.account.gistory.me/logout',
+          });
+        }
+        return json(null, 204);
+      }),
+      authenticate: (url, scheme) async {
+        opened.add(url);
+        return 'pot-g-idp-login-redirect://callback?state=${url.queryParameters['state']}';
+      },
+    );
+
+    await client.logout(idp: true);
+
+    final logout = opened.single;
+    expect(logout.origin + logout.path, 'https://account.gistory.me/logout');
+    expect(
+      logout.queryParameters['post_logout_redirect_uri'],
+      'pot-g-idp-login-redirect://callback',
+    );
+    expect(client.state.status, AccountStatus.unauthenticated);
+  });
 }

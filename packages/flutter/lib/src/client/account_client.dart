@@ -161,16 +161,36 @@ class AccountClient {
 
   /// 저장한 세션을 지우고 서비스 백엔드에 알린다.
   /// 어차피 기기에서는 로그아웃되므로 서버 쪽 실패는 무시한다.
-  Future<void> logout() async {
+  ///
+  /// [idp] 가 `true` 면 브라우저 세션으로 IdP 로그아웃 페이지를 열어 IdP 로그인 세션도 끝낸다. 돌아올 곳은 [redirectUri] 다.
+  /// IdP 가 아직 지원하지 않거나 사용자가 브라우저를 닫으면 서비스 세션만 끝난다.
+  Future<void> logout({bool idp = false}) async {
     final stored = await _store.read();
 
     _ticket = null;
     await _unauthenticate();
     await _store.writeLoggedOut(true);
 
+    await _session
+        .end(accessToken: stored?.accessToken, refreshToken: stored?.refreshToken)
+        .catchError((Object _) {}, test: (error) => error is AccountException);
+    if (idp) await _endIdpSession();
+  }
+
+  Future<void> _endIdpSession() async {
+    final endpoint = (await discover(issuer, client: _http)).endSessionEndpoint;
+    if (endpoint == null) return;
+
+    final url = endpoint.replace(
+      queryParameters: {
+        'client_id': clientId,
+        'post_logout_redirect_uri': redirectUri.toString(),
+        'state': _random(),
+      },
+    );
     try {
-      await _session.end(accessToken: stored?.accessToken, refreshToken: stored?.refreshToken);
-    } on AccountException {
+      await _browser(url, redirectUri.scheme);
+    } on PlatformException {
       return;
     }
   }

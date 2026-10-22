@@ -4,6 +4,7 @@ import {
   AccountError,
   SCOPES,
   clearDiscoveryCache,
+  createLogoutUrl,
   discover,
   discoveryUrlOf,
   normalizeDiscovery,
@@ -84,6 +85,29 @@ describe('normalizeDiscovery', () => {
       endpoint: 'https://api.account.gistory.me/oauth/revoke',
       method: 'POST',
     });
+  });
+});
+
+describe('end_session_endpoint', () => {
+  it('points at the login host and builds a logout URL that returns with a state', () => {
+    const metadata = normalizeDiscovery(
+      { ...production, end_session_endpoint: 'https://account.account.gistory.me/logout' },
+      discoveryUrlOf('production'),
+    );
+    const logout = createLogoutUrl(metadata, {
+      clientId: 'c',
+      postLogoutRedirectUri: 'https://app.example/auth/callback',
+    });
+
+    expect(metadata.endSessionEndpoint).toBe('https://account.gistory.me/logout');
+    expect(new URL(logout!.url).searchParams.toString()).toBe(
+      `client_id=c&post_logout_redirect_uri=${encodeURIComponent('https://app.example/auth/callback')}&state=${logout!.state}`,
+    );
+  });
+
+  it('has no logout URL until the IdP advertises one', () => {
+    const metadata = normalizeDiscovery(production, discoveryUrlOf('production'));
+    expect(createLogoutUrl(metadata, { clientId: 'c' })).toBeNull();
   });
 });
 

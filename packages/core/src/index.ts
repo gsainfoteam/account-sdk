@@ -4,6 +4,7 @@ export {
   type CreateAuthorizationParams,
   type Prompt,
 } from './authorization/create-authorization';
+export { createLogoutUrl, type CreateLogoutUrlParams } from './authorization/create-logout-url';
 export {
   isCallbackUrl,
   parseCallback,

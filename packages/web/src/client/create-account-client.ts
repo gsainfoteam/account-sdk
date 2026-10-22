@@ -4,6 +4,7 @@ import {
   bearer,
   CALLBACK_PATH,
   createAuthorization,
+  createLogoutUrl,
   discover,
   fetchClientRegistration,
   isCallbackUrl,
@@ -30,6 +31,13 @@ export interface LoginOptions {
   /** 로그인 뒤 돌아올 위치. 경로나 같은 origin 의 URL 이고, 다른 origin 이면 버린다. 기본은 현재 페이지다. */
   returnTo?: string;
   prompt?: Prompt;
+}
+
+export interface LogoutOptions {
+  /** IdP 로그인 세션도 끝낸다. 공용 PC 처럼 다음 사람이 같은 IdP 계정으로 자동 로그인되면 안 될 때 쓴다. */
+  idp?: boolean;
+  /** `idp: true` 일 때 로그아웃 뒤 돌아올 위치. 같은 origin 이어야 하고, 기본은 `/` 다. */
+  returnTo?: string;
 }
 
 export interface RequireAuthOptions {
@@ -83,8 +91,11 @@ export interface AccountClient {
    */
   retryLogin(body: unknown): Promise<void>;
 
-  /** 서비스 세션을 끝낸다. 어차피 로컬에서는 로그아웃되므로 서버 쪽 실패는 조용히 넘긴다. */
-  logout(): Promise<void>;
+  /**
+   * 서비스 세션을 끝낸다. 어차피 로컬에서는 로그아웃되므로 서버 쪽 실패는 조용히 넘긴다.
+   * `idp: true` 면 IdP 로그인 세션도 끝내고 `returnTo` 로 돌아온다. IdP 가 아직 지원하지 않으면 서비스 세션만 끝낸다.
+   */
+  logout(options?: LogoutOptions): Promise<void>;
 
   /**
    * 서비스 백엔드에서 새 access token 을 받는다.
@@ -300,7 +311,7 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
       }
     },
 
-    async logout() {
+    async logout({ idp = false, returnTo = '/' } = {}) {
       const { accessToken } = store.getState();
 
       rejection = null;
@@ -308,6 +319,19 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
       unauthenticate();
 
       await session.end(accessToken).catch(() => undefined);
+      if (!idp) return;
+
+      const logout = createLogoutUrl(await metadata(), {
+        clientId,
+        postLogoutRedirectUri: redirectUri(),
+      });
+      if (!logout) return;
+
+      transactions.setItem(
+        STORAGE_KEYS.logoutPrefix + logout.state,
+        sameOriginPath(returnTo) ?? '/',
+      );
+      redirect(logout.url);
     },
 
     async refresh(staleToken = store.getState().accessToken) {
@@ -370,7 +394,8 @@ interface Callback {
 }
 
 /**
- * 현재 주소가 callback 이면 그 트랜잭션을 꺼내고, 주소를 로그인 전 위치로 바꾼다.
+ * 현재 주소가 callback 이면 그 트랜잭션을 꺼내고, 주소를 로그인 전 위치로 바꾼다. IdP 로그아웃에서 돌아온
+ * 주소라면 로그아웃 전에 정한 위치로 바꾼다. 둘 다 IdP 에 등록한 callback URL 로 돌아온다.
  *
  * @remarks
  * 동기로 해야 한다. 라우터가 만들어지기 전에 주소가 바뀌어 있어야 callback 주소를 라우팅하지 않는다.
@@ -378,7 +403,17 @@ interface Callback {
  */
 function takeCallback(redirectUri: string, transactions: Storage): Callback | null {
   const url = window.location.href;
-  if (!isCallbackUrl(url) || new URL(url).pathname !== new URL(redirectUri).pathname) return null;
+  if (new URL(url).pathname !== new URL(redirectUri).pathname) return null;
+
+  const logoutKey = STORAGE_KEYS.logoutPrefix + readCallbackState(url);
+  const afterLogout = transactions.getItem(logoutKey);
+  if (afterLogout !== null && !isCallbackUrl(url)) {
+    transactions.removeItem(logoutKey);
+    window.history.replaceState(null, '', afterLogout);
+    return null;
+  }
+
+  if (!isCallbackUrl(url)) return null;
 
   const transaction = takeTransaction(transactions, readCallbackState(url));
   window.history.replaceState(null, '', transaction?.returnTo ?? '/');

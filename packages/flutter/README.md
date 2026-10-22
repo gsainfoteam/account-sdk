@@ -47,4 +47,5 @@ try {
 - 토큰 없이 보낼 요청은 `Options(extra: SkipAccountAuth.extra)` 를 붙인다.
 - 실패는 sealed class `AccountException` 의 하위 타입으로 던진다. `switch` 로 경우마다 처리한다.
 - 로그아웃 직후 첫 로그인에서는 `prompt=login` 으로 로그인 화면을 띄워 계정을 바꿀 수 있게 한다.
+- `logout(idp: true)` 는 브라우저 세션으로 IdP 로그아웃 페이지를 열어 IdP 로그인 세션도 끝낸다. 돌아올 곳은 `redirectUri` 다.
 - PKCE(`S256`), `state`, `nonce` 를 직접 만들고, callback 의 `state` 와 `iss` 를 확인한다.

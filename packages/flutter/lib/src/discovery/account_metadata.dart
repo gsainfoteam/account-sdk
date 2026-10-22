@@ -10,6 +10,7 @@ class AccountMetadata {
     required this.tokenEndpoint,
     required this.userinfoEndpoint,
     required this.scopesSupported,
+    this.endSessionEndpoint,
   });
 
   final String issuer;
@@ -20,6 +21,9 @@ class AccountMetadata {
   final Uri tokenEndpoint;
   final Uri userinfoEndpoint;
   final List<String> scopesSupported;
+
+  /// IdP 세션까지 끝내는 account-fe 의 로그아웃 페이지(OpenID Connect RP-Initiated Logout). IdP 가 광고하지 않으면 없다.
+  final Uri? endSessionEndpoint;
 }
 
 /// discovery 문서와 그 문서를 받아 온 URL 로 [AccountMetadata] 를 만든다.
@@ -57,6 +61,10 @@ AccountMetadata normalizeDiscovery(Object? json, Uri fetchedFrom) {
       scopesSupported: switch (json['scopes_supported'] ?? json['scope_supported']) {
         final List<Object?> scopes => scopes.whereType<String>().toList(),
         _ => const [],
+      },
+      endSessionEndpoint: switch (json['end_session_endpoint']) {
+        final String endpoint => frontOrigin.replace(path: Uri.parse(endpoint).path),
+        _ => null,
       },
     );
   }
