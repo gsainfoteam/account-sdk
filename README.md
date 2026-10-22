@@ -26,7 +26,7 @@ npm 패키지는 GitHub Packages 에서 받으므로 설치하려면 인증이 �
 1. 웹이나 앱이 PKCE, state, nonce 를 붙여 IdP 로 보낸다. scope 에는 항상 `openid` 가 들어간다.
 2. callback 의 code 를 서비스 백엔드에 넘긴다(`POST /auth/login`).
 3. 백엔드가 confidential client 로 code 를 교환하고, 그 응답의 id_token 으로 사용자를 확인한다(`loginWithCode`).
-4. 백엔드가 자기 세션(access token 과 refresh token)을 발급한다. 그 뒤로 IdP 토큰은 쓰지 않는다.
+4. 백엔드가 자기 세션(access token 과 refresh token)을 발급한다. 그 뒤로 IdP 토큰은 쓰지 않는다. NestJS 라면 `@gsainfoteam/account-nest` 의 세션 모듈이 2~4를 맡는다.
 
 프론트가 IdP access token 을 백엔드에 넘기는 방식은 지원하지 않는다. account-be 의 access token 에는 대상 client 가 없어서,
 누구나 등록할 수 있는 다른 client 의 토큰으로도 로그인이 되기 때문이다. 백엔드가 직접 교환한 id_token 은 그럴 수 없다.
