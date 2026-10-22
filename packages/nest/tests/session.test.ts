@@ -1,14 +1,13 @@
 import 'reflect-metadata';
 
 import { clearDiscoveryCache } from '@gsainfoteam/account-core';
+import { createFakeIdp } from '@gsainfoteam/account-testing';
 import { Controller, Get, Module, UseGuards, type INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as z from 'zod/mini';
 
-import production from '../../core/tests/fixtures/discovery.production.json' with { type: 'json' };
-import { createSigner } from '../../core/tests/helpers';
 import {
   CurrentSession,
   defineAccount,
@@ -18,28 +17,9 @@ import {
   type SessionOf,
 } from '../src';
 
-const signer = await createSigner();
-
-const idp = vi.fn<typeof globalThis.fetch>(async (input, init) => {
-  const url = new URL(String(input));
-  if (url.pathname === '/.well-known/openid-configuration') return Response.json(production);
-  if (url.pathname !== '/oauth/token') return new Response('not found', { status: 404 });
-
-  if (new URLSearchParams(String(init?.body)).get('code') !== 'good-code') {
-    return Response.json({ error: 'invalid_grant' }, { status: 400 });
-  }
-  const now = Math.floor(Date.now() / 1000);
-  const idToken = await signer.sign({
-    iss: 'https://api.account.gistory.me',
-    aud: 'c',
-    iat: now,
-    exp: now + 3600,
-    nonce: 'n-1',
-    sub: 'idp-user-1',
-    name: '홍길동',
-  });
-  return Response.json({ access_token: 'at', token_type: 'Bearer', id_token: idToken });
-});
+const idp = await createFakeIdp();
+const code = async () =>
+  (await idp.authorize({ clientId: 'c', user: { sub: 'idp-user-1', name: '홍길동' } })).body;
 
 const account = defineAccount({
   requiredScopes: ['name'],
@@ -56,13 +36,6 @@ class MeController {
   }
 }
 
-const code = {
-  code: 'good-code',
-  code_verifier: 'v',
-  redirect_uri: 'https://app.example/cb',
-  nonce: 'n-1',
-};
-
 let app: INestApplication;
 let base: string;
 
@@ -75,7 +48,7 @@ async function start(
         issuer: 'production',
         clientId: 'c',
         clientSecret: 's',
-        fetch: idp,
+        fetch: idp.fetch,
         isGlobal: true,
         session: {
           secret: 'a-test-secret-that-is-long-enough!',
@@ -118,7 +91,11 @@ afterEach(async () => {
 describe('cookie transport (web)', () => {
   it('logs in with the code, sets an httpOnly refresh cookie and guards routes', async () => {
     await start();
-    const response = await post('/auth/login', { ...code, transport: 'cookie', device_id: '7' });
+    const response = await post('/auth/login', {
+      ...(await code()),
+      transport: 'cookie',
+      device_id: '7',
+    });
 
     expect(response.status).toBe(200);
     const body = (await response.json()) as { access_token: string; refresh_token?: string };
@@ -137,7 +114,7 @@ describe('cookie transport (web)', () => {
 
   it('rotates the refresh cookie and ends the session when an old one comes back later', async () => {
     await start();
-    const login = await post('/auth/login', code);
+    const login = await post('/auth/login', await code());
     const first = cookieOf(login);
 
     const refreshed = await post('/auth/refresh', undefined, { cookie: first });
@@ -154,7 +131,7 @@ describe('cookie transport (web)', () => {
 
   it('logs out, clears the cookie and stops the access token at once', async () => {
     await start();
-    const login = await post('/auth/login', code);
+    const login = await post('/auth/login', await code());
     const { access_token } = (await login.json()) as { access_token: string };
 
     const logout = await post('/auth/logout', undefined, {
@@ -168,7 +145,7 @@ describe('cookie transport (web)', () => {
 
   it('answers a used or forged code with 401', async () => {
     await start();
-    const response = await post('/auth/login', { ...code, code: 'bad-code' });
+    const response = await post('/auth/login', { ...(await code()), code: 'bad-code' });
 
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toMatchObject({ error: 'invalid_grant' });
@@ -178,7 +155,7 @@ describe('cookie transport (web)', () => {
 describe('body transport (app)', () => {
   it('returns and takes the refresh token in the body', async () => {
     await start();
-    const login = await post('/auth/login', { ...code, transport: 'body' });
+    const login = await post('/auth/login', { ...(await code()), transport: 'body' });
     const { refresh_token } = (await login.json()) as { refresh_token: string };
 
     expect(login.headers.get('set-cookie')).toBeNull();
@@ -200,7 +177,7 @@ describe('a login the service turns down first (house-moving-out consent)', () =
     );
     await start({ resolve });
 
-    const rejected = await post('/auth/login', code);
+    const rejected = await post('/auth/login', await code());
     expect(rejected.status).toBe(403);
     const { ticket, ...rest } = (await rejected.json()) as { ticket: string };
     expect(rest).toEqual({
@@ -222,10 +199,10 @@ describe('a login the service turns down first (house-moving-out consent)', () =
 describe('onLogin: replace (single session)', () => {
   it('ends the earlier session of the same user', async () => {
     await start({ onLogin: 'replace' });
-    const first = await post('/auth/login', code);
+    const first = await post('/auth/login', await code());
     const { access_token } = (await first.json()) as { access_token: string };
 
-    await post('/auth/login', code);
+    await post('/auth/login', await code());
     expect((await me(access_token)).status).toBe(401);
   });
 });
@@ -238,7 +215,7 @@ describe('on Fastify', () => {
           issuer: 'production',
           clientId: 'c',
           clientSecret: 's',
-          fetch: idp,
+          fetch: idp.fetch,
           session: {
             secret: 'a-test-secret-that-is-long-enough!',
             store: memorySessionStore(),
@@ -253,7 +230,7 @@ describe('on Fastify', () => {
     await app.listen(0);
     base = (await app.getUrl()).replace('[::1]', 'localhost');
 
-    const login = await post('/auth/login', code);
+    const login = await post('/auth/login', await code());
     expect(login.status).toBe(200);
     expect(login.headers.get('set-cookie')).toMatch(
       /^refresh_token=[\w-]+;.*HttpOnly; Secure; SameSite=Strict$/,

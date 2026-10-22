@@ -1,0 +1,53 @@
+{
+  "name": "@gsainfoteam/account-testing",
+  "version": "0.0.0",
+  "description": "In-process fake of the Infoteam account IdP for testing services built on the account SDK",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gsainfoteam/account-sdk.git",
+    "directory": "packages/testing"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.cts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^9.9.0",
+    "@gsainfoteam/account-contract": "workspace:^",
+    "jose": "^6.2.12",
+    "oauth4webapi": "^3.8.8"
+  },
+  "devDependencies": {
+    "@gsainfoteam/account-core": "workspace:^",
+    "@gsainfoteam/account-server": "workspace:^",
+    "@types/node": "^24.0.0",
+    "tsdown": "^0.23.0",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.3",
+    "zod": "^4.6.5"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

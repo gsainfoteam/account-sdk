@@ -1,37 +1,30 @@
 import 'reflect-metadata';
 
 import { clearDiscoveryCache } from '@gsainfoteam/account-core';
+import { createFakeIdp } from '@gsainfoteam/account-testing';
 import { Inject, Injectable, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
+import { afterEach, describe, expect, expectTypeOf, it } from 'vitest';
 
-import production from '../../core/tests/fixtures/discovery.production.json' with { type: 'json' };
-import { createSigner } from '../../core/tests/helpers';
 import { AccountModule, AccountService, defineAccount } from '../src';
 
-const signer = await createSigner();
-const now = Math.floor(Date.now() / 1000);
+const idp = await createFakeIdp();
+const options = {
+  issuer: 'production',
+  clientId: 'c',
+  clientSecret: 's',
+  fetch: idp.fetch,
+} as const;
 
-const fetch = vi.fn<typeof globalThis.fetch>(async (input) => {
-  const url = new URL(String(input));
-  if (url.pathname === '/.well-known/openid-configuration') return Response.json(production);
-  if (url.pathname === '/oauth/token') {
-    const idToken = await signer.sign({
-      iss: 'https://api.account.gistory.me',
-      aud: 'c',
-      iat: now,
-      exp: now + 3600,
-      nonce: 'n-1',
-      sub: 'user-1',
-      name: '홍길동',
-    });
-    return Response.json({ access_token: 'at-1', token_type: 'Bearer', id_token: idToken });
-  }
-  return new Response('not found', { status: 404 });
-});
-
-const options = { issuer: 'production', clientId: 'c', clientSecret: 's', fetch } as const;
-const login = { code: 'x', codeVerifier: 'v', redirectUri: 'https://app.example/cb', nonce: 'n-1' };
+async function login() {
+  const { body } = await idp.authorize({ clientId: 'c', user: { sub: 'user-1', name: '홍길동' } });
+  return {
+    code: body.code,
+    codeVerifier: body.code_verifier,
+    redirectUri: body.redirect_uri,
+    nonce: body.nonce,
+  };
+}
 
 afterEach(() => clearDiscoveryCache());
 
@@ -40,9 +33,11 @@ describe('AccountModule', () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AccountModule.forRoot(options)],
     }).compile();
-    await expect(moduleRef.get(AccountService).loginWithCode(login)).resolves.toMatchObject({
-      user: { sub: 'user-1' },
-    });
+    await expect(moduleRef.get(AccountService).loginWithCode(await login())).resolves.toMatchObject(
+      {
+        user: { sub: 'user-1' },
+      },
+    );
   });
 
   it('reads options from another provider with forRootAsync', async () => {
@@ -64,14 +59,16 @@ describe('AccountModule', () => {
             issuer: 'production',
             clientId: config.get('ACCOUNT_CLIENT_ID'),
             clientSecret: 's',
-            fetch,
+            fetch: idp.fetch,
           }),
         }),
       ],
     }).compile();
-    await expect(moduleRef.get(AccountService).loginWithCode(login)).resolves.toMatchObject({
-      user: { name: '홍길동' },
-    });
+    await expect(moduleRef.get(AccountService).loginWithCode(await login())).resolves.toMatchObject(
+      {
+        user: { name: '홍길동' },
+      },
+    );
   });
 
   it('is injectable from feature modules when global', async () => {
@@ -100,7 +97,7 @@ describe('AccountModule', () => {
     expectTypeOf<
       Awaited<ReturnType<StudentAccount['loginWithCode']>>['user']['studentId']
     >().toEqualTypeOf<string>();
-    await expect(account.loginWithCode(login)).rejects.toMatchObject({
+    await expect(account.loginWithCode(await login())).rejects.toMatchObject({
       code: 'missing_claims',
       description: 'student_id is_student_id_verified',
     });
@@ -114,10 +111,14 @@ describe('AccountModule', () => {
       imports: [named.AccountModule.forRoot(options), student.AccountModule.forRoot(options)],
     }).compile();
 
-    await expect(moduleRef.get(named.AccountService).loginWithCode(login)).resolves.toMatchObject({
+    await expect(
+      moduleRef.get(named.AccountService).loginWithCode(await login()),
+    ).resolves.toMatchObject({
       user: { name: '홍길동' },
     });
-    await expect(moduleRef.get(student.AccountService).loginWithCode(login)).rejects.toMatchObject({
+    await expect(
+      moduleRef.get(student.AccountService).loginWithCode(await login()),
+    ).rejects.toMatchObject({
       code: 'missing_claims',
     });
   });
