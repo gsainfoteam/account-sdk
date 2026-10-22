@@ -1,7 +1,8 @@
-import { clearDiscoveryCache } from '@gsainfoteam/account-core';
+import { clearDiscoveryCache, type ClientScope } from '@gsainfoteam/account-core';
 import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import production from '../../core/tests/fixtures/discovery.production.json' with { type: 'json' };
+import { createSigner } from '../../core/tests/helpers';
 import { AccountServerOptionsSchema, createAccountServer } from '../src';
 
 type Route = (request: {
@@ -56,89 +57,85 @@ describe('createAccountServer', () => {
   });
 });
 
-describe('getUserInfo', () => {
-  it('checks the IdP token the frontend sent', async () => {
-    const fetch = idp({
-      '/oauth/userinfo': () => Response.json({ sub: 'user-1', name: '홍길동' }),
-    });
-    const server = createAccountServer({ issuer: 'production', clientId: 'c', fetch });
-    await expect(server.getUserInfo('at-1')).resolves.toMatchObject({
-      sub: 'user-1',
-      name: '홍길동',
-    });
-  });
+describe('loginWithCode', async () => {
+  const signer = await createSigner();
+  const now = Math.floor(Date.now() / 1000);
+  const login = {
+    code: 'x',
+    codeVerifier: 'v',
+    redirectUri: 'https://app.example/cb',
+    nonce: 'n-1',
+  };
 
-  it('types the fields of the required scopes as present', async () => {
-    const fetch = idp({
-      '/oauth/userinfo': () =>
-        Response.json({ sub: 'user-1', name: '홍길동', email: 'a@gm.gist.ac.kr' }),
-    });
-    const server = createAccountServer({
-      issuer: 'production',
-      clientId: 'c',
-      requiredScopes: ['name', 'email'],
-      fetch,
-    });
-
-    const user = await server.getUserInfo('at-1');
-
-    expectTypeOf(user.name).toEqualTypeOf<string>();
-    expectTypeOf(user.email).toEqualTypeOf<string>();
-    expectTypeOf(user.studentId).toEqualTypeOf<string | undefined>();
-  });
-
-  it('fails with missing_claims when a required scope was not granted', async () => {
-    const fetch = idp({
-      '/oauth/userinfo': () => Response.json({ sub: 'user-1', name: '홍길동' }),
-    });
-    const server = createAccountServer({
-      issuer: 'production',
-      clientId: 'c',
-      requiredScopes: ['name', 'student_id'],
-      fetch,
-    });
-
-    await expect(server.getUserInfo('at-1')).rejects.toMatchObject({
-      code: 'missing_claims',
-      description: 'student_id is_student_id_verified',
-    });
-  });
-});
-
-describe('exchangeCode', () => {
-  it('needs a client secret', async () => {
-    const server = createAccountServer({ issuer: 'production', clientId: 'c', fetch: idp({}) });
-    await expect(
-      server.exchangeCode({ code: 'x', codeVerifier: 'v', redirectUri: 'r' }),
-    ).rejects.toMatchObject({
-      code: 'invalid_client',
-    });
-  });
-
-  it('signs in with a code in one call', async () => {
-    const fetch = idp({
-      '/oauth/token': ({ body }) => {
+  const idpIssuing = (claims: Record<string, unknown>) =>
+    idp({
+      '/oauth/token': async ({ body }) => {
         expect(body.get('client_secret')).toBe('s');
-        return Response.json(tokenBody);
-      },
-      '/oauth/userinfo': ({ headers }) => {
-        expect(headers.get('authorization')).toBe('Bearer at-1');
-        return Response.json({ sub: 'user-1', email: 'a@gm.gist.ac.kr' });
+        const idToken = await signer.sign({
+          iss: 'https://api.account.gistory.me',
+          aud: 'c',
+          iat: now,
+          exp: now + 3600,
+          nonce: 'n-1',
+          ...claims,
+        });
+        return Response.json({ ...tokenBody, scope: 'openid name email', id_token: idToken });
       },
     });
-    const server = createAccountServer({
+
+  const serverOf = <const R extends readonly ClientScope[] = []>(
+    fetch: typeof globalThis.fetch,
+    requiredScopes?: R,
+  ) =>
+    createAccountServer({
       issuer: 'production',
       clientId: 'c',
       clientSecret: 's',
+      requiredScopes,
       fetch,
     });
-    const { tokens, user } = await server.loginWithCode({
-      code: 'x',
-      codeVerifier: 'v',
-      redirectUri: 'r',
-    });
+
+  it('needs a client secret', async () => {
+    const server = createAccountServer({ issuer: 'production', clientId: 'c', fetch: idp({}) });
+    await expect(server.loginWithCode(login)).rejects.toMatchObject({ code: 'invalid_client' });
+  });
+
+  it('reads the user from the id_token of its own exchange, without userinfo', async () => {
+    const fetch = idpIssuing({ sub: 'user-1', name: '홍길동', email: 'a@gm.gist.ac.kr' });
+    const { tokens, user } = await serverOf(fetch, ['name', 'email']).loginWithCode(login);
+
     expect(tokens.accessToken).toBe('at-1');
-    expect(user.email).toBe('a@gm.gist.ac.kr');
+    expect(user).toEqual({ sub: 'user-1', name: '홍길동', email: 'a@gm.gist.ac.kr' });
+    expect(fetch).not.toHaveBeenCalledWith(
+      expect.stringContaining('/oauth/userinfo'),
+      expect.anything(),
+    );
+    expectTypeOf(user.name).toEqualTypeOf<string>();
+    expectTypeOf(user.studentId).toEqualTypeOf<string | undefined>();
+  });
+
+  it('rejects an id_token from another login', async () => {
+    const fetch = idpIssuing({ sub: 'user-1', nonce: 'n-other' });
+    await expect(serverOf(fetch).loginWithCode(login)).rejects.toMatchObject({
+      code: 'invalid_id_token',
+    });
+  });
+
+  it('fails without an id_token instead of trusting the access token', async () => {
+    const fetch = idp({ '/oauth/token': () => Response.json(tokenBody) });
+    await expect(serverOf(fetch).loginWithCode(login)).rejects.toMatchObject({
+      code: 'invalid_id_token',
+    });
+  });
+
+  it('fails with missing_claims when a required scope was not granted', async () => {
+    const fetch = idpIssuing({ sub: 'user-1', name: '홍길동' });
+    await expect(
+      serverOf(fetch, ['name', 'student_id']).loginWithCode(login),
+    ).rejects.toMatchObject({
+      code: 'missing_claims',
+      description: 'student_id is_student_id_verified',
+    });
   });
 });
 

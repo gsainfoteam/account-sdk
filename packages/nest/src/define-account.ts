@@ -63,8 +63,6 @@ abstract class AccountServerToken<
   LookupScope extends ClientScope,
 > implements AccountServer<RequiredScope, LookupScope> {
   abstract metadata: AccountServer<RequiredScope, LookupScope>['metadata'];
-  abstract getUserInfo: AccountServer<RequiredScope, LookupScope>['getUserInfo'];
-  abstract exchangeCode: AccountServer<RequiredScope, LookupScope>['exchangeCode'];
   abstract loginWithCode: AccountServer<RequiredScope, LookupScope>['loginWithCode'];
   abstract getUserInfoBySub: AccountServer<RequiredScope, LookupScope>['getUserInfoBySub'];
   abstract verifyIdToken: AccountServer<RequiredScope, LookupScope>['verifyIdToken'];

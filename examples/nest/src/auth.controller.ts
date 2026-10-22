@@ -1,6 +1,7 @@
 import { AccountError, type UserInfo } from '@gsainfoteam/account-nest';
 import {
   BadGatewayException,
+  Body,
   Controller,
   Get,
   Headers,
@@ -17,6 +18,14 @@ import { SessionService } from './session.service';
 
 const REFRESH_COOKIE = 'refresh_token';
 
+interface LoginBody {
+  code: string;
+  code_verifier: string;
+  redirect_uri: string;
+  nonce: string;
+  iss?: string;
+}
+
 @Controller()
 export class AuthController {
   constructor(
@@ -27,13 +36,21 @@ export class AuthController {
   @Post('auth/login')
   @HttpCode(200)
   async login(
-    @Headers('authorization') authorization: string | undefined,
+    @Body() body: LoginBody,
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ access_token: string }> {
-    const user = await this.account.getUserInfo(bearer(authorization)).catch((error: unknown) => {
-      if (AccountError.is(error, 'invalid_token')) throw new UnauthorizedException();
-      throw new BadGatewayException('IdP is unavailable');
-    });
+    const { user } = await this.account
+      .loginWithCode({
+        code: body.code,
+        codeVerifier: body.code_verifier,
+        redirectUri: body.redirect_uri,
+        nonce: body.nonce,
+        iss: body.iss,
+      })
+      .catch((error: unknown) => {
+        if (AccountError.is(error, 'invalid_grant')) throw new UnauthorizedException();
+        throw new BadGatewayException('IdP is unavailable');
+      });
     return this.start(user, res);
   }
 

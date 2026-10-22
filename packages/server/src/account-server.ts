@@ -5,6 +5,7 @@ import {
   fetchUserInfo,
   requestClientCredentials,
   revokeToken,
+  userInfoFromIdToken,
   verifyIdToken,
   type AccountMetadata,
   type ClientScope,
@@ -19,6 +20,12 @@ import * as z from 'zod/mini';
 import { createClientTokenCache } from './client-token-cache';
 import { AccountServerOptionsSchema, type AccountServerOptions } from './options';
 
+/** {@link AccountServer.loginWithCode} 에 넘기는 값. 프론트가 callback 에서 받아 그대로 보낸다. */
+export interface LoginWithCodeParams extends ExchangeCodeParams {
+  /** authorization 요청에 보낸 nonce. id_token 을 다른 로그인에서 가져와 재사용하지 못하게 한다. */
+  nonce: string;
+}
+
 /**
  * 서비스 백엔드를 대신해 IdP 와 통신한다.
  *
@@ -31,16 +38,17 @@ export interface AccountServer<
 > {
   metadata(): Promise<AccountMetadata>;
   /**
-   * 프론트가 로그인할 때 보낸 IdP access token 을 확인하고 그 사용자를 돌려준다.
+   * 프론트가 callback 에서 받은 code 를 confidential client 로서 교환하고, id_token 의 claim 으로 사용자를 만든다.
    *
-   * @throws {@link AccountError} IdP 가 토큰을 거절하면 `invalid_token`, 필수 scope 의 필드가 빠졌으면 `missing_claims`.
+   * @remarks
+   * 사용자를 이 client 가 직접 교환한 id_token 으로만 확인한다. 프론트가 보낸 IdP access token 을 믿으면, 누구나
+   * 등록할 수 있는 다른 client 의 토큰으로도 로그인할 수 있게 된다. account-be 의 access token 에는 대상 client 가 없다.
+   *
+   * @throws {@link AccountError} code 가 이미 쓰였거나 만료됐으면 `invalid_grant`. id_token 이 없거나 nonce 가 다르면
+   * `invalid_id_token`. 필수 scope 의 claim 이 빠졌으면 `missing_claims`.
    */
-  getUserInfo(accessToken: string): Promise<UserInfo<RequiredScope>>;
-  /** 프론트가 받은 code 를 confidential client 로서 IdP 토큰으로 교환한다. */
-  exchangeCode(params: ExchangeCodeParams): Promise<TokenResponse>;
-  /** {@link AccountServer.exchangeCode} 한 뒤 {@link AccountServer.getUserInfo} 까지 한다. */
   loginWithCode(
-    params: ExchangeCodeParams,
+    params: LoginWithCodeParams,
   ): Promise<{ tokens: TokenResponse; user: UserInfo<RequiredScope> }>;
   /**
    * 캐시한 client credentials 토큰으로, 사용자가 없는 상황에서 사용자를 조회한다.
@@ -65,7 +73,7 @@ export interface AccountServer<
  *   clientId: process.env.ACCOUNT_CLIENT_ID!,
  *   clientSecret: process.env.ACCOUNT_CLIENT_SECRET,
  * });
- * const user = await account.getUserInfo(idpAccessToken);
+ * const { user } = await account.loginWithCode({ code, codeVerifier, redirectUri, nonce });
  * ```
  *
  * @throws {@link AccountError} 옵션이 없거나 비어 있으면 `invalid_request`.
@@ -118,22 +126,20 @@ export function createAccountServer<
   const server: AccountServer<RequiredScopes[number], LookupScopes[number]> = {
     metadata,
 
-    async getUserInfo(accessToken) {
-      return fetchUserInfo<RequiredScopes[number]>(await metadata(), client, accessToken, {
-        fetch,
-        requiredScopes,
-      });
-    },
-
-    async exchangeCode(params) {
-      requireSecret('exchangeCode');
-
-      return exchangeCode(await metadata(), client, params, { fetch });
-    },
-
     async loginWithCode(params) {
-      const tokens = await server.exchangeCode(params);
-      const user = await server.getUserInfo(tokens.accessToken);
+      requireSecret('loginWithCode');
+
+      const tokens = await exchangeCode(await metadata(), client, params, { fetch });
+      if (!tokens.idTokenClaims) {
+        throw new AccountError('invalid_id_token', {
+          description: 'the token response has no id_token; request the openid scope',
+        });
+      }
+
+      const user = userInfoFromIdToken<RequiredScopes[number]>(
+        tokens.idTokenClaims,
+        requiredScopes,
+      );
 
       return { tokens, user };
     },

@@ -53,11 +53,11 @@ export class AppModule {}
 
 ## scope 와 필드 타입
 
-`requiredScopes` 의 필드는 `getUserInfo` 결과에서 필수 타입이 된다. 응답에 빠져 있으면 SDK 가 그 자리에서 `missing_claims` 로 실패하므로,
+`requiredScopes` 의 필드는 `loginWithCode` 결과에서 필수 타입이 된다. id_token 에 빠져 있으면 SDK 가 그 자리에서 `missing_claims` 로 실패하므로,
 `undefined` 가 서비스 코드로 흘러가지 않는다. `getUserInfoBySub` 결과는 `clientCredentialsScopes` 를 따른다.
 
 ```ts
-const user = await this.account.getUserInfo(token);
+const { user } = await this.account.loginWithCode(params);
 user.studentId; // string
 user.email; // string | undefined (선언하지 않은 scope)
 ```
@@ -73,15 +73,9 @@ scope 가 다른 설정이 여러 개 필요하면 `defineAccount` 를 여러 �
 export class AuthService {
   constructor(private readonly account: AccountService) {}
 
-  // A 방식: 프론트가 보낸 IdP access token 확인
-  async login(idpAccessToken: string) {
-    const user = await this.account.getUserInfo(idpAccessToken);
-    return this.issueSession(user);
-  }
-
-  // B 방식: 프론트가 넘긴 code 교환 (clientSecret 필요)
-  async loginWithCode(code: string, codeVerifier: string, redirectUri: string) {
-    const { user } = await this.account.loginWithCode({ code, codeVerifier, redirectUri });
+  // 프론트가 callback 에서 받아 넘긴 code 를 교환하고, id_token 으로 사용자를 확인한다 (clientSecret 필요)
+  async login(params: LoginWithCodeParams) {
+    const { user } = await this.account.loginWithCode(params);
     return this.issueSession(user);
   }
 
@@ -95,8 +89,8 @@ export class AuthService {
 실패하면 `AccountError` 를 던진다. `code` 로 나눈다.
 
 ```ts
-await this.account.getUserInfo(token).catch((error) => {
-  if (AccountError.is(error, 'invalid_token')) throw new UnauthorizedException();
+await this.account.loginWithCode(params).catch((error) => {
+  if (AccountError.is(error, 'invalid_grant')) throw new UnauthorizedException(); // 이미 쓰였거나 만료된 code
   if (AccountError.is(error, 'missing_claims')) throw new InternalServerErrorException(); // client 의 scope 설정 문제
   throw new BadGatewayException();
 });

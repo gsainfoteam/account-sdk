@@ -6,24 +6,42 @@ import { Test } from '@nestjs/testing';
 import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import production from '../../core/tests/fixtures/discovery.production.json' with { type: 'json' };
+import { createSigner } from '../../core/tests/helpers';
 import { AccountModule, AccountService, defineAccount } from '../src';
+
+const signer = await createSigner();
+const now = Math.floor(Date.now() / 1000);
 
 const fetch = vi.fn<typeof globalThis.fetch>(async (input) => {
   const url = new URL(String(input));
   if (url.pathname === '/.well-known/openid-configuration') return Response.json(production);
-  if (url.pathname === '/oauth/userinfo') return Response.json({ sub: 'user-1', name: '홍길동' });
+  if (url.pathname === '/oauth/token') {
+    const idToken = await signer.sign({
+      iss: 'https://api.account.gistory.me',
+      aud: 'c',
+      iat: now,
+      exp: now + 3600,
+      nonce: 'n-1',
+      sub: 'user-1',
+      name: '홍길동',
+    });
+    return Response.json({ access_token: 'at-1', token_type: 'Bearer', id_token: idToken });
+  }
   return new Response('not found', { status: 404 });
 });
+
+const options = { issuer: 'production', clientId: 'c', clientSecret: 's', fetch } as const;
+const login = { code: 'x', codeVerifier: 'v', redirectUri: 'https://app.example/cb', nonce: 'n-1' };
 
 afterEach(() => clearDiscoveryCache());
 
 describe('AccountModule', () => {
   it('provides AccountService with forRoot', async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [AccountModule.forRoot({ issuer: 'production', clientId: 'c', fetch })],
+      imports: [AccountModule.forRoot(options)],
     }).compile();
-    await expect(moduleRef.get(AccountService).getUserInfo('at-1')).resolves.toMatchObject({
-      sub: 'user-1',
+    await expect(moduleRef.get(AccountService).loginWithCode(login)).resolves.toMatchObject({
+      user: { sub: 'user-1' },
     });
   });
 
@@ -31,7 +49,7 @@ describe('AccountModule', () => {
     @Injectable()
     class Config {
       get(key: string): string {
-        return { ACCOUNT_CLIENT_ID: 'from-config' }[key] ?? '';
+        return { ACCOUNT_CLIENT_ID: 'c' }[key] ?? '';
       }
     }
     @Module({ providers: [Config], exports: [Config] })
@@ -45,13 +63,14 @@ describe('AccountModule', () => {
           useFactory: (config: Config) => ({
             issuer: 'production',
             clientId: config.get('ACCOUNT_CLIENT_ID'),
+            clientSecret: 's',
             fetch,
           }),
         }),
       ],
     }).compile();
-    await expect(moduleRef.get(AccountService).getUserInfo('at-1')).resolves.toMatchObject({
-      name: '홍길동',
+    await expect(moduleRef.get(AccountService).loginWithCode(login)).resolves.toMatchObject({
+      user: { name: '홍길동' },
     });
   });
 
@@ -64,10 +83,7 @@ describe('AccountModule', () => {
     class AuthModule {}
 
     const moduleRef = await Test.createTestingModule({
-      imports: [
-        AccountModule.forRoot({ issuer: 'production', clientId: 'c', fetch, isGlobal: true }),
-        AuthModule,
-      ],
+      imports: [AccountModule.forRoot({ ...options, isGlobal: true }), AuthModule],
     }).compile();
     expect(moduleRef.get(AuthService).account).toBe(moduleRef.get(AccountService));
   });
@@ -77,14 +93,14 @@ describe('AccountModule', () => {
     type StudentAccount = InstanceType<typeof student.AccountService>;
 
     const moduleRef = await Test.createTestingModule({
-      imports: [student.AccountModule.forRoot({ issuer: 'production', clientId: 'c', fetch })],
+      imports: [student.AccountModule.forRoot(options)],
     }).compile();
     const account: StudentAccount = moduleRef.get(student.AccountService);
 
     expectTypeOf<
-      Awaited<ReturnType<StudentAccount['getUserInfo']>>['studentId']
+      Awaited<ReturnType<StudentAccount['loginWithCode']>>['user']['studentId']
     >().toEqualTypeOf<string>();
-    await expect(account.getUserInfo('at-1')).rejects.toMatchObject({
+    await expect(account.loginWithCode(login)).rejects.toMatchObject({
       code: 'missing_claims',
       description: 'student_id is_student_id_verified',
     });
@@ -95,16 +111,13 @@ describe('AccountModule', () => {
     const student = defineAccount({ requiredScopes: ['student_id'] });
 
     const moduleRef = await Test.createTestingModule({
-      imports: [
-        named.AccountModule.forRoot({ issuer: 'production', clientId: 'c', fetch }),
-        student.AccountModule.forRoot({ issuer: 'production', clientId: 'c', fetch }),
-      ],
+      imports: [named.AccountModule.forRoot(options), student.AccountModule.forRoot(options)],
     }).compile();
 
-    await expect(moduleRef.get(named.AccountService).getUserInfo('at-1')).resolves.toMatchObject({
-      name: '홍길동',
+    await expect(moduleRef.get(named.AccountService).loginWithCode(login)).resolves.toMatchObject({
+      user: { name: '홍길동' },
     });
-    await expect(moduleRef.get(student.AccountService).getUserInfo('at-1')).rejects.toMatchObject({
+    await expect(moduleRef.get(student.AccountService).loginWithCode(login)).rejects.toMatchObject({
       code: 'missing_claims',
     });
   });

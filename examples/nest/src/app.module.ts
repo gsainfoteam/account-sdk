@@ -9,6 +9,7 @@ import { SessionService } from './session.service';
     AccountModule.forRoot({
       issuer: process.env.ACCOUNT_ISSUER ?? 'staging',
       clientId: process.env.ACCOUNT_TEST_CLIENT_ID ?? '',
+      clientSecret: process.env.ACCOUNT_TEST_CLIENT_SECRET,
       isGlobal: true,
     }),
   ],
