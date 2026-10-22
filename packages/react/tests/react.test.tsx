@@ -5,14 +5,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import production from '../../core/tests/fixtures/discovery.production.json' with { type: 'json' };
-import {
-  AccountCallback,
-  AccountProvider,
-  cookieSession,
-  createAccountClient,
-  RequireAuth,
-  useAccount,
-} from '../src';
+import { AccountProvider, createAccountClient, RequireAuth, useAccount } from '../src';
 
 const API = 'https://api.ziggle.gistory.me';
 
@@ -23,17 +16,16 @@ function setup(routes: Record<string, () => Response>) {
     return routes[url.origin + url.pathname]?.() ?? new Response(null, { status: 404 });
   });
   const redirect = vi.fn<(url: string) => void>();
-  const client = createAccountClient({
-    issuer: 'production',
-    clientId: 'ziggle',
-    redirectUri: '/auth/callback',
-    scopes: ['name'],
-    exchange: 'browser',
-    session: cookieSession({ baseUrl: API, fetch }),
-    fetch,
-    redirect,
-  });
-  return { client, fetch, redirect };
+  const create = () =>
+    createAccountClient({
+      issuer: 'production',
+      clientId: 'ziggle',
+      api: API,
+      scopes: ['name'],
+      fetch,
+      redirect,
+    });
+  return { client: create(), create, fetch, redirect };
 }
 
 function Status() {
@@ -99,35 +91,25 @@ describe('RequireAuth', () => {
   });
 });
 
-describe('AccountCallback', () => {
-  it('exchanges once under StrictMode and reports where to go back', async () => {
-    const { client, fetch, redirect } = setup({
-      'https://api.account.gistory.me/oauth/token': () =>
-        Response.json({
-          access_token: 'idp',
-          token_type: 'Bearer',
-          expires_in: 10800,
-          scope: 'name',
-        }),
+describe('AccountProvider on the callback page', () => {
+  it('shows the fallback until the login is done, then the page the user was on', async () => {
+    const { client, create, redirect } = setup({
       [`${API}/auth/login`]: () => Response.json({ access_token: 'service' }),
     });
     await client.login({ returnTo: '/notices/1' });
     const state = new URL(redirect.mock.calls[0]![0]).searchParams.get('state');
     window.history.replaceState(null, '', `/auth/callback?code=c-1&state=${state}`);
+    const returned = create();
 
-    const onSuccess = vi.fn();
     render(
       <StrictMode>
-        <AccountProvider client={client}>
-          <AccountCallback onSuccess={onSuccess} onError={vi.fn()} fallback={<p>signing in</p>} />
+        <AccountProvider client={returned} fallback={<p>signing in</p>}>
           <Status />
         </AccountProvider>
       </StrictMode>,
     );
+    expect(window.location.pathname).toBe('/notices/1');
+    expect(screen.getByText('signing in')).toBeTruthy();
     await screen.findByText('authenticated:service');
-    expect(onSuccess).toHaveBeenCalledTimes(1);
-    expect(onSuccess).toHaveBeenCalledWith({ returnTo: '/notices/1' });
-    const tokenCalls = fetch.mock.calls.filter(([input]) => String(input).endsWith('/oauth/token'));
-    expect(tokenCalls).toHaveLength(1);
   });
 });

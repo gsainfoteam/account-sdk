@@ -28,73 +28,68 @@ GitHub Actions 에서는 `secrets.GITHUB_TOKEN` 을 쓰고 `permissions` 에 `pa
 
 ### 1. 클라이언트 만들기
 
-ziggle 이나 house-moving-out 처럼 브라우저가 IdP 토큰을 받아 백엔드 `/auth/login` 에 넘기는 서비스라면 아래와 같다.
-
 ```ts
 // src/account.ts
-import { cookieSession, createAccountClient } from '@gsainfoteam/account-react';
+import { createAccountClient } from '@gsainfoteam/account-react';
 
 export const account = createAccountClient({
   issuer: 'production',
   clientId: import.meta.env.VITE_ACCOUNT_CLIENT_ID,
-  redirectUri: '/auth/callback',
-  scopes: ['name', 'email'],
-  exchange: 'browser',
-  session: cookieSession({ baseUrl: import.meta.env.VITE_API_URL }),
+  api: import.meta.env.VITE_API_URL, // @gsainfoteam/account-nest 세션 모듈이 있는 서비스 백엔드
 });
 ```
 
-백엔드 경로가 기본값(`/auth/login`, `/auth/refresh`, `/auth/logout`)과 다르면 다른 것만 넘긴다.
+- 로그인 흐름은 하나다. 브라우저는 callback 의 code 를 서비스 백엔드에 넘기고, 백엔드가 confidential client 로 교환해 id_token 으로 사용자를 확인한다.
+- `scopes` 를 생략하면 IdP 에 등록한 필수와 선택 scope 를 요청한다. `openid` 는 항상 함께 요청한다.
+- `redirectUri` 를 생략하면 `/auth/callback` 이다. IdP 에 이 URL 을 등록만 하고, 라우트는 만들지 않는다.
+- 백엔드 경로가 기본값(`/auth/login`, `/auth/refresh`, `/auth/logout`)과 다르면 `api: { baseUrl, paths: { refresh: '/auth/refresh-token' } }` 로 준다.
 
-```ts
-cookieSession({ baseUrl, paths: { refresh: '/auth/refresh-token' } });
-```
-
-chatbot 처럼 code 를 백엔드가 교환하고, refresh token 을 body 로 주고받는 서비스라면 아래와 같다.
-
-```ts
-createAccountClient({
-  // ...
-  scopes: ['openid', 'name'],
-  exchange: 'backend',
-  session: bodySession({
-    baseUrl: import.meta.env.VITE_API_URL,
-    paths: {
-      login: '/v1/auth/admin/login',
-      refresh: '/v1/auth/admin/refresh',
-      logout: '/v1/auth/admin/logout',
-    },
-  }),
-});
-```
-
-요청과 응답의 모양까지 다르면 `SessionAdapter`(`login`, `refresh`, `logout`)를 직접 구현해 넘긴다.
-
-### 2. Provider 와 라우트
+### 2. Provider
 
 ```tsx
-<AccountProvider client={account}>
+<AccountProvider client={account} fallback={<Splash />}>
   <RouterProvider router={router} />
 </AccountProvider>
 ```
 
-redirect URI 경로에 `AccountCallback` 을 둔다. StrictMode 에서도 code 를 한 번만 교환하고, 결과도 한 번만 알린다.
+- client 는 라우터보다 먼저 만들어야 한다. 위처럼 모듈 최상단에서 만들고 라우트에서 import 하면 된다.
+- 페이지가 IdP 의 callback 으로 열리면, client 가 만들어지는 자리에서 주소를 로그인 전 위치로 바꾼다. 라우터는 callback 주소를 보지 않는다.
+- `fallback` 은 그 로그인을 마무리하는 동안에만 보인다. 그 밖에는 라우터를 바로 그린다.
 
-```tsx
-function Callback() {
-  const navigate = useNavigate();
-  return (
-    <AccountCallback
-      fallback={<Loading />}
-      onSuccess={({ returnTo }) => navigate({ to: returnTo ?? '/', replace: true })}
-      onError={() => navigate({ to: '/', replace: true })}
-    />
-  );
-}
+### 3. 로그인이 필요한 라우트
+
+라우터의 guard 에서 `requireAuth` 를 부른다. 세션이 있으면 지나가고, 없으면 IdP 로 보낸 뒤 돌아온다.
+`returnTo` 에는 라우터가 주는 이동 대상을 넘긴다. 생략하면 현재 주소인데, 클라이언트 쪽 이동 중에는 이전 페이지다.
+
+**TanStack Router** (파일 기반이든 `createRoute` 든 같다)
+
+```ts
+// routes/_auth-required/route.tsx
+export const Route = createFileRoute('/_auth-required')({
+  beforeLoad: ({ location }) => account.requireAuth({ returnTo: location.href }),
+  errorComponent: SignInFailed, // callback 이 실패하면 requireAuth 가 그 에러를 던진다
+});
+
+// router.ts: 로그아웃이나 세션 만료 뒤 guard 를 다시 돌린다
+account.store.subscribe(() => router.invalidate());
 ```
 
-로그인이 필요한 화면은 `RequireAuth` 로 감싼다. 로그인하지 않은 사용자는 IdP 로 보내고, 로그인한 뒤 원래 페이지로 돌아온다.
-로그인 화면을 따로 두는 앱은 `redirect={false}` 를 넘기고 `fallback` 에 로그인 화면을 둔다.
+**React Router** (data router, v6.4 이상)
+
+```ts
+const router = createBrowserRouter([
+  {
+    loader: ({ request }) => account.requireAuth({ returnTo: request.url }),
+    errorElement: <SignInFailed />,
+    children: [{ path: '/admin', element: <Admin /> }],
+  },
+]);
+account.store.subscribe(() => router.revalidate());
+```
+
+7.9 이상에서 middleware 를 켰다면 같은 호출을 client middleware 에 둬도 된다.
+
+**`<Routes>` 컴포넌트 방식이나 라우터가 없는 앱**
 
 ```tsx
 <RequireAuth fallback={<Loading />}>
@@ -102,7 +97,14 @@ function Callback() {
 </RequireAuth>
 ```
 
-### 3. 상태와 동작
+로그인 화면을 따로 두는 앱은 `redirect={false}` 를 넘기고 `fallback` 에 로그인 화면을 둔다.
+
+- `requireAuth` 는 사용자를 보내는 동안 끝나지 않는 Promise 를 돌려준다. 라우터는 그동안 이동 중 화면을 유지한다.
+- 이 페이지의 callback 이 실패했으면(사용자가 취소했거나 백엔드가 거절했으면) 다시 IdP 로 보내지 않고 그 에러를 던진다.
+  다시 보내면 취소한 사용자가 빠져나갈 수 없기 때문이다. 에러 화면에서 `error.code` 로 나누고, 다시 시도하는 버튼에서 `login()` 을 부른다.
+- 다른 origin 의 `returnTo` 는 버린다.
+
+### 4. 상태와 동작
 
 ```tsx
 const { status, error, login, logout, retryLogin, fetch } = useAccount();
@@ -110,10 +112,10 @@ const { status, error, login, logout, retryLogin, fetch } = useAccount();
 
 - `status`: `loading`, `authenticated`, `unauthenticated` 중 하나다.
 - `error.code` 로 실패 이유를 나눈다. 예를 들어 사용자가 IdP 화면에서 취소하면 `user_cancelled` 다.
-- 서비스 백엔드가 로그인을 거절하면 `session_rejected` 다. 거절 응답 body 는 `error.details` 에 있다.
-  house-moving-out 처럼 약관 동의를 받아야 하면 `retryLogin(body)` 로 같은 IdP 토큰과 동의 내용을 다시 보낸다.
+- 서비스 백엔드가 로그인을 거절하면 `session_rejected` 다. 거절 이유는 `error.details` 에 있다.
+  house-moving-out 처럼 약관 동의를 받아야 하면 `retryLogin(body)` 로 동의 내용을 보낸다. IdP 를 다시 거치지 않는다.
 
-### 4. API 요청
+### 5. API 요청
 
 `fetch` 는 access token 을 붙이고, 401 을 받으면 한 번 갱신한 뒤 다시 보낸다. 동시에 여러 요청이 401 을 받아도 갱신은 한 번만 한다.
 
@@ -135,6 +137,6 @@ attachAccount(instance, account);
 
 ## 동작 방식
 
-- access token 은 메모리에만 둔다. 새로 고침하면 `session.refresh()` 로 복구한다.
-- 진행 중인 로그인 정보(PKCE verifier, state)는 state 별 키로 `sessionStorage` 에 둔다. 여러 탭에서 동시에 로그인해도 서로 덮어쓰지 않는다.
+- access token 은 메모리에만 둔다. refresh token 은 서비스 백엔드가 httpOnly 쿠키로 둔다. 새로 고침하면 refresh 로 복구한다.
+- 진행 중인 로그인 정보(PKCE verifier, state, nonce)는 state 별 키로 `sessionStorage` 에 둔다. 여러 탭에서 동시에 로그인해도 서로 덮어쓰지 않는다.
 - 로그아웃해도 IdP 로그인 세션은 남는다. 그래서 로그아웃 직후 첫 로그인에서는 `prompt=login` 으로 로그인 화면을 띄워 계정을 바꿀 수 있게 한다.
