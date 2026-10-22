@@ -4,5 +4,4 @@ import { STORAGE_NAMESPACE } from '@gsainfoteam/account-core';
 export const STORAGE_KEYS = {
   transactionPrefix: `${STORAGE_NAMESPACE}:tx:`,
   loggedOut: `${STORAGE_NAMESPACE}:logged-out`,
-  refreshToken: `${STORAGE_NAMESPACE}:refresh-token`,
 } as const;

@@ -81,12 +81,8 @@ export interface AccountErrorOptions {
  *
  * @example
  * ```ts
- * try {
- *   await client.handleCallback();
- * } catch (error) {
- *   if (AccountError.is(error, 'user_cancelled')) return navigate('/');
- *   throw error;
- * }
+ * const { error } = account.store.getState();
+ * if (AccountError.is(error, 'user_cancelled')) return navigate('/');
  * ```
  */
 export class AccountError extends Error {

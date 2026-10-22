@@ -8,25 +8,19 @@ pnpm add @gsainfoteam/account-web zod
 ```
 
 ```ts
-import { cookieSession, createAccountClient } from '@gsainfoteam/account-web';
+import { createAccountClient } from '@gsainfoteam/account-web';
 
-const account = createAccountClient({
-  issuer: 'production',
-  clientId,
-  redirectUri: '/auth/callback',
-  scopes: ['name', 'email'],
-  exchange: 'browser',
-  session: cookieSession({ baseUrl: apiUrl }),
-});
+// 라우터보다 먼저 만든다. callback 으로 열린 페이지면 여기서 주소를 로그인 전 위치로 바꾼다
+const account = createAccountClient({ issuer: 'production', clientId, api: apiUrl });
 
-await account.ready();
+await account.ready(); // callback 이면 백엔드 로그인을 마치고, 아니면 세션을 복구한다
 account.store.subscribe((state) => render(state));
 
 // 로그인 버튼
 await account.login({ returnTo: location.pathname });
 
-// redirect URI 페이지
-const { returnTo } = await account.handleCallback();
+// 라우터 guard
+await account.requireAuth({ returnTo: nextUrl });
 ```
 
 상태는 zustand 의 vanilla store(`account.store`)다. 다른 프레임워크에서도 구독할 수 있다.

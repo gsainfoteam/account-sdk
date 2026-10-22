@@ -10,6 +10,6 @@ export interface AccountState {
   accessToken: string | null;
   /** 마지막 로그인이나 refresh 가 실패한 이유. */
   error: AccountError | null;
-  /** 서비스 백엔드가 로그인을 거절했고, {@link AccountClient.retryLogin} 으로 같은 IdP 토큰을 다시 보낼 수 있다. */
+  /** 서비스 백엔드가 로그인을 거절했고, {@link AccountClient.retryLogin} 으로 같은 사용자의 로그인을 이어 갈 수 있다. */
   canRetryLogin: boolean;
 }

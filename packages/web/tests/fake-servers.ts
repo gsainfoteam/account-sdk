@@ -34,11 +34,3 @@ export function fakeServers(routes: Record<string, Route>) {
     calls.filter((call) => `${call.url.host}${call.url.pathname}` === hostPath);
   return { fetch, calls, callsTo };
 }
-
-export const tokenResponse = (accessToken = 'idp-token'): Response =>
-  Response.json({
-    access_token: accessToken,
-    token_type: 'Bearer',
-    expires_in: 10800,
-    scope: 'name email',
-  });

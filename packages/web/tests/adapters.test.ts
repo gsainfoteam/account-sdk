@@ -3,7 +3,7 @@ import axios, { type AxiosAdapter } from 'axios';
 import createFetchClient from 'openapi-fetch';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { cookieSession, createAccountClient } from '../src';
+import { createAccountClient } from '../src';
 import { fakeServers } from './fake-servers';
 import { attachAccount } from '../src/adapters/axios';
 import { createAccountMiddleware } from '../src/adapters/openapi-fetch';
@@ -28,10 +28,8 @@ function setup() {
   const client = createAccountClient({
     issuer: 'production',
     clientId: 'ziggle',
-    redirectUri: '/auth/callback',
+    api: `https://${API}`,
     scopes: ['name'],
-    exchange: 'browser',
-    session: cookieSession({ baseUrl: `https://${API}`, fetch: servers.fetch }),
     fetch: servers.fetch,
     redirect: vi.fn(),
   });
