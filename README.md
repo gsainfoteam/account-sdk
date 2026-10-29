@@ -21,10 +21,23 @@ npm 패키지는 GitHub Packages에서 받으므로 설치하려면 인증이 �
 
 ## 로그인 흐름
 
-1. 웹이나 앱이 PKCE, state, nonce를 붙여 사용자를 IdP로 보낸다. scope에는 항상 `openid`가 들어간다.
-2. callback으로 받은 code를 서비스 백엔드에 넘긴다(`POST /auth/login`).
-3. 백엔드가 confidential client로서 code를 교환하고, 응답에 담긴 id_token으로 사용자를 확인한다(`loginWithCode`).
-4. 백엔드가 자체 세션(access token과 refresh token)을 발급한다. 그 뒤로는 IdP 토큰을 쓰지 않는다. NestJS라면 `@gsainfoteam/account-nest`의 세션 모듈이 2~4단계를 맡는다.
+```mermaid
+sequenceDiagram
+  participant C as 웹 / 앱
+  participant I as IdP (account-fe, account-be)
+  participant B as 서비스 백엔드
+
+  C->>I: authorize (PKCE, state, nonce, scope에 openid 포함)
+  I-->>C: callback으로 code 전달
+  C->>B: POST /auth/login (code, code_verifier, nonce)
+  B->>I: code 교환 (client_secret_post)
+  I-->>B: id_token
+  B->>B: id_token으로 사용자 확인 (loginWithCode)
+  B-->>C: 서비스 access token, refresh token
+  Note over C,B: 이후 요청과 갱신에는 서비스 세션만 쓰고, IdP 토큰은 쓰지 않는다
+```
+
+NestJS라면 `@gsainfoteam/account-nest`의 세션 모듈이 서비스 백엔드 쪽을 모두 맡는다.
 
 프론트가 IdP access token을 백엔드에 넘기는 방식은 지원하지 않는다. account-be의 access token에는 대상 client가 없어서,
 누구나 등록할 수 있는 다른 client의 토큰으로도 로그인할 수 있기 때문이다. 백엔드가 직접 교환해 받은 id_token으로는 그럴 수 없다.

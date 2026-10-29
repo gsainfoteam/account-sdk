@@ -84,10 +84,29 @@ me(@CurrentSession() session: Session) {
 - **access token:** HS256 JWT이고 기본 수명은 15분이다. `sub`(resolve가 돌려준 subject), `sid`, `claims`가 들어간다.
 - **refresh token:** refresh 할 때마다 교체한다. 이미 쓰인 토큰이 다시 오면 그 로그인의 토큰을 모두 지운다. 탭 두 개가 동시에 refresh 하는 경우를 위해 10초의 유예 시간을 둔다.
 - **전달 방식:** 웹은 `HttpOnly; Secure; SameSite=Strict` 쿠키로, 앱(`transport: 'body'`)은 body로 주고받는다. Express와 Fastify에서 모두 동작한다.
-- **로그인 전 추가 입력:** `resolve`에서 `throw new SessionRejected(details)` 하면 클라이언트는 403과 `details`, ticket을 받는다. 클라이언트가 `retryLogin(body)`를 호출하면 같은 사용자로 `resolve`가 다시 불린다. ticket은 5분 동안 유효하다.
+- **로그인 전 추가 입력:** 아래 [로그인 전 추가 입력](#로그인-전-추가-입력)을 참고한다.
 - **단일 세션:** `onLogin: 'replace'`이면 로그인할 때 같은 subject의 다른 세션을 모두 끝낸다.
 - **WebSocket 등:** guard 대신 `account.verifySession(accessToken)`을 호출한다.
 - **최근 재인증:** 세션에는 사용자가 IdP에 로그인한 시각(`auth_time`, 초)과 방식(`amr`: 비밀번호 `pwd`, 패스키 `hwk`)이 담긴다. refresh 해도 처음 로그인한 값이 유지된다. 민감한 작업 전에 이 값을 확인하고, 조건에 맞지 않으면 프론트가 `login({ prompt: 'login' })`으로 다시 로그인하게 한다.
+
+### 로그인 전 추가 입력
+
+약관 동의처럼 로그인을 마치기 전에 사용자에게 더 받아야 할 것이 있으면, `resolve`에서 `throw new SessionRejected(details)` 한다.
+ticket은 5분 동안 유효하고, 재시도할 때는 IdP를 다시 거치지 않는다.
+
+```mermaid
+sequenceDiagram
+  participant C as 웹 / 앱
+  participant B as 서비스 백엔드
+
+  C->>B: POST /auth/login (code)
+  B->>B: resolve가 SessionRejected를 던진다
+  B-->>C: 403, details와 ticket
+  C->>C: 약관 동의 같은 추가 입력을 받는다
+  C->>B: retryLogin(body)로 다시 로그인 (ticket과 body)
+  B->>B: 같은 사용자로 resolve를 다시 호출한다
+  B-->>C: 세션 발급
+```
 
 ### store
 
