@@ -9,7 +9,7 @@ import { type Middleware } from 'openapi-fetch';
 import { type AccountClient } from '../client/create-account-client';
 
 /**
- * 401 이면 refresh 한 뒤 한 번 다시 시도한다. 재시도는 middleware 를 거치지 않는 `options.fetch` 로 보내므로
+ * 401이면 refresh 한 뒤 한 번 다시 시도한다. 재시도는 middleware를 거치지 않는 `options.fetch`로 보내므로
  * 무한히 반복되지 않는다.
  */
 export function createAccountMiddleware(client: AccountClient): Middleware {

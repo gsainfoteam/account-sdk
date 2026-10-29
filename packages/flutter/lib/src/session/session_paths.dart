@@ -1,5 +1,5 @@
-/// 기본값은 ziggle-be 와 house-moving-out-be 를 따르고, `packages/core/src/constants/idp.json` 의
-/// `sessionPaths` 와 같다.
+/// 기본값은 ziggle-be와 house-moving-out-be를 따르고, `packages/core/src/constants/idp.json`의
+/// `sessionPaths`와 같다.
 final class SessionPaths {
   const SessionPaths({
     this.login = '/auth/login',

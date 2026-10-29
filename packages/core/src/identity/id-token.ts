@@ -10,8 +10,8 @@ import { type Fetch } from '../http/fetch';
 import { parse } from '../internal/validate';
 
 /**
- * 사용자 claim 은 허용된 scope 의 것만 들어 있다.
- * `auth_time` 과 `amr` 은 그 기록이 생기기 전의 세션에는 없다.
+ * 사용자 claim 중에서는 허용된 scope의 claim만 들어 있다.
+ * `auth_time`과 `amr`은 그 기록이 생기기 전의 세션에는 없다.
  */
 export const IdTokenClaimsSchema = z.looseObject({
   iss: z.string(),
@@ -56,7 +56,7 @@ export interface VerifyIdTokenOptions {
 }
 
 /**
- * 앱이 백엔드로 보낸 것처럼, token endpoint 에서 바로 오지 않은 id_token 을 서명까지 검증한다.
+ * 앱이 백엔드로 보낸 것처럼, token endpoint에서 바로 오지 않은 id_token을 서명까지 검증한다.
  *
  * @throws {@link AccountError} `invalid_id_token`.
  */

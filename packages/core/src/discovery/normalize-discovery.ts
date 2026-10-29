@@ -6,16 +6,19 @@ import { parse } from '../internal/validate';
 
 export interface AccountMetadata {
   issuer: string;
-  /** account-be 는 광고하는 값과 다른 설정으로 id_token 에 서명하므로, IdP 가 가진 호스트를 모두 받아들인다. */
+  /** account-be는 discovery 문서에 실은 값과 다른 설정으로 id_token에 서명하므로, IdP가 가진 호스트를 모두 받아들인다. */
   issuers: readonly string[];
   authorizationEndpoint: string;
   tokenEndpoint: string;
   userinfoEndpoint: string;
   jwksUri: string;
-  /** account-be 는 RFC 7009 의 `POST` 대신 `DELETE /oauth/token` 으로 폐기한다. `revocation_endpoint` 를 광고하면 표준 요청으로 바뀐다. */
+  /**
+   * account-be는 RFC 7009의 `POST` 대신 `DELETE /oauth/token`으로 폐기한다.
+   * `revocation_endpoint`를 discovery 문서에 실으면 표준 요청으로 바뀐다.
+   */
   revocation: { endpoint: string; method: 'POST' | 'DELETE' };
   endSessionEndpoint: string | undefined;
-  /** SDK 가 아직 모르는 scope 도 보이도록 받은 그대로 둔다. */
+  /** SDK가 아직 모르는 scope도 보이도록 받은 그대로 둔다. */
   scopesSupported: readonly string[];
   idTokenSigningAlgs: readonly string[];
 }
@@ -36,12 +39,12 @@ export const DiscoveryDocumentSchema = z.looseObject({
 export type DiscoveryDocument = z.infer<typeof DiscoveryDocumentSchema>;
 
 /**
- * IdP discovery 문서의 결함을 보정하는 곳은 여기 하나뿐이다. IdP 가 고쳐지면 이 규칙들은 아무 일도 하지 않게 된다.
- * - 스테이징의 `BASE_URL` 은 존재하지 않는 호스트 `account.account.gistory.me` 를 가리킨다. 그래서 endpoint 를
- *   문서를 실제로 받아 온 호스트 기준으로 다시 만든다. API endpoint 는 `api.<host>`, 로그인 페이지는 `<host>` 다.
- * - 지원 scope 가 `scopes_supported` 가 아니라 `scope_supported` 로 나간다.
+ * IdP discovery 문서의 결함을 보정하는 곳은 여기 하나뿐이다. IdP의 결함이 고쳐지면 이 규칙들은 아무 일도 하지 않게 된다.
+ * - 스테이징의 `BASE_URL`은 존재하지 않는 호스트 `account.account.gistory.me`를 가리킨다. 그래서 endpoint는
+ *   문서를 실제로 받아 온 호스트를 기준으로 다시 만든다. API endpoint는 `api.<host>`, 로그인 페이지는 `<host>`다.
+ * - 지원 scope가 `scopes_supported`가 아니라 `scope_supported`로 나간다.
  *
- * 같은 이유로 oauth4webapi 의 `processDiscoveryResponse` 는 쓸 수 없다. 문서의 issuer 가 요청한 URL 과 같아야 하기
+ * 같은 이유로 oauth4webapi의 `processDiscoveryResponse`는 쓸 수 없다. 문서의 issuer가 요청한 URL과 같아야 하기
  * 때문이다.
  */
 export function normalizeDiscovery(input: unknown, fetchedFrom: string): AccountMetadata {

@@ -22,7 +22,7 @@ import {
 } from '../internal/oauth4webapi';
 import { parse } from '../internal/validate';
 
-/** 허용된 scope 밖의 claim 은 빠진다. */
+/** 허용된 scope 밖의 claim은 빠진다. */
 export const UserInfoResponseSchema = z.looseObject({
   sub: z.string().check(z.minLength(1)),
   ...z.partial(UserClaimsSchema).shape,
@@ -51,7 +51,7 @@ export const UserInfoSchema = z.pipe(
 
 export type UserInfoResponse = z.input<typeof UserInfoSchema>;
 
-/** `S` 는 {@link hasScopeClaims} 같은 런타임 검사를 거친 값에만 붙는다. */
+/** `S`는 {@link hasScopeClaims} 같은 런타임 검사를 거친 값에만 붙는다. */
 export type UserInfo<S extends ClientScope = never> = Simplify<BaseUserInfo & Camel<ClaimsOf<S>>>;
 
 const CAMEL_CLAIMS = {
@@ -71,7 +71,7 @@ function missingClaims(user: UserInfo, scopes: readonly ClientScope[]): (keyof U
     .filter((claim) => user[CAMEL_CLAIMS[claim]] === undefined);
 }
 
-/** `user` 에 `scopes` 의 claim 이 모두 들어 있는지 알려 준다. `null` 은 들어 있는 것으로 본다. */
+/** `user`에 `scopes`의 claim이 모두 들어 있는지 알려 준다. `null`은 들어 있는 것으로 본다. */
 export function hasScopeClaims<S extends ClientScope>(
   user: UserInfo,
   scopes: readonly S[],
@@ -90,7 +90,7 @@ function requireScopeClaims<S extends ClientScope>(
   });
 }
 
-/** @throws {@link AccountError} `requiredScopes` 의 claim 이 빠져 있으면 `missing_claims`. */
+/** @throws {@link AccountError} `requiredScopes`의 claim이 빠져 있으면 `missing_claims`. */
 export function userInfoFromIdToken<S extends ClientScope = never>(
   claims: IdTokenClaims,
   requiredScopes: readonly S[] = [],
@@ -101,15 +101,15 @@ export function userInfoFromIdToken<S extends ClientScope = never>(
 }
 
 export interface FetchUserInfoOptions<S extends ClientScope = never> extends RequestOptions {
-  /** client credentials 토큰으로 조회할 사용자. */
+  /** client credentials 토큰으로 조회할 사용자다. */
   sub?: string;
   requiredScopes?: readonly S[];
 }
 
 /**
- * @throws {@link AccountError} IdP 가 토큰을 401 이나 403 으로 거절하면 `invalid_token`.
- * `requiredScopes` 의 claim 이 빠져 있으면 `missing_claims`.
- * 다만 지금 account-be 는 모르는 토큰에 500 을 돌려주므로, 고쳐지기 전까지 이 경우는 `server_error` 로 나온다.
+ * @throws {@link AccountError} IdP가 토큰을 401이나 403으로 거절하면 `invalid_token`.
+ * `requiredScopes`의 claim이 빠져 있으면 `missing_claims`.
+ * 다만 지금 account-be는 모르는 토큰에 500을 돌려주므로, 이 동작이 고쳐지기 전까지 이 경우는 `server_error`로 나온다.
  */
 export async function fetchUserInfo<S extends ClientScope = never>(
   metadata: AccountMetadata,

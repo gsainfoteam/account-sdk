@@ -2,8 +2,8 @@ import { type UserClaims } from '@gsainfoteam/account-contract';
 import * as z from 'zod/mini';
 
 /**
- * `UserClaims` 와 묶여 있어서, contract 에 claim 이 추가되거나 바뀌면 여기서 컴파일 에러가 난다.
- * nullable 은 account-be 사용자 모델에서 nullable 인 컬럼과 같다.
+ * 이 스키마는 `UserClaims`와 묶여 있어서, contract에 claim이 추가되거나 바뀌면 여기서 컴파일 에러가 난다.
+ * nullable인 필드는 account-be 사용자 모델에서 nullable인 컬럼과 같다.
  */
 export const UserClaimsSchema = z.object({
   name: z.string(),

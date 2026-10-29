@@ -9,8 +9,8 @@ import { type RequestOptions } from '../http/fetch';
 const ArgumentErrorSchema = z.object({ code: z.string().check(z.startsWith('ERR_')) });
 
 /**
- * oauth4webapi 는 issuer 를 하나만 받는다. IdP 가 issuer 를 여럿 쓰는 동안에는, 주어진 `issuer` 를 먼저
- * {@link AccountMetadata.issuers} 와 대조한 뒤 쓴다. 그래야 라이브러리의 검증도 그대로 돈다.
+ * oauth4webapi는 issuer를 하나만 받는다. IdP가 issuer를 여럿 쓰는 동안에는, 주어진 `issuer`를 먼저
+ * {@link AccountMetadata.issuers}와 대조한 뒤 쓴다. 그래야 라이브러리의 검증도 그대로 실행된다.
  */
 export function authorizationServer(
   metadata: AccountMetadata,
@@ -39,7 +39,7 @@ export function clientAuthentication(clientSecret: string | undefined): oauth.Cl
   return clientSecret ? oauth.ClientSecretPost(clientSecret) : oauth.None();
 }
 
-/** `https:` endpoint 만 허용한다. */
+/** `https:` endpoint만 허용한다. */
 export function httpOptions<Method extends string, Body extends BodyInit | undefined = undefined>({
   fetch,
   signal,
@@ -56,8 +56,8 @@ export function httpOptions<Method extends string, Body extends BodyInit | undef
 }
 
 /**
- * 실패한 `fetch` 는 `TypeError` 인데, oauth4webapi 의 인자 에러도 `TypeError` 다. 인자 에러는 `ERR_` 로 시작하는
- * code 가 있으므로 네트워크 에러로 보고하지 않는다.
+ * 실패한 `fetch`는 `TypeError`를 던지는데, oauth4webapi의 인자 에러도 `TypeError`다. 인자 에러에는 `ERR_`로 시작하는
+ * code가 있으므로 네트워크 에러로 보고하지 않는다.
  */
 export function toAccountError(error: unknown): AccountError {
   if (AccountError.is(error)) return error;

@@ -23,9 +23,9 @@ class AccountMetadata {
   final Uri? endSessionEndpoint;
 }
 
-/// TypeScript core 의 `normalizeDiscovery` 와 같은 규칙을 따른다. account-be 는 endpoint 를 `BASE_URL` 로
-/// 만드는데 스테이징에서는 이 값이 존재하지 않는 호스트를 가리킨다. 그래서 endpoint 를 문서를 받아 온 호스트
-/// 기준으로 다시 만든다. callback 과 id_token 의 issuer 는 별도 설정에서 오므로 IdP 가 가진 호스트를 모두
+/// TypeScript core의 `normalizeDiscovery`와 같은 규칙을 따른다. account-be는 endpoint를 `BASE_URL`로
+/// 만드는데 스테이징에서는 이 값이 존재하지 않는 호스트를 가리킨다. 그래서 문서를 받아 온 호스트를
+/// 기준으로 endpoint를 다시 만든다. callback과 id_token의 issuer는 별도 설정에서 오므로 IdP가 가진 호스트를 모두
 /// 받아들인다.
 AccountMetadata normalizeDiscovery(Object? json, Uri fetchedFrom) {
   if (json case {

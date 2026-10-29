@@ -48,15 +48,15 @@ export interface SessionRuntime {
   cookie: { name: string; attributes: SerializeOptions };
 }
 
-/** {@link SessionGuard} 나 {@link OptionalSessionGuard} 가 확인한 세션이다. 타입은 `SessionOf<typeof account>` 로 붙인다. */
+/** {@link SessionGuard}나 {@link OptionalSessionGuard}가 확인한 세션이다. 타입은 `SessionOf<typeof account>`로 지정한다. */
 export const CurrentSession = createParamDecorator(
   (_: unknown, context: ExecutionContext) =>
     context.switchToHttp().getRequest<SessionRequest>()[SESSION],
 );
 
 /**
- * `Path` 는 refresh endpoint 의 디렉터리라서, 쿠키가 다른 API 요청에는 실리지 않는다.
- * 지울 때도 같은 속성이어야 브라우저가 같은 쿠키로 본다.
+ * `Path`는 refresh endpoint의 디렉터리라서, 쿠키가 다른 API 요청에는 실리지 않는다.
+ * 쿠키를 지울 때도 같은 속성을 써야 브라우저가 같은 쿠키로 인식한다.
  */
 export function cookieSettings(
   cookie: SessionModuleOptions<never, Record<never, never>>['cookie'] = {},
@@ -210,7 +210,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-/** 서비스가 `resolve` 에서 던진 에러는 HTTP 에러로 바꾸지 않고 그대로 둔다. */
+/** 서비스가 `resolve`에서 던진 에러는 HTTP 에러로 바꾸지 않고 그대로 둔다. */
 function toHttpError(error: unknown): never {
   if (!AccountError.is(error)) throw error;
 

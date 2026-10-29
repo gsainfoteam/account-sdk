@@ -21,7 +21,7 @@ export const SessionTokensSchema = z.pipe(
 
 export type SessionTokens = z.output<typeof SessionTokensSchema>;
 
-/** code 는 한 번만 교환할 수 있어서, 재시도는 백엔드가 이미 확인한 사용자를 담은 ticket 으로 한다. */
+/** code는 한 번만 교환할 수 있어서, 재시도할 때는 백엔드가 이미 확인한 사용자를 담은 ticket을 쓴다. */
 export interface SessionRejection {
   error: AccountError;
   ticket: string | undefined;

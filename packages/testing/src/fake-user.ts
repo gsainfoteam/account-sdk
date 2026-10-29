@@ -2,7 +2,7 @@ import { faker, fakerKO } from '@faker-js/faker';
 
 import { type FakeUser } from './fake-idp';
 
-/** 모든 claim 이 채워져 있어 어떤 `requiredScopes` 로도 로그인할 수 있다. */
+/** 모든 claim이 채워져 있어 어떤 `requiredScopes`로도 로그인할 수 있다. */
 export function fakeUser(overrides: Partial<FakeUser> = {}): FakeUser {
   return {
     sub: faker.string.uuid(),

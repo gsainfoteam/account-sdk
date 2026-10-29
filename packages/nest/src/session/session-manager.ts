@@ -21,7 +21,8 @@ export type ResolvedSession<Claims extends Record<string, unknown>> = {
 } & (keyof Claims extends never ? { claims?: Claims } : { claims: Claims });
 
 /**
- * `auth_time`(초)과 `amr` 은 refresh 해도 처음 IdP 로그인의 값 그대로다. IdP 가 기록하기 전의 로그인에는 없다.
+ * `auth_time`(초)과 `amr`은 refresh 해도 처음 IdP에 로그인했을 때의 값을 유지한다. IdP가 이 값을 기록하기 전에
+ * 이루어진 로그인에는 두 값이 없다.
  */
 export type Session<Claims extends Record<string, unknown> = Record<never, never>> = {
   sub: string;
@@ -34,24 +35,24 @@ export interface SessionModuleOptions<
   RequiredScope extends ClientScope,
   Claims extends Record<string, unknown>,
 > {
-  /** 32자 이상. access token 서명과 ticket 암호화 키를 여기서 유도한다. */
+  /** 32자 이상이어야 한다. access token 서명 키와 ticket 암호화 키를 이 값에서 유도한다. */
   secret: string;
   store: SessionStore;
   /**
-   * `body` 는 로그인 요청에서 프로토콜 필드를 뺀 나머지다. 로그인 전에 더 받을 것이 있으면(약관 동의 같은 것)
-   * {@link SessionRejected} 를 던진다.
+   * `body`는 로그인 요청에서 프로토콜 필드를 뺀 나머지다. 로그인 전에 사용자에게 더 받을 것이 있으면(약관 동의 같은
+   * 것) {@link SessionRejected}를 던진다.
    */
   resolve(
     user: UserInfo<RequiredScope>,
     context: { body: Record<string, unknown> },
   ): ResolvedSession<Claims> | Promise<ResolvedSession<Claims>>;
-  /** 초 단위. 기본 15분. */
+  /** 초 단위다. 기본값은 15분이다. */
   accessTtl?: number;
-  /** 초 단위. 교체할 때마다 다시 센다. 기본 30일. */
+  /** 초 단위다. 토큰을 교체할 때마다 다시 센다. 기본값은 30일이다. */
   refreshTtl?: number;
-  /** `replace` 면 로그인할 때 같은 subject 의 다른 세션을 모두 끝낸다. 기본은 `add`. */
+  /** `replace`면 로그인할 때 같은 subject의 다른 세션을 모두 끝낸다. 기본값은 `add`다. */
   onLogin?: 'add' | 'replace';
-  /** 기본은 `refresh_token`, `HttpOnly`, `Secure`, `SameSite=Strict`. */
+  /** 기본값은 `refresh_token`, `HttpOnly`, `Secure`, `SameSite=Strict`이다. */
   cookie?: {
     name?: string;
     sameSite?: 'strict' | 'lax' | 'none';
@@ -61,8 +62,8 @@ export interface SessionModuleOptions<
 }
 
 /**
- * `resolve` 에서 던져 로그인을 거절한다. 클라이언트는 403 과 함께 `details` 와 ticket 을 받고,
- * `retryLogin(body)` 로 추가 입력을 보내면 같은 사용자로 `resolve` 가 다시 불린다.
+ * `resolve`에서 이 에러를 던지면 로그인을 거절한다. 클라이언트는 403과 함께 `details`와 ticket을 받고,
+ * `retryLogin(body)`로 추가 입력을 보내면 같은 사용자로 `resolve`가 다시 불린다.
  */
 export class SessionRejected extends Error {
   override readonly name = 'SessionRejected';
@@ -75,9 +76,9 @@ export class SessionRejected extends Error {
 export interface IssuedTokens {
   accessToken: string;
   refreshToken: string;
-  /** 초 단위. */
+  /** 초 단위다. */
   expiresIn: number;
-  /** 초 단위. 쿠키의 `Max-Age` 다. */
+  /** 초 단위다. 쿠키의 `Max-Age`다. */
   refreshExpiresIn: number;
 }
 
@@ -95,7 +96,7 @@ const DEFAULT_ACCESS_TTL = 15 * 60;
 const DEFAULT_REFRESH_TTL = 30 * 24 * 60 * 60;
 const TICKET_TTL = '5m';
 /**
- * 쓰인 refresh token 을 이 시간 안에 다시 받으면 새 토큰을 준다. 탭 두 개가 같은 쿠키로 동시에 refresh 하는 일이
+ * 이미 쓰인 refresh token을 이 시간 안에 다시 받으면 새 토큰을 준다. 탭 두 개가 같은 쿠키로 동시에 refresh 하는 일이
  * 흔해서, 이를 재사용으로 보면 사용자가 로그아웃된다.
  */
 const REUSE_GRACE_MS = 10_000;
@@ -285,7 +286,7 @@ export function createSessionManager<
     },
   };
 
-  /** @param allowExpired 로그아웃은 만료된 access token 으로도 할 수 있어야 해서, 그때는 만료 검사를 비켜 간다. */
+  /** @param allowExpired 로그아웃은 만료된 access token으로도 할 수 있어야 해서, 그때는 만료 검사를 건너뛴다. */
   async function verifyAccess(
     token: string,
     allowExpired: boolean,
@@ -324,7 +325,7 @@ function hash(token: string): string {
   return createHash('sha256').update(token).digest('base64url');
 }
 
-/** 패키지 사본이 둘이어도 알아보도록 `instanceof` 대신 이름을 본다. */
+/** 패키지 사본이 둘 있어도 이 에러를 알아보도록 `instanceof` 대신 이름을 비교한다. */
 function isSessionRejected(error: unknown): error is SessionRejected {
   return error instanceof Error && error.name === 'SessionRejected';
 }

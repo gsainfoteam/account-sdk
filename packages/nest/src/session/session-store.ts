@@ -1,13 +1,16 @@
 import * as z from 'zod/mini';
 
-/** 세션 claim 은 JSON 으로 저장할 수 있는 객체여야 한다. */
+/** 세션 claim은 JSON으로 저장할 수 있는 객체여야 한다. */
 export const JsonObjectSchema = z.record(z.string(), z.json());
 export type JsonObject = z.output<typeof JsonObjectSchema>;
 
-/** 토큰 자체가 아니라 SHA-256 해시를 둔다. */
+/** 레코드에는 토큰 자체가 아니라 토큰의 SHA-256 해시를 둔다. */
 export interface SessionRecord {
   tokenHash: string;
-  /** 로그인 한 번의 id. refresh 로 토큰이 바뀌어도 같고, 쓰인 토큰이 다시 오면 이 세션의 토큰을 모두 지운다. */
+  /**
+   * 로그인 한 번을 가리키는 id다. refresh로 토큰이 바뀌어도 값이 같고, 이미 쓰인 토큰이 다시 오면 이 세션의 토큰을
+   * 모두 지운다.
+   */
   sessionId: string;
   subject: string;
   claims: JsonObject;
@@ -15,24 +18,24 @@ export interface SessionRecord {
   usedAt: Date | null;
 }
 
-/** `markUsed` 는 원자적이어야 한다. 동시에 온 두 refresh 중 하나만 `true` 를 받아야 재사용을 감지할 수 있다. */
+/** `markUsed`는 원자적이어야 한다. 동시에 온 두 refresh 요청 중 하나만 `true`를 받아야 재사용을 감지할 수 있다. */
 export interface SessionStore {
   save(record: SessionRecord): Promise<void>;
   find(tokenHash: string): Promise<SessionRecord | null>;
-  /** `usedAt` 이 없을 때만 `at` 으로 표시하고, 표시했으면 `true` 를 돌려준다. */
+  /** `usedAt`이 없을 때만 `at`으로 표시하고, 표시했으면 `true`를 돌려준다. */
   markUsed(tokenHash: string, at: Date): Promise<boolean>;
-  /** 교체할 때마다 불러서 세션마다 쓰인 토큰의 행이 쌓이지 않게 한다. */
+  /** 토큰을 교체할 때마다 불러서, 세션마다 이미 쓰인 토큰의 행이 쌓이지 않게 한다. */
   deleteUsed(sessionId: string, before: Date): Promise<void>;
   deleteSession(sessionId: string): Promise<void>;
   deleteSubject(subject: string): Promise<void>;
   /**
-   * 있으면 guard 가 요청마다 불러서, 끝난 세션의 access token 을 만료 전에도 막는다.
-   * 요청마다 저장소를 읽게 되므로 즉시 폐기가 필요할 때만 둔다.
+   * 이 메서드가 있으면 guard가 요청마다 불러서, 끝난 세션의 access token을 만료 전에도 막는다.
+   * 요청마다 저장소를 읽게 되므로 즉시 폐기가 필요할 때만 구현한다.
    */
   isActive?(sessionId: string): Promise<boolean>;
 }
 
-/** 테스트와 단일 프로세스 개발 서버용. 프로세스가 끝나면 세션도 사라진다. */
+/** 테스트와 단일 프로세스 개발 서버에서 쓰는 저장소다. 프로세스가 끝나면 세션도 사라진다. */
 export function memorySessionStore(): SessionStore {
   const records = new Map<string, SessionRecord>();
 
@@ -92,7 +95,7 @@ export interface PrismaSessionDelegate {
   }): Promise<unknown>;
 }
 
-/** Prisma 가 읽어 주는 행. `claims` 는 Json 컬럼이라 모양을 확인하고 쓴다. */
+/** Prisma가 읽어 주는 행이다. `claims`는 Json 컬럼이라 모양을 확인하고 쓴다. */
 export type PrismaSessionRow = Omit<SessionRecord, 'claims'> & { claims: unknown };
 
 export function prismaSessionStore(delegate: PrismaSessionDelegate): SessionStore {
@@ -131,7 +134,7 @@ export function prismaSessionStore(delegate: PrismaSessionDelegate): SessionStor
   };
 }
 
-/** ioredis 의 `Redis` 가 그대로 맞는다. */
+/** ioredis의 `Redis`가 이 인터페이스에 그대로 맞는다. */
 export interface RedisSessionClient {
   set(key: string, value: string, px: 'PX', milliseconds: number): Promise<unknown>;
   set(key: string, value: string, px: 'PX', milliseconds: number, nx: 'NX'): Promise<string | null>;

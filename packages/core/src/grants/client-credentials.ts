@@ -12,7 +12,7 @@ import {
   toAccountError,
 } from '../internal/oauth4webapi';
 
-/** @param scopes client 에 등록한 scope 중에서 골라야 한다. */
+/** @param scopes client에 등록한 scope 중에서 골라야 한다. */
 export async function requestClientCredentials(
   metadata: AccountMetadata,
   client: Required<ClientCredentials>,

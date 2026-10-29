@@ -4,11 +4,11 @@ import { type AccountMetadata } from '../discovery/normalize-discovery';
 
 export interface CreateLogoutUrlParams {
   clientId: string;
-  /** 로그아웃 뒤 돌아올 URL. IdP 에 이 client 의 redirect URI 로 등록한 값이어야 한다. */
+  /** 로그아웃한 뒤 돌아올 URL이다. IdP에 이 client의 redirect URI로 등록한 값이어야 한다. */
   postLogoutRedirectUri?: string;
 }
 
-/** @returns IdP 가 `end_session_endpoint` 를 광고하지 않으면 `null`. */
+/** @returns IdP가 `end_session_endpoint`를 discovery 문서에 싣지 않으면 `null`. */
 export function createLogoutUrl(
   metadata: AccountMetadata,
   params: CreateLogoutUrlParams,

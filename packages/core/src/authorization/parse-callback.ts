@@ -27,10 +27,10 @@ export function isCallbackUrl(url: string | URL): boolean {
 }
 
 /**
- * `state` 를 가장 먼저 확인한다. 위조된 redirect 는 앱에 에러를 전달하는 것조차 못 하게 하기 위해서다.
+ * `state`를 가장 먼저 확인한다. 위조된 redirect가 앱에 에러를 전달하는 것조차 못 하게 하기 위해서다.
  *
  * @throws {@link AccountError} `state_mismatch`, `issuer_mismatch`, `missing_code`,
- * 또는 `user_cancelled` 처럼 account-fe 가 알려 준 거절 사유.
+ * 또는 `user_cancelled`처럼 account-fe가 알려 준 거절 사유.
  */
 export function parseCallback(
   metadata: AccountMetadata,

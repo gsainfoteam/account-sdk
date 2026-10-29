@@ -23,7 +23,7 @@ export const StoredTransactionSchema = z.object({
 
 export type StoredTransaction = z.infer<typeof StoredTransactionSchema>;
 
-/** `state` 를 키로 저장해야 여러 탭에서 동시에 로그인을 시작해도 서로의 verifier 를 덮어쓰지 않는다. */
+/** `state`를 키로 저장해야 여러 탭에서 동시에 로그인을 시작해도 서로의 verifier를 덮어쓰지 않는다. */
 export function saveTransaction(
   storage: Storage,
   transaction: AuthorizationTransaction,

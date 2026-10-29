@@ -21,16 +21,16 @@ import * as z from 'zod/mini';
 import { createClientTokenCache } from './client-token-cache';
 import { AccountServerOptionsSchema, type AccountServerOptions } from './options';
 
-/** 채우지 못하면 프론트가 `login({ prompt: 'login' })` 으로 사용자를 다시 로그인하게 한다. */
+/** 로그인이 이 조건을 채우지 못하면 프론트가 `login({ prompt: 'login' })`으로 사용자를 다시 로그인하게 한다. */
 export interface AuthenticationRequirement {
-  /** 초 단위. */
+  /** 초 단위다. */
   maxAge?: number;
-  /** RFC 8176 값 중 하나 이상. 비밀번호는 `pwd`, 패스키는 `hwk` 다. */
+  /** RFC 8176에 정의된 값을 하나 이상 넣는다. 비밀번호는 `pwd`, 패스키는 `hwk`다. */
   amr?: readonly string[];
 }
 
 export interface LoginWithCodeParams extends ExchangeCodeParams {
-  /** authorization 요청에 보낸 nonce. 다른 로그인의 id_token 을 재사용하지 못하게 한다. */
+  /** authorization 요청에 보낸 nonce다. 이 값은 다른 로그인의 id_token을 재사용하지 못하게 한다. */
   nonce: string;
 }
 
@@ -40,25 +40,29 @@ export interface AccountServer<
 > {
   metadata(): Promise<AccountMetadata>;
   /**
-   * 사용자는 이 client 가 직접 교환한 id_token 으로만 확인한다. account-be 의 access token 에는 대상 client 가 없어서,
-   * 프론트가 보낸 access token 을 믿으면 누구나 등록할 수 있는 다른 client 의 토큰으로도 로그인할 수 있다.
+   * 사용자는 이 client가 직접 교환한 id_token으로만 확인한다. account-be의 access token에는 대상 client가 적혀 있지
+   * 않아서, 프론트가 보낸 access token을 믿으면 누구나 등록할 수 있는 다른 client의 토큰으로도 로그인할 수 있다.
    *
-   * @throws {@link AccountError} code 가 이미 쓰였거나 만료됐으면 `invalid_grant`. id_token 이 없거나 nonce 가 다르면
-   * `invalid_id_token`. 필수 scope 의 claim 이 빠졌으면 `missing_claims`. `requirement` 를 채우지 못하면
+   * @throws {@link AccountError} code가 이미 쓰였거나 만료됐으면 `invalid_grant`. id_token이 없거나 nonce가 다르면
+   * `invalid_id_token`. 필수 scope의 claim이 빠졌으면 `missing_claims`. `requirement`를 채우지 못하면
    * `insufficient_authentication`.
    */
   loginWithCode(
     params: LoginWithCodeParams,
     requirement?: AuthenticationRequirement,
   ): Promise<{ tokens: TokenResponse; user: UserInfo<RequiredScope> }>;
-  /** IdP 가 재시작해 토큰을 잊으면 401 대신 500 을 돌려주므로, 둘 다 토큰을 새로 받아 한 번 다시 시도한다. */
+  /**
+   * IdP가 재시작해 기존 토큰이 무효가 되면 401 대신 500을 돌려주므로, 두 응답 모두 토큰을 새로 받아 한 번 다시
+   * 시도한다.
+   */
   getUserInfoBySub(sub: string): Promise<UserInfo<LookupScope>>;
   verifyIdToken(idToken: string, options?: { nonce?: string }): Promise<IdTokenClaims>;
   revoke(params: RevokeParams): Promise<void>;
   /**
-   * 서버가 뜰 때 한 번 부른다. `requiredScopes` 가 선택 scope 로 등록되어 있으면 거부한 사용자가 로그인하지 못하므로 막는다.
+   * 서버가 시작될 때 한 번 부른다. `requiredScopes`가 선택 scope로 등록되어 있으면 그 scope를 거부한 사용자가
+   * 로그인하지 못하므로, 이런 등록을 막는다.
    *
-   * @throws {@link AccountError} 맞지 않으면 `invalid_client`, 틀린 점은 `description` 에 있다.
+   * @throws {@link AccountError} 등록이 맞지 않으면 `invalid_client`로 실패하고, 틀린 점은 `description`에 있다.
    */
   verifyRegistration(): Promise<void>;
 }

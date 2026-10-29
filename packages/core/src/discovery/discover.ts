@@ -13,8 +13,8 @@ export interface DiscoverOptions {
 const cache = new Map<string, Promise<AccountMetadata>>();
 
 /**
- * 결과는 프로세스가 살아 있는 동안 issuer 별로 캐시한다.
- * 실패는 캐시하지 않는다. 일시적인 네트워크 오류가 페이지를 새로고침할 때까지 남아 있지 않게 하기 위해서다.
+ * 결과는 프로세스가 실행되는 동안 issuer별로 캐시한다.
+ * 실패한 결과는 캐시하지 않는다. 일시적인 네트워크 오류가 페이지를 새로고침할 때까지 남아 있지 않게 하기 위해서다.
  *
  * @throws {@link AccountError} `network_error` 또는 `discovery_failed`.
  */

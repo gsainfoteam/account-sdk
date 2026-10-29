@@ -5,8 +5,8 @@ import * as z from 'zod/mini';
 export const DenialReasonSchema = z.enum(DENIAL_REASONS);
 
 /**
- * 예전 account-fe 는 `login_required` 와 `consent_required` 를 `access_denied` 의 `error_description` 으로 보냈다.
- * 그 경우는 {@link fromOAuthError} 가 같은 코드로 바꾼다.
+ * 예전 account-fe는 `login_required`와 `consent_required`를 `access_denied`의 `error_description`으로 보냈다.
+ * 그 경우는 {@link fromOAuthError}가 같은 코드로 바꾼다.
  */
 export const OAuthErrorCodeSchema = z.enum([
   'access_denied',
@@ -58,12 +58,12 @@ const AccountErrorShapeSchema = z.object({
 export interface AccountErrorOptions {
   description?: string;
   status?: number;
-  /** 서비스 백엔드가 로그인을 거절하며 보낸 body. house-moving-out-be 의 `403` 은 `requiredConsents` 를 담는다. */
+  /** 서비스 백엔드가 로그인을 거절하며 보낸 body다. house-moving-out-be의 `403`은 `requiredConsents`를 담는다. */
   details?: unknown;
   cause?: unknown;
 }
 
-/** 메시지가 아니라 {@link AccountError.code} 로 분기한다. */
+/** 메시지가 아니라 {@link AccountError.code}로 분기한다. */
 export class AccountError extends Error {
   override readonly name = 'AccountError';
   readonly code: AccountErrorCode;
@@ -81,7 +81,7 @@ export class AccountError extends Error {
     this.details = options.details;
   }
 
-  /** `instanceof` 대신 모양을 확인한다. 번들러가 이 모듈을 중복으로 넣으면 다른 사본이 던진 에러에는 `instanceof` 가 실패한다. */
+  /** `instanceof` 대신 모양을 확인한다. 번들러가 이 모듈을 중복으로 넣으면 다른 사본이 던진 에러에는 `instanceof`가 실패한다. */
   static is(value: unknown, code?: AccountErrorCode): value is AccountError {
     if (!isError(value)) return false;
 

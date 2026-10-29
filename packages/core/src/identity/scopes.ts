@@ -22,7 +22,7 @@ export function isScope(value: unknown): value is Scope {
   return ScopeSchema.safeParse(value).success;
 }
 
-/** SDK 가 모르는 값은 실패하지 않고 버린다. */
+/** SDK가 모르는 값은 실패하지 않고 버린다. */
 export function parseScopes(value: string | readonly string[] | undefined | null): Scope[] {
   if (!value) return [];
 

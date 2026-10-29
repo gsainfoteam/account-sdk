@@ -15,7 +15,7 @@ final class SessionRejection implements Exception {
   final String ticket;
 }
 
-/// 앱에는 쿠키가 없으므로 `transport: 'body'` 로 refresh token 을 body 로 주고받는다.
+/// 앱에는 쿠키가 없으므로 `transport: 'body'`를 써서 refresh token을 body로 주고받는다.
 class ApiSession {
   ApiSession(this._http, this.api, this.paths);
 

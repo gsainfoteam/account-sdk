@@ -4,7 +4,7 @@ import '../client/account_client.dart';
 import '../constants.dart';
 import 'bearer.dart';
 
-/// 요청 옵션에 [extra] 를 넣으면 access token 없이 보낸다.
+/// 요청 옵션에 [extra]를 넣으면 그 요청은 access token 없이 보낸다.
 abstract final class SkipAccountAuth {
   static const key = '${AccountConstants.storageNamespace}:skip';
   static const extra = {key: true};
@@ -12,7 +12,7 @@ abstract final class SkipAccountAuth {
 
 const _retriedKey = '${AccountConstants.storageNamespace}:retried';
 
-/// 모든 요청에 access token 을 보내고, 401 이면 refresh 한 뒤 한 번 다시 시도한다.
+/// 모든 요청에 access token을 보내고, 401이면 refresh 한 뒤 한 번 다시 시도한다.
 class AccountInterceptor extends QueuedInterceptor {
   AccountInterceptor(this.client, this.dio);
 

@@ -14,12 +14,12 @@ import { fakeUser } from './fake-user';
 export type FakeUser = { sub: string } & Partial<UserClaims>;
 
 /**
- * 하나도 주지 않으면 어떤 client id 와 secret 이든 받고, 모든 scope 를 필수로 등록한 `client_secret_post` client
- * 로 본다.
+ * `clients`를 하나도 주지 않으면 어떤 client id와 secret이든 받고, 그 client를 모든 scope를 필수로 등록한
+ * `client_secret_post` client로 본다.
  */
 export interface FakeClient {
   clientId: string;
-  /** 주면 token endpoint 가 이 secret 을 요구한다. */
+  /** 값을 주면 token endpoint가 이 secret을 요구한다. */
   clientSecret?: string;
   scopes?: ClientScope[];
   optionalScopes?: ClientScope[];
@@ -27,7 +27,10 @@ export interface FakeClient {
 }
 
 export interface FakeIdpOptions {
-  /** client credentials 토큰으로 조회할 수 있는 사용자. {@link FakeIdp.authorize} 한 사용자는 저절로 들어간다. */
+  /**
+   * client credentials 토큰으로 조회할 수 있는 사용자 목록이다. {@link FakeIdp.authorize} 한 사용자는 이 목록에
+   * 저절로 들어간다.
+   */
   users?: FakeUser[];
   clients?: FakeClient[];
 }
@@ -35,7 +38,7 @@ export interface FakeIdpOptions {
 export interface FakeAuthorizeOptions {
   clientId: string;
   user?: FakeUser;
-  /** 기본은 client 에 등록한 scope 전부, 등록하지 않았으면 모든 scope 다. */
+  /** 기본값은 client에 등록한 scope 전부이고, client를 등록하지 않았으면 모든 scope다. */
   scopes?: readonly ClientScope[];
   redirectUri?: string;
   /** 초 단위다. */
@@ -52,9 +55,9 @@ export interface FakeLoginBody {
 }
 
 export interface FakeIdp {
-  /** issuer 는 `'production'` 이든 무엇이든 된다. */
+  /** issuer는 `'production'`이든 무엇이든 된다. */
   fetch: typeof globalThis.fetch;
-  /** code 는 한 번만 교환할 수 있고, PKCE 와 nonce 도 진짜 IdP 처럼 확인한다. */
+  /** code는 한 번만 교환할 수 있고, PKCE와 nonce도 진짜 IdP처럼 확인한다. */
   authorize(options: FakeAuthorizeOptions): Promise<{ body: FakeLoginBody; user: FakeUser }>;
 }
 

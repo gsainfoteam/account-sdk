@@ -24,13 +24,13 @@ const ClientRegistrationSchema = z.pipe(
   })),
 );
 
-/** SDK 가 모르는 scope 는 버린다. */
+/** SDK가 모르는 scope는 버린다. */
 export type ClientRegistration = z.output<typeof ClientRegistrationSchema>;
 
 /**
- * account-fe 동의 화면에 보이는 값이라 로그인 없이 부를 수 있다.
+ * client 등록 정보는 account-fe 동의 화면에 보이는 값이라, 이 함수는 로그인 없이 부를 수 있다.
  *
- * @throws {@link AccountError} 모르는 client 면 `invalid_client`. 요청이 실패하면 `network_error`,
+ * @throws {@link AccountError} 모르는 client면 `invalid_client`. 요청이 실패하면 `network_error`,
  * 응답이 이상하면 `server_error`.
  */
 export async function fetchClientRegistration(

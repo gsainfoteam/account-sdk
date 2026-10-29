@@ -28,22 +28,22 @@ import { STORAGE_KEYS } from '../storage/keys';
 import { saveTransaction, takeTransaction, type StoredTransaction } from '../storage/transactions';
 
 export interface LoginOptions {
-  /** 다른 origin 이면 버린다. */
+  /** 다른 origin을 가리키면 버린다. */
   returnTo?: string;
   prompt?: Prompt;
 }
 
 export interface LogoutOptions {
-  /** IdP 로그인 세션도 끝낸다. 공용 PC 처럼 다음 사람이 같은 IdP 계정으로 자동 로그인되면 안 될 때 쓴다. */
+  /** IdP 로그인 세션도 끝낸다. 공용 PC처럼 다음 사람이 같은 IdP 계정으로 자동 로그인되면 안 될 때 쓴다. */
   idp?: boolean;
-  /** `idp: true` 일 때만 쓴다. 같은 origin 이어야 한다. */
+  /** `idp: true`일 때만 쓴다. 같은 origin이어야 한다. */
   returnTo?: string;
 }
 
 export interface RequireAuthOptions {
   /**
-   * 생략하면 현재 페이지인데, 라우터 guard 에서는 아직 이전 페이지다. 이동하려는 대상을 넘긴다. TanStack Router 는
-   * `location.href`, React Router 는 `request.url` 이다.
+   * 생략하면 현재 페이지를 쓰는데, 라우터 guard에서는 현재 페이지가 아직 이전 페이지다. 이동하려는 대상을 넘긴다.
+   * TanStack Router에서는 `location.href`, React Router에서는 `request.url`이 그 대상이다.
    */
   returnTo?: string;
 }
@@ -53,50 +53,50 @@ export interface AccountClient {
 
   getAccessToken(): string | null;
 
-  /** 여러 번 불러도 한 번만 한다. 실패는 던지지 않고 `store` 의 `error` 에 남긴다. */
+  /** 여러 번 불러도 초기화는 한 번만 한다. 실패해도 에러를 던지지 않고 `store`의 `error`에 남긴다. */
   ready(): Promise<void>;
 
-  /** callback 을 처리하거나 자동 로그인을 시도하는 중이다. 곧 떠날 화면이 깜빡이지 않게 가릴 때 쓴다. */
+  /** callback을 처리하거나 자동 로그인을 시도하는 중인지 알려 준다. 곧 떠날 화면이 깜빡이지 않게 가릴 때 쓴다. */
   isHandlingRedirect(): boolean;
 
   /**
-   * 세션이 없으면 IdP 로 보내고 끝나지 않는 Promise 를 돌려줘서, 라우터가 이동 중 화면을 유지한다.
+   * 세션이 없으면 사용자를 IdP로 보내고 끝나지 않는 Promise를 돌려줘서, 라우터가 이동 중 화면을 유지하게 한다.
    *
-   * @throws {@link AccountError} 이 페이지의 callback 이 실패했으면 그 에러. 다시 IdP 로 보내면 취소한 사용자가
-   * 빠져나갈 수 없게 되므로, 라우터의 에러 화면에서 `error.code` 로 나눈다.
+   * @throws {@link AccountError} 이 페이지의 callback이 실패했으면 그 에러를 던진다. 다시 IdP로 보내면 취소한 사용자가
+   * 빠져나갈 수 없게 되므로, 라우터의 에러 화면에서 `error.code`로 경우를 나눈다.
    */
   requireAuth(options?: RequireAuthOptions): Promise<void>;
 
   /**
-   * `logout({ idp: false })` 는 IdP 로그인 세션을 남기므로, 로그아웃 뒤 첫 로그인에는 `prompt=login` 을 붙여 계정을
-   * 바꿀 수 있게 한다.
+   * `logout({ idp: false })`는 IdP 로그인 세션을 남기므로, 로그아웃 뒤 첫 로그인에는 `prompt=login`을 붙여
+   * 사용자가 계정을 바꿀 수 있게 한다.
    */
   login(options?: LoginOptions): Promise<void>;
 
   /**
-   * `session_rejected` 로 거절된 로그인을 body 를 더해 다시 보낸다. 거절 응답의 ticket 을 쓰므로 IdP 를 다시
+   * `session_rejected`로 거절된 로그인을 body를 더해 다시 보낸다. 거절 응답의 ticket을 쓰므로 IdP를 다시
    * 거치지 않는다.
    */
   retryLogin(body: unknown): Promise<void>;
 
   /**
-   * 어차피 로컬에서는 로그아웃되므로 서버 쪽 실패는 조용히 넘긴다. IdP 가 지원하지 않으면 `idp: true` 여도 서비스
-   * 세션만 끝낸다.
+   * 어차피 로컬에서는 로그아웃되므로 서버 쪽 실패는 조용히 넘긴다. IdP가 로그아웃을 지원하지 않으면 `idp: true`여도
+   * 서비스 세션만 끝낸다.
    */
   logout(options?: LogoutOptions): Promise<void>;
 
-  /** `staleToken` 을 다른 호출이 이미 교체했다면 다시 refresh 하지 않고 그 새 토큰을 돌려준다. */
+  /** `staleToken`을 다른 호출이 이미 교체했다면 다시 refresh 하지 않고 그 새 토큰을 돌려준다. */
   refresh(staleToken?: string | null): Promise<string | null>;
 
-  /** access token 을 보내고, 401 이면 refresh 한 뒤 한 번 다시 시도하는 `fetch`. */
+  /** access token을 보내고, 401이면 refresh 한 뒤 한 번 다시 시도하는 `fetch`다. */
   fetch: Fetch;
 }
 
 /**
- * 라우터보다 먼저 만들어야 한다. 페이지가 callback 으로 열렸으면 만드는 그 자리에서 주소를 로그인 전 위치로 바꾸는데,
+ * client를 라우터보다 먼저 만들어야 한다. 페이지가 callback으로 열렸으면 만드는 즉시 주소를 로그인 전 위치로 바꾸는데,
  * 라우터는 만들어질 때 주소를 읽기 때문이다.
  *
- * @throws {@link AccountError} 옵션이 없거나 비어 있으면 `invalid_request`.
+ * @throws {@link AccountError} 옵션이 없거나 비어 있으면 `invalid_request`를 던진다.
  */
 export function createAccountClient(input: AccountClientOptions): AccountClient {
   const parsed = AccountClientOptionsSchema.safeParse(input);
@@ -351,7 +351,7 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   return client;
 }
 
-/** 사용자가 직접 로그인하면 되는 자동 로그인 실패. 에러로 알리지 않는다. */
+/** 사용자가 직접 로그인하면 되는 자동 로그인 실패 코드다. 에러로 알리지 않는다. */
 const SILENT_LOGIN_FAILURES = new Set<string>([
   'login_required',
   'consent_required',
@@ -364,8 +364,8 @@ interface Callback {
 }
 
 /**
- * 동기로 해야 한다. 라우터가 만들어지기 전에 주소가 바뀌어 있어야 callback 주소를 라우팅하지 않는다. 같은 이유로
- * 돌아갈 위치가 든 트랜잭션도 미리 꺼낸다.
+ * 동기로 처리해야 한다. 라우터가 만들어지기 전에 주소가 바뀌어 있어야 라우터가 callback 주소를 라우팅하지 않는다.
+ * 같은 이유로 돌아갈 위치가 든 트랜잭션도 미리 꺼낸다.
  */
 function takeCallback(redirectUri: string, transactions: Storage): Callback | null {
   const url = window.location.href;
@@ -387,7 +387,7 @@ function takeCallback(redirectUri: string, transactions: Storage): Callback | nu
   return { url, transaction };
 }
 
-/** 로그인 뒤 다른 사이트로 보내지 않기 위해 다른 origin 은 버린다. */
+/** 로그인 뒤 사용자를 다른 사이트로 보내지 않도록 다른 origin은 버린다. */
 function sameOriginPath(value: string): string | undefined {
   const [, url] = attempt(() => new URL(value, window.location.origin));
   if (url?.origin !== window.location.origin) return undefined;

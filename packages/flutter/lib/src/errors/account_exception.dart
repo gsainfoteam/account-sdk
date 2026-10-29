@@ -75,7 +75,7 @@ final class AccountOAuthException extends AccountException {
   String toString() => 'AccountOAuthException($error, $description)';
 }
 
-/// 로그인이 거절됐다면 [AccountClient.retryLogin] 으로 추가 입력(약관 동의 같은 것)을 보내 이어 갈 수 있다.
+/// 로그인이 거절됐다면 [AccountClient.retryLogin]으로 추가 입력(약관 동의 같은 것)을 보내 로그인을 이어 갈 수 있다.
 final class AccountSessionRejectedException extends AccountException {
   const AccountSessionRejectedException(this.statusCode, this.body);
 

@@ -6,7 +6,7 @@ import { useAccountClient } from '../context/account-context';
 
 export interface RequireAuthProps {
   children?: ReactNode;
-  /** 로그인이 실패했을 때도 보여 준다. 실패 이유는 `useAccount().error` 다. */
+  /** 로그인이 실패했을 때도 보여 준다. 실패 이유는 `useAccount().error`에서 볼 수 있다. */
   fallback?: ReactNode;
   redirect?: boolean;
 }
