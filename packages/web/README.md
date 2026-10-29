@@ -1,7 +1,7 @@
 # @gsainfoteam/account-web
 
 인포팀 계정(IdP) 브라우저 클라이언트. 특정 프레임워크에 의존하지 않는다. React 앱이라면 [`@gsainfoteam/account-react`](../react)를 쓴다.
-설치 방법(GitHub Packages 인증)도 그 README에 있다.
+GitHub Packages에서 배포하므로 먼저 [설치 인증](../../README.md#설치-인증)을 설정한다.
 
 ```bash
 pnpm add @gsainfoteam/account-web zod

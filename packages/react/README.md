@@ -4,25 +4,14 @@
 
 ## 설치
 
-GitHub Packages에서 배포한다. 프로젝트 루트에 `.npmrc`를 둔다.
-
-```ini
-@gsainfoteam:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
-```
-
-`NODE_AUTH_TOKEN`에는 `read:packages` 권한이 있는 토큰을 넣는다.
+GitHub Packages에서 배포한다. 먼저 [설치 인증](../../README.md#설치-인증)을 설정한다.
 
 ```bash
-gh auth refresh -s read:packages
-export NODE_AUTH_TOKEN=$(gh auth token)
 pnpm add @gsainfoteam/account-react zod
 ```
 
 `zod`(4.x)는 peerDependency다. SDK가 export 하는 스키마를 앱과 같은 인스턴스로 쓰기 위해서다.
 `openapi-fetch`나 `axios` 어댑터를 쓸 때만 그 라이브러리를 설치한다.
-
-GitHub Actions에서는 `secrets.GITHUB_TOKEN`을 쓰고 `permissions`에 `packages: read`를 넣는다.
 
 ## 사용
 

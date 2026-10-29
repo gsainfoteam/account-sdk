@@ -16,7 +16,23 @@
 | [`@gsainfoteam/account-contract`](packages/contract) | IdP와 SDK가 함께 쓰는 값(scope, 거절 사유). account-be도 쓴다 | GitHub Packages |
 | [`gsainfoteam_account`](packages/flutter)            | Flutter 앱                                                    | pub.dev         |
 
-npm 패키지는 GitHub Packages에서 받으므로 설치하려면 인증이 필요하다. 설정 방법은 각 패키지 README에 있다.
+### 설치 인증
+
+npm 패키지는 GitHub Packages에서 받는다. GitHub Packages는 public 패키지도 인증 없이는 설치할 수 없으므로, 서비스 프로젝트 루트에 `.npmrc`를 둔다.
+
+```ini
+@gsainfoteam:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
+```
+
+`NODE_AUTH_TOKEN`에는 `read:packages` 권한이 있는 토큰을 넣는다.
+
+```bash
+gh auth refresh -s read:packages
+export NODE_AUTH_TOKEN=$(gh auth token)
+```
+
+GitHub Actions에서는 `secrets.GITHUB_TOKEN`을 쓰고 `permissions`에 `packages: read`를 넣는다.
 
 ## 로그인 흐름
 

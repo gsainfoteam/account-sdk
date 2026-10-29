@@ -5,7 +5,7 @@ ziggle-be, house-moving-out-be, pot-g-be가 각자 갖고 있던 `infoteam-idp` 
 
 ## 설치
 
-GitHub Packages에서 배포한다. 인증 설정은 [`@gsainfoteam/account-react` README](../react/README.md#설치)와 같다.
+GitHub Packages에서 배포한다. 먼저 [설치 인증](../../README.md#설치-인증)을 설정한다.
 
 ```bash
 pnpm add @gsainfoteam/account-nest zod
