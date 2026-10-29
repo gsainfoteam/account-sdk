@@ -9,7 +9,6 @@
       "@gsainfoteam/account-react",
       "@gsainfoteam/account-server",
       "@gsainfoteam/account-nest",
-      "@gsainfoteam/account-testing",
       "gsainfoteam_account"
     ]
   ],

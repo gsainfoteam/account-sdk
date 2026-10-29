@@ -1,12 +1,12 @@
 import 'reflect-metadata';
 
 import { clearDiscoveryCache } from '@gsainfoteam/account-core';
-import { createFakeIdp } from '@gsainfoteam/account-testing';
 import { Inject, Injectable, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { afterEach, describe, expect, expectTypeOf, it } from 'vitest';
 
 import { AccountModule, AccountService, defineAccount } from '../src';
+import { createFakeIdp } from './support/fake-idp';
 
 const idp = await createFakeIdp();
 const options = {

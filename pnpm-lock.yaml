@@ -340,9 +340,12 @@ importers:
         specifier: ^6.2.12
         version: 6.2.12
     devDependencies:
-      '@gsainfoteam/account-testing':
+      '@faker-js/faker':
+        specifier: ^9.9.0
+        version: 9.9.0
+      '@gsainfoteam/account-contract':
         specifier: workspace:^
-        version: link:../testing
+        version: link:../contract
       '@nestjs/common':
         specifier: ^11.2.7
         version: 11.2.7(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -370,6 +373,9 @@ importers:
       ioredis-mock:
         specifier: ^8.13.1
         version: 8.13.1(@types/ioredis-mock@8.2.8(ioredis@5.11.1))(ioredis@5.11.1)
+      oauth4webapi:
+        specifier: ^3.8.8
+        version: 3.8.8
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -444,43 +450,6 @@ importers:
         specifier: ^1.52.0
         version: 1.52.0
     devDependencies:
-      '@types/node':
-        specifier: ^24.0.0
-        version: 24.19.1
-      tsdown:
-        specifier: ^0.23.0
-        version: 0.23.0(publint@0.3.25)(typescript@6.0.3)
-      typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
-      vitest:
-        specifier: ^5.0.3
-        version: 5.0.3(@types/node@24.19.1)(happy-dom@20.14.5)(jsdom@30.1.2)(vite@8.3.4(@types/node@24.19.1)(yaml@2.9.1))
-      zod:
-        specifier: ^4.6.5
-        version: 4.6.5
-
-  packages/testing:
-    dependencies:
-      '@faker-js/faker':
-        specifier: ^9.9.0
-        version: 9.9.0
-      '@gsainfoteam/account-contract':
-        specifier: workspace:^
-        version: link:../contract
-      jose:
-        specifier: ^6.2.12
-        version: 6.2.12
-      oauth4webapi:
-        specifier: ^3.8.8
-        version: 3.8.8
-    devDependencies:
-      '@gsainfoteam/account-core':
-        specifier: workspace:^
-        version: link:../core
-      '@gsainfoteam/account-server':
-        specifier: workspace:^
-        version: link:../server
       '@types/node':
         specifier: ^24.0.0
         version: 24.19.1

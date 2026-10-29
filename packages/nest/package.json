@@ -27,7 +27,8 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@gsainfoteam/account-testing": "workspace:^",
+    "@faker-js/faker": "^9.9.0",
+    "@gsainfoteam/account-contract": "workspace:^",
     "@nestjs/common": "^11.2.7",
     "@nestjs/core": "^11.2.7",
     "@nestjs/platform-express": "^11.2.7",
@@ -37,6 +38,7 @@
     "@types/node": "^24.0.0",
     "ioredis": "^5.11.1",
     "ioredis-mock": "^8.13.1",
+    "oauth4webapi": "^3.8.8",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "tsdown": "^0.23.0",
