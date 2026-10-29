@@ -24,8 +24,10 @@ export {
 export {
   memorySessionStore,
   prismaSessionStore,
+  redisSessionStore,
   type PrismaSessionDelegate,
   type PrismaSessionRow,
+  type RedisSessionClient,
   type SessionRecord,
   type SessionStore,
 } from './session/session-store';

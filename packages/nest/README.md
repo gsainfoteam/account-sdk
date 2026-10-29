@@ -117,6 +117,11 @@ model AccountSession {
 ```
 
 만료된 행은 지우지 않으므로 주기적으로 `prisma.accountSession.deleteMany({ where: { expiresAt: { lt: new Date() } } })` 를 돌린다.
+
+Redis(ioredis)를 쓰면 `redisSessionStore(redis)` 를 넘긴다. 키는 토큰과 함께 만료되므로 따로 지울 것이 없다.
+`isActive` 도 구현되어 있어서 guard 가 요청마다 `EXISTS` 를 한 번 부르고, 로그아웃한 세션의 access token 을 바로 막는다.
+키 앞에 붙는 값은 `{ prefix }` 로 바꾼다. 기본값은 `account-session:` 이다.
+
 다른 저장소라면 `SessionStore`(`save`, `find`, `markUsed`, `deleteUsed`, `deleteSession`, `deleteSubject`)를 구현한다. `markUsed` 는 원자적이어야 한다.
 `isActive(sessionId)` 까지 구현하면 guard 가 요청마다 확인해서, 로그아웃한 세션의 access token 을 만료 전에도 막는다. 테스트에는 `memorySessionStore()` 를 쓴다.
 

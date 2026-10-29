@@ -146,3 +146,122 @@ export function prismaSessionStore(delegate: PrismaSessionDelegate): SessionStor
     },
   };
 }
+
+/** {@link redisSessionStore} 가 쓰는 명령. ioredis 의 `Redis` 가 그대로 맞는다. */
+export interface RedisSessionClient {
+  set(key: string, value: string, px: 'PX', milliseconds: number): Promise<unknown>;
+  set(key: string, value: string, px: 'PX', milliseconds: number, nx: 'NX'): Promise<string | null>;
+  mget(...keys: string[]): Promise<(string | null)[]>;
+  pttl(key: string): Promise<number>;
+  sadd(key: string, ...members: string[]): Promise<number>;
+  srem(key: string, ...members: string[]): Promise<number>;
+  smembers(key: string): Promise<string[]>;
+  pexpireat(key: string, unixTimeMilliseconds: number): Promise<number>;
+  exists(...keys: string[]): Promise<number>;
+  del(...keys: string[]): Promise<number>;
+}
+
+const RedisRecordSchema = z.object({
+  sessionId: z.string(),
+  subject: z.string(),
+  claims: JsonObjectSchema,
+  expiresAt: z.number(),
+});
+
+/**
+ * Redis 에 refresh token 을 둔다. 키는 토큰이 만료될 때 Redis 가 지운다.
+ * 세션마다 토큰 해시 집합이 있어서, `isActive` 가 키 하나로 끝난 세션을 알아본다.
+ *
+ * @example
+ * ```ts
+ * session: { store: redisSessionStore(redis), ... }
+ * ```
+ */
+export function redisSessionStore(
+  redis: RedisSessionClient,
+  { prefix = 'account-session:' }: { prefix?: string } = {},
+): SessionStore {
+  const tokenKey = (hash: string) => `${prefix}token:${hash}`;
+  const usedKey = (hash: string) => `${prefix}used:${hash}`;
+  const sessionKey = (sessionId: string) => `${prefix}session:${sessionId}`;
+  const subjectKey = (subject: string) => `${prefix}subject:${subject}`;
+
+  const deleteTokens = async (sessionId: string, hashes: string[]): Promise<void> => {
+    if (hashes.length === 0) return;
+
+    await redis.del(...hashes.flatMap((hash) => [tokenKey(hash), usedKey(hash)]));
+    await redis.srem(sessionKey(sessionId), ...hashes);
+  };
+
+  const deleteSession = async (sessionId: string): Promise<void> => {
+    const hashes = await redis.smembers(sessionKey(sessionId));
+    await redis.del(
+      sessionKey(sessionId),
+      ...hashes.flatMap((hash) => [tokenKey(hash), usedKey(hash)]),
+    );
+  };
+
+  return {
+    async save({ tokenHash, sessionId, subject, claims, expiresAt, usedAt }) {
+      const expiry = expiresAt.getTime();
+      const ttl = Math.max(1, expiry - Date.now());
+      const value = JSON.stringify({ sessionId, subject, claims, expiresAt: expiry });
+
+      await redis.set(tokenKey(tokenHash), value, 'PX', ttl);
+      if (usedAt) await redis.set(usedKey(tokenHash), String(usedAt.getTime()), 'PX', ttl);
+
+      await redis.sadd(sessionKey(sessionId), tokenHash);
+      await redis.sadd(subjectKey(subject), sessionId);
+      await redis.pexpireat(sessionKey(sessionId), expiry);
+      await redis.pexpireat(subjectKey(subject), expiry);
+    },
+
+    async find(tokenHash) {
+      const [value, used] = await redis.mget(tokenKey(tokenHash), usedKey(tokenHash));
+      if (!value) return null;
+
+      const record = RedisRecordSchema.safeParse(JSON.parse(value));
+      if (!record.success) return null;
+
+      return {
+        ...record.data,
+        tokenHash,
+        expiresAt: new Date(record.data.expiresAt),
+        usedAt: used ? new Date(Number(used)) : null,
+      };
+    },
+
+    async markUsed(tokenHash, at) {
+      const ttl = await redis.pttl(tokenKey(tokenHash));
+      if (ttl <= 0) return false;
+
+      return (await redis.set(usedKey(tokenHash), String(at.getTime()), 'PX', ttl, 'NX')) === 'OK';
+    },
+
+    async deleteUsed(sessionId, before) {
+      const hashes = await redis.smembers(sessionKey(sessionId));
+      if (hashes.length === 0) return;
+
+      const used = await redis.mget(...hashes.map(usedKey));
+      await deleteTokens(
+        sessionId,
+        hashes.filter((_, i) => {
+          const at = used[i];
+          return !!at && Number(at) < before.getTime();
+        }),
+      );
+    },
+
+    deleteSession,
+
+    async deleteSubject(subject) {
+      const sessionIds = await redis.smembers(subjectKey(subject));
+      await Promise.all(sessionIds.map(deleteSession));
+      await redis.del(subjectKey(subject));
+    },
+
+    async isActive(sessionId) {
+      return (await redis.exists(sessionKey(sessionId))) > 0;
+    },
+  };
+}
