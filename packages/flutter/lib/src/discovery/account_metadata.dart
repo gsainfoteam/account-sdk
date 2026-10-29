@@ -1,7 +1,6 @@
 import '../constants.dart';
 import '../errors/account_exception.dart';
 
-/// discovery 문서에서 정규화한 IdP endpoint.
 class AccountMetadata {
   const AccountMetadata({
     required this.issuer,
@@ -15,25 +14,19 @@ class AccountMetadata {
 
   final String issuer;
 
-  /// callback 의 `iss` 파라미터로 받아들이는 issuer 값.
   final List<String> issuers;
   final Uri authorizationEndpoint;
   final Uri tokenEndpoint;
   final Uri userinfoEndpoint;
   final List<String> scopesSupported;
 
-  /// IdP 세션까지 끝내는 account-fe 의 로그아웃 페이지(OpenID Connect RP-Initiated Logout). IdP 가 광고하지 않으면 없다.
   final Uri? endSessionEndpoint;
 }
 
-/// discovery 문서와 그 문서를 받아 온 URL 로 [AccountMetadata] 를 만든다.
-///
 /// TypeScript core 의 `normalizeDiscovery` 와 같은 규칙을 따른다. account-be 는 endpoint 를 `BASE_URL` 로
 /// 만드는데 스테이징에서는 이 값이 존재하지 않는 호스트를 가리킨다. 그래서 endpoint 를 문서를 받아 온 호스트
 /// 기준으로 다시 만든다. callback 과 id_token 의 issuer 는 별도 설정에서 오므로 IdP 가 가진 호스트를 모두
 /// 받아들인다.
-///
-/// 문서에 endpoint 가 없으면 [AccountDiscoveryException] 을 던진다.
 AccountMetadata normalizeDiscovery(Object? json, Uri fetchedFrom) {
   if (json case {
     'issuer': final String issuer,

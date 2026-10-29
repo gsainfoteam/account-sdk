@@ -1,12 +1,10 @@
-/** snake_case 문자열 리터럴 타입을 camelCase 로 바꾼다. */
 export type CamelCase<S extends string> = S extends `${infer Head}_${infer Tail}`
   ? `${Head}${Capitalize<CamelCase<Tail>>}`
   : S;
 
-/** 객체 타입의 키를 camelCase 로 바꾼다. */
 export type Camel<T> = { [K in keyof T as K extends string ? CamelCase<K> : K]: T[K] };
 
-/** 교차 타입을 객체 하나로 펼친다. hover 와 에러 메시지에 `A & B` 대신 필드 목록이 보이게 하기 위해서다. */
+/** hover 와 에러 메시지에 `A & B` 대신 필드 목록이 보이게 하기 위해서다. */
 export type Simplify<T> = { [K in keyof T]: T[K] } & {};
 
 /**

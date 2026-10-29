@@ -2,12 +2,10 @@ import 'denial_reasons.generated.dart';
 
 export 'denial_reasons.generated.dart';
 
-/// 이 패키지가 던지는 모든 에러. 하위 클래스로 switch 해서 경우마다 처리한다.
 sealed class AccountException implements Exception {
   const AccountException();
 }
 
-/// 사용자가 브라우저를 닫았거나 IdP 페이지에서 취소했다.
 final class AccountCancelledException extends AccountException {
   const AccountCancelledException();
 
@@ -15,7 +13,6 @@ final class AccountCancelledException extends AccountException {
   String toString() => 'AccountCancelledException';
 }
 
-/// IdP 가 돌려주는 OAuth 2.0 에러 코드와, `prompt=none` 에 대한 OIDC Core 3.1.2.6절의 코드.
 enum OAuthErrorCode {
   accessDenied('access_denied'),
   loginRequired('login_required'),
@@ -40,7 +37,6 @@ enum OAuthErrorCode {
       values.firstWhere((code) => code.wire == wire, orElse: () => unknown);
 }
 
-/// IdP 가 [reason] 때문에 로그인을 거절했다.
 final class AccountDeniedException extends AccountException {
   const AccountDeniedException(this.reason, [this.description]);
 
@@ -51,7 +47,6 @@ final class AccountDeniedException extends AccountException {
   String toString() => 'AccountDeniedException($reason, $description)';
 }
 
-/// callback 에 이 로그인을 시작할 때의 `state` 가 없었다.
 final class AccountStateMismatchException extends AccountException {
   const AccountStateMismatchException();
 
@@ -59,7 +54,6 @@ final class AccountStateMismatchException extends AccountException {
   String toString() => 'AccountStateMismatchException';
 }
 
-/// callback 이 IdP 가 아닌 issuer 에서 왔다.
 final class AccountIssuerMismatchException extends AccountException {
   const AccountIssuerMismatchException(this.issuer);
 
@@ -69,14 +63,11 @@ final class AccountIssuerMismatchException extends AccountException {
   String toString() => 'AccountIssuerMismatchException($issuer)';
 }
 
-/// IdP 가 `invalid_grant` 같은 OAuth 에러로 응답했다.
 final class AccountOAuthException extends AccountException {
   AccountOAuthException(this.error, [this.description]) : code = OAuthErrorCode.parse(error);
 
-  /// [error] 를 알려진 코드로 바꾼 것. 모르는 코드면 [OAuthErrorCode.unknown].
   final OAuthErrorCode code;
 
-  /// IdP 가 보낸 그대로의 에러 코드.
   final String error;
   final String? description;
 
@@ -84,8 +75,6 @@ final class AccountOAuthException extends AccountException {
   String toString() => 'AccountOAuthException($error, $description)';
 }
 
-/// 서비스 백엔드가 요청을 거절했다. [body] 에 거절 이유가 있다.
-///
 /// 로그인이 거절됐다면 [AccountClient.retryLogin] 으로 추가 입력(약관 동의 같은 것)을 보내 이어 갈 수 있다.
 final class AccountSessionRejectedException extends AccountException {
   const AccountSessionRejectedException(this.statusCode, this.body);
@@ -97,7 +86,6 @@ final class AccountSessionRejectedException extends AccountException {
   String toString() => 'AccountSessionRejectedException($statusCode)';
 }
 
-/// 요청이 서버에 닿지 못했다.
 final class AccountNetworkException extends AccountException {
   const AccountNetworkException(this.cause);
 
@@ -107,7 +95,6 @@ final class AccountNetworkException extends AccountException {
   String toString() => 'AccountNetworkException($cause)';
 }
 
-/// discovery 문서를 받지 못했거나 해석하지 못했다.
 final class AccountDiscoveryException extends AccountException {
   const AccountDiscoveryException(this.message);
 

@@ -1,10 +1,8 @@
 import '../errors/account_exception.dart';
 
-/// 서비스 백엔드가 로그인과 refresh 에서 돌려주는 토큰.
 class SessionTokens {
   const SessionTokens({required this.accessToken, this.refreshToken, this.expiresIn});
 
-  /// `access_token`, `refresh_token`, `expires_in` 을 읽는다. access token 이 없으면 [AccountSessionRejectedException] 을 던진다.
   factory SessionTokens.fromJson(Object? json) {
     if (json case {'access_token': final String accessToken} when accessToken.isNotEmpty) {
       return SessionTokens(

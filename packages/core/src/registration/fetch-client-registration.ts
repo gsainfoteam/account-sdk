@@ -24,11 +24,11 @@ const ClientRegistrationSchema = z.pipe(
   })),
 );
 
-/** IdP 에 등록한 client 의 공개 정보. SDK 가 모르는 scope 는 버린다. */
+/** SDK 가 모르는 scope 는 버린다. */
 export type ClientRegistration = z.output<typeof ClientRegistrationSchema>;
 
 /**
- * IdP 에 등록한 client 의 공개 정보를 읽는다. account-fe 동의 화면에 보이는 값이라 로그인 없이 부를 수 있다.
+ * account-fe 동의 화면에 보이는 값이라 로그인 없이 부를 수 있다.
  *
  * @throws {@link AccountError} 모르는 client 면 `invalid_client`. 요청이 실패하면 `network_error`,
  * 응답이 이상하면 `server_error`.

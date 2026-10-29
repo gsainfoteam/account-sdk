@@ -24,7 +24,6 @@ function setup(routes: Record<string, Route>, overrides: Partial<AccountClientOp
   return { ...servers, client: create(), create, redirect };
 }
 
-/** login 으로 IdP 로 보낸 URL 과, 그 인가의 저장된 트랜잭션을 돌려준다. */
 async function startLogin({ client, redirect }: ReturnType<typeof setup>, returnTo = '/notices/1') {
   await client.login({ returnTo });
   const authorize = new URL(redirect.mock.calls.at(-1)![0]);
@@ -32,7 +31,6 @@ async function startLogin({ client, redirect }: ReturnType<typeof setup>, return
   return { authorize, state, stored: sessionStorage.getItem(`gsainfoteam-account:tx:${state}`) };
 }
 
-/** login 으로 IdP 에 갔다가, IdP 가 callback 으로 돌려보낸 새 페이지를 연다. */
 async function loginAndReturn(
   servers: ReturnType<typeof setup>,
   query = (state: string) => `code=code-1&state=${state}&iss=https://api.account.gistory.me`,

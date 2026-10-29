@@ -33,6 +33,6 @@ export {
 } from './session/session-store';
 export * from '@gsainfoteam/account-server';
 
-/** scope 를 선언하지 않은 기본 모듈과 서비스. 필드 타입이나 서비스 세션이 필요하면 {@link defineAccount} 를 쓴다. */
+/** 필드 타입이나 서비스 세션이 필요하면 {@link defineAccount} 를 쓴다. */
 export const { AccountModule, AccountService } = defineAccount();
 export type AccountService = InstanceType<typeof AccountService>;

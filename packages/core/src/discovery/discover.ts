@@ -6,7 +6,6 @@ import { AccountError } from '../errors/account-error';
 import { type Fetch } from '../http/fetch';
 
 export interface DiscoverOptions {
-  /** 전역 `fetch` 대신 쓸 구현. 테스트나 `fetch` 가 없는 런타임용이다. */
   fetch?: Fetch;
   signal?: AbortSignal;
 }
@@ -14,9 +13,7 @@ export interface DiscoverOptions {
 const cache = new Map<string, Promise<AccountMetadata>>();
 
 /**
- * IdP 의 discovery 문서를 받아 정규화한다.
- *
- * 결과는 프로세스가 살아 있는 동안 issuer 별로 캐시하고, 동시에 들어온 호출은 요청 하나를 같이 쓴다.
+ * 결과는 프로세스가 살아 있는 동안 issuer 별로 캐시한다.
  * 실패는 캐시하지 않는다. 일시적인 네트워크 오류가 페이지를 새로고침할 때까지 남아 있지 않게 하기 위해서다.
  *
  * @throws {@link AccountError} `network_error` 또는 `discovery_failed`.
@@ -36,7 +33,6 @@ export function discover(
   return pending;
 }
 
-/** 캐시한 discovery 결과를 모두 지운다. */
 export function clearDiscoveryCache(): void {
   cache.clear();
 }

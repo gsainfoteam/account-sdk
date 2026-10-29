@@ -1,34 +1,27 @@
 import * as z from 'zod/mini';
 
-/** JSON 으로 저장할 수 있는 객체. 세션 claim 은 이 모양이어야 한다. */
+/** 세션 claim 은 JSON 으로 저장할 수 있는 객체여야 한다. */
 export const JsonObjectSchema = z.record(z.string(), z.json());
 export type JsonObject = z.output<typeof JsonObjectSchema>;
 
-/** 서비스가 발급한 refresh token 하나. 토큰 자체가 아니라 SHA-256 해시를 둔다. */
+/** 토큰 자체가 아니라 SHA-256 해시를 둔다. */
 export interface SessionRecord {
   tokenHash: string;
-  /** 로그인 한 번. refresh 로 토큰이 바뀌어도 같다. 쓰인 토큰이 다시 오면 이 세션의 토큰을 모두 지운다. */
+  /** 로그인 한 번의 id. refresh 로 토큰이 바뀌어도 같고, 쓰인 토큰이 다시 오면 이 세션의 토큰을 모두 지운다. */
   sessionId: string;
   subject: string;
-  /** 로그인할 때 `resolve` 가 돌려준 claim. */
   claims: JsonObject;
   expiresAt: Date;
-  /** refresh 에 쓰인 시각. 아직 안 쓰였으면 `null`. */
   usedAt: Date | null;
 }
 
-/**
- * refresh token 을 보관하는 곳. {@link prismaSessionStore} 를 쓰거나, 다른 저장소라면 직접 구현한다.
- *
- * @remarks
- * `markUsed` 는 원자적이어야 한다. 동시에 온 두 refresh 중 하나만 `true` 를 받아야 재사용을 감지할 수 있다.
- */
+/** `markUsed` 는 원자적이어야 한다. 동시에 온 두 refresh 중 하나만 `true` 를 받아야 재사용을 감지할 수 있다. */
 export interface SessionStore {
   save(record: SessionRecord): Promise<void>;
   find(tokenHash: string): Promise<SessionRecord | null>;
   /** `usedAt` 이 없을 때만 `at` 으로 표시하고, 표시했으면 `true` 를 돌려준다. */
   markUsed(tokenHash: string, at: Date): Promise<boolean>;
-  /** 세션에서 `before` 전에 쓰인 토큰을 지운다. 교체할 때마다 불러서 세션마다 행이 쌓이지 않게 한다. */
+  /** 교체할 때마다 불러서 세션마다 쓰인 토큰의 행이 쌓이지 않게 한다. */
   deleteUsed(sessionId: string, before: Date): Promise<void>;
   deleteSession(sessionId: string): Promise<void>;
   deleteSubject(subject: string): Promise<void>;
@@ -87,7 +80,6 @@ export function memorySessionStore(): SessionStore {
   };
 }
 
-/** {@link prismaSessionStore} 가 쓰는 Prisma model delegate 의 부분. README 의 모델을 만들면 `prisma.accountSession` 이 맞는다. */
 export interface PrismaSessionDelegate {
   create(args: { data: SessionRecord }): Promise<unknown>;
   findUnique(args: { where: { tokenHash: string } }): Promise<PrismaSessionRow | null>;
@@ -103,14 +95,6 @@ export interface PrismaSessionDelegate {
 /** Prisma 가 읽어 주는 행. `claims` 는 Json 컬럼이라 모양을 확인하고 쓴다. */
 export type PrismaSessionRow = Omit<SessionRecord, 'claims'> & { claims: unknown };
 
-/**
- * Prisma model 에 refresh token 을 둔다. 모델 정의는 README 에 있다.
- *
- * @example
- * ```ts
- * session: { store: prismaSessionStore(prisma.accountSession), ... }
- * ```
- */
 export function prismaSessionStore(delegate: PrismaSessionDelegate): SessionStore {
   return {
     async save(record) {
@@ -147,7 +131,7 @@ export function prismaSessionStore(delegate: PrismaSessionDelegate): SessionStor
   };
 }
 
-/** {@link redisSessionStore} 가 쓰는 명령. ioredis 의 `Redis` 가 그대로 맞는다. */
+/** ioredis 의 `Redis` 가 그대로 맞는다. */
 export interface RedisSessionClient {
   set(key: string, value: string, px: 'PX', milliseconds: number): Promise<unknown>;
   set(key: string, value: string, px: 'PX', milliseconds: number, nx: 'NX'): Promise<string | null>;
@@ -168,15 +152,6 @@ const RedisRecordSchema = z.object({
   expiresAt: z.number(),
 });
 
-/**
- * Redis 에 refresh token 을 둔다. 키는 토큰이 만료될 때 Redis 가 지운다.
- * 세션마다 토큰 해시 집합이 있어서, `isActive` 가 키 하나로 끝난 세션을 알아본다.
- *
- * @example
- * ```ts
- * session: { store: redisSessionStore(redis), ... }
- * ```
- */
 export function redisSessionStore(
   redis: RedisSessionClient,
   { prefix = 'account-session:' }: { prefix?: string } = {},

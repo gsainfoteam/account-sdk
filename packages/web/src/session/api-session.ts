@@ -10,12 +10,6 @@ const RejectionSchema = z.looseObject({
   details: z.optional(z.unknown()),
 });
 
-/**
- * `@gsainfoteam/account-nest` 세션 모듈의 endpoint 를 부른다. refresh token 은 httpOnly 쿠키에 있다.
- *
- * 로그인 body 는 앱이 더한 값 위에 `{ code, code_verifier, redirect_uri, nonce, iss }` 나 `{ ticket }` 를 얹고,
- * `transport: 'cookie'` 로 쿠키 전달을 요청한다. 모든 요청에 credentials 를 싣는다.
- */
 export function apiSession(
   baseUrl: string,
   paths: SessionPaths,

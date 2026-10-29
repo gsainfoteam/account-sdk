@@ -16,13 +16,6 @@ export interface RevokeParams {
   tokenTypeHint: 'access_token' | 'refresh_token';
 }
 
-/**
- * access token 이나 refresh token 을 폐기한다.
- *
- * @remarks
- * account-be 는 RFC 7009 의 `POST` 대신 `DELETE /oauth/token` 을 받으므로, 요청 메서드는
- * {@link AccountMetadata.revocation} 을 따른다.
- */
 export async function revokeToken(
   metadata: AccountMetadata,
   client: ClientCredentials,

@@ -10,38 +10,32 @@ const SessionPathsSchema = z.object({
   logout: z.optional(nonEmpty()),
 });
 
-/** {@link createAccountClient} 의 옵션. 만들 때 검증하므로 환경 변수가 빠져 있으면 앱이 뜰 때 실패한다. */
 export const AccountClientOptionsSchema = z.object({
   /** `'production'`, `'staging'`, 또는 다른 account-be 배포의 `https:` API origin. */
   issuer: z.custom<IssuerInput>((value) => isString(value) && value.length > 0),
   clientId: nonEmpty(),
   /**
-   * 서비스 백엔드. `@gsainfoteam/account-nest` 세션 모듈의 `/auth/login`, `/auth/refresh`, `/auth/logout` 을 부른다.
-   * origin 이나 `/api` 같은 기본 경로이고, endpoint 경로가 다르면 `{ baseUrl, paths }` 로 준다.
+   * `@gsainfoteam/account-nest` 세션 모듈의 `/auth/*` 앞에 붙는 origin 이나 `/api` 같은 기본 경로. endpoint 경로가
+   * 다르면 `{ baseUrl, paths }` 로 준다.
    */
   api: z.union([
     nonEmpty(),
     z.object({ baseUrl: nonEmpty(), paths: z.optional(SessionPathsSchema) }),
   ]),
-  /**
-   * IdP 에 등록한 callback 경로나 URL. 경로는 현재 origin 기준으로 풀린다. 기본은 `/auth/callback`.
-   * client 가 이 URL 을 라우터보다 먼저 처리하므로 라우트를 만들지 않는다.
-   */
+  /** 기본은 `/auth/callback`. client 가 이 URL 을 라우터보다 먼저 처리하므로 라우트를 만들지 않는다. */
   redirectUri: z.optional(nonEmpty()),
   /**
-   * 요청할 scope. 생략하면 IdP 에 등록한 필수와 선택 scope 전부다. `openid` 는 항상 함께 요청한다.
-   * 서비스 백엔드가 id_token 으로 사용자를 확인하기 때문이다.
+   * 생략하면 IdP 에 등록한 필수와 선택 scope 전부다. `openid` 는 서비스 백엔드가 id_token 으로 사용자를 확인하므로
+   * 항상 함께 요청한다.
    */
   scopes: z.optional(z.array(ClientScopeSchema)),
   /**
-   * 세션이 없으면 IdP 에 `prompt=none` 으로 한 번 다녀온다. IdP 에 이미 로그인한 사용자는 화면 없이 로그인되고,
-   * 아니면 조용히 비로그인으로 돌아온다. 탭마다 한 번만 시도하고, 로그아웃한 뒤에는 시도하지 않는다.
+   * 세션이 없으면 IdP 에 `prompt=none` 으로 한 번 다녀온다. 탭마다 한 번만 시도하고, 로그아웃한 뒤에는 시도하지
+   * 않는다.
    */
   silentLogin: z.optional(z.boolean()),
   fetch: z.optional(z.custom<Fetch>(isFunction)),
-  /** 진행 중인 인가를 보관할 곳. 기본은 `sessionStorage`. */
   transactionStorage: z.optional(z.custom<Storage>()),
-  /** IdP 로 이동하는 방법. 기본은 `location.assign`. */
   redirect: z.optional(z.custom<(url: string) => void>(isFunction)),
 });
 

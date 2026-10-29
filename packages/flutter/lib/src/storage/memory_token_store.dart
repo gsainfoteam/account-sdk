@@ -1,6 +1,5 @@
 import 'token_store.dart';
 
-/// 앱이 끝나면 모두 잊는 [TokenStore]. 테스트용이다.
 class MemoryTokenStore implements TokenStore {
   StoredSession? _session;
   bool _loggedOut = false;

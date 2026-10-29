@@ -14,18 +14,14 @@ import * as z from 'zod/mini';
 
 import { JsonObjectSchema, type SessionStore } from './session-store';
 
-/** 서비스 세션의 claim 을 정의하는 zod 스키마. 결과는 객체여야 한다. */
 export type ClaimsSchema<Claims extends Record<string, unknown>> = z.core.$ZodType<Claims>;
 
-/** {@link SessionModuleOptions.resolve} 가 돌려주는 값. 세션의 주인과, access token 에 실을 claim 이다. */
 export type ResolvedSession<Claims extends Record<string, unknown>> = {
   subject: string;
 } & (keyof Claims extends never ? { claims?: Claims } : { claims: Claims });
 
 /**
- * 검증한 서비스 access token. `sub` 는 `resolve` 가 정한 subject, `sid` 는 로그인 한 번의 id 다.
- * `auth_time`(초)과 `amr` 은 그 로그인에서 사용자가 IdP 에 언제, 어떻게 로그인했는지다. refresh 해도 그대로 이어진다.
- * 2FA 나 최근 재인증이 필요한 작업에서 확인한다. IdP 가 기록하기 전의 로그인에는 없다.
+ * `auth_time`(초)과 `amr` 은 refresh 해도 처음 IdP 로그인의 값 그대로다. IdP 가 기록하기 전의 로그인에는 없다.
  */
 export type Session<Claims extends Record<string, unknown> = Record<never, never>> = {
   sub: string;
@@ -34,35 +30,28 @@ export type Session<Claims extends Record<string, unknown> = Record<never, never
   amr?: string[];
 } & Claims;
 
-/**
- * `forRoot` 의 `session` 옵션. 런타임 값과 DI 로 받는 것이다.
- *
- * @typeParam RequiredScope `defineAccount` 의 `requiredScopes`. `resolve` 가 받는 사용자의 필수 필드다.
- */
 export interface SessionModuleOptions<
   RequiredScope extends ClientScope,
   Claims extends Record<string, unknown>,
 > {
-  /** access token 서명과 ticket 암호화 키를 여기서 유도한다. 32자 이상. */
+  /** 32자 이상. access token 서명과 ticket 암호화 키를 여기서 유도한다. */
   secret: string;
   store: SessionStore;
   /**
-   * IdP 사용자를 서비스 사용자로 바꾼다. 보통 DB 에 upsert 하고 그 id 를 `subject` 로 돌려준다.
-   * `body` 는 로그인 요청에서 프로토콜 필드를 뺀 나머지다. pot-g 의 `device_id` 같은 것이 온다.
-   *
-   * 로그인 전에 더 받을 것이 있으면(약관 동의 같은 것) {@link SessionRejected} 를 던진다.
+   * `body` 는 로그인 요청에서 프로토콜 필드를 뺀 나머지다. 로그인 전에 더 받을 것이 있으면(약관 동의 같은 것)
+   * {@link SessionRejected} 를 던진다.
    */
   resolve(
     user: UserInfo<RequiredScope>,
     context: { body: Record<string, unknown> },
   ): ResolvedSession<Claims> | Promise<ResolvedSession<Claims>>;
-  /** access token 수명(초). 기본 15분. */
+  /** 초 단위. 기본 15분. */
   accessTtl?: number;
-  /** refresh token 수명(초). 교체할 때마다 다시 센다. 기본 30일. */
+  /** 초 단위. 교체할 때마다 다시 센다. 기본 30일. */
   refreshTtl?: number;
   /** `replace` 면 로그인할 때 같은 subject 의 다른 세션을 모두 끝낸다. 기본은 `add`. */
   onLogin?: 'add' | 'replace';
-  /** refresh token 쿠키의 속성. 기본은 `refresh_token`, `HttpOnly`, `Secure`, `SameSite=Strict`. */
+  /** 기본은 `refresh_token`, `HttpOnly`, `Secure`, `SameSite=Strict`. */
   cookie?: {
     name?: string;
     sameSite?: 'strict' | 'lax' | 'none';
@@ -86,9 +75,9 @@ export class SessionRejected extends Error {
 export interface IssuedTokens {
   accessToken: string;
   refreshToken: string;
-  /** access token 수명(초). */
+  /** 초 단위. */
   expiresIn: number;
-  /** refresh token 수명(초). 쿠키의 `Max-Age` 다. */
+  /** 초 단위. 쿠키의 `Max-Age` 다. */
   refreshExpiresIn: number;
 }
 
@@ -97,10 +86,8 @@ export type LoginResult =
 
 export interface SessionManager<Claims extends Record<string, unknown>> {
   login(body: unknown): Promise<LoginResult>;
-  /** @returns 세션이 없거나 끝났으면 `null`. */
   refresh(refreshToken: string | undefined): Promise<IssuedTokens | null>;
   logout(tokens: { accessToken?: string; refreshToken?: string }): Promise<void>;
-  /** @returns 토큰이 유효하지 않거나 세션이 끝났으면 `null`. */
   verify(accessToken: string): Promise<Session<Claims> | null>;
 }
 

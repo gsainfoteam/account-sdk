@@ -1,5 +1,3 @@
-/// 서비스 백엔드 세션 endpoint 의 경로. 다른 것만 바꾼다.
-///
 /// 기본값은 ziggle-be 와 house-moving-out-be 를 따르고, `packages/core/src/constants/idp.json` 의
 /// `sessionPaths` 와 같다.
 final class SessionPaths {

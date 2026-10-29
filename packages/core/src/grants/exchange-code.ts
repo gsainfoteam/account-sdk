@@ -20,24 +20,16 @@ import {
 
 export interface ExchangeCodeParams {
   code: string;
-  /** {@link AuthorizationTransaction} 에 저장한 PKCE verifier. */
   codeVerifier: string;
   /** authorization 요청의 `redirect_uri` 와 같아야 한다. */
   redirectUri: string;
   /** `openid` 와 함께 보낸 nonce. id_token 에 같은 값이 있어야 한다. */
   nonce?: string;
-  /** callback 의 `iss`. callback 을 받은 쪽이 넘겨줄 때만 있다. */
   iss?: string;
 }
 
 /**
- * authorization code 를 토큰으로 교환한다.
- *
- * 프론트에서 code 를 넘겨받은 서비스 백엔드가 confidential client 로서 쓴다.
- *
- * @remarks
- * 여기서는 `state` 를 확인하지 않는다. callback 을 받은 쪽이 이미 {@link parseCallback} 으로 확인했다.
- * 그래서 서버가 프론트에서 넘겨받은 code 에도 이 함수를 그대로 쓸 수 있다.
+ * `state` 는 확인하지 않는다. callback 을 받은 쪽이 이미 {@link parseCallback} 으로 확인했어야 한다.
  *
  * @throws {@link AccountError} 이미 쓰였거나 만료된 code 면 `invalid_grant`. `nonce` 를 줬는데 id_token 이 없거나
  * 맞지 않으면 `invalid_id_token`. 그 밖에 `issuer_mismatch`, `network_error`.

@@ -11,18 +11,16 @@ import * as oauth from 'oauth4webapi';
 
 import { fakeUser } from './fake-user';
 
-/** 가짜 IdP 의 사용자. `sub` 말고는 필요한 claim 만 넣는다. */
 export type FakeUser = { sub: string } & Partial<UserClaims>;
 
 /**
- * IdP 에 등록한 client. 하나도 주지 않으면 어떤 client id 와 secret 이든 받고, 모든 scope 를 필수로 등록한
- * `client_secret_post` client 로 본다.
+ * 하나도 주지 않으면 어떤 client id 와 secret 이든 받고, 모든 scope 를 필수로 등록한 `client_secret_post` client
+ * 로 본다.
  */
 export interface FakeClient {
   clientId: string;
   /** 주면 token endpoint 가 이 secret 을 요구한다. */
   clientSecret?: string;
-  /** 필수 scope. `GET /client/:id/public` 이 돌려준다. */
   scopes?: ClientScope[];
   optionalScopes?: ClientScope[];
   tokenEndpointAuthMethod?: 'none' | 'client_secret_basic' | 'client_secret_post';
@@ -36,18 +34,16 @@ export interface FakeIdpOptions {
 
 export interface FakeAuthorizeOptions {
   clientId: string;
-  /** 로그인할 사용자. 생략하면 {@link fakeUser} 가 모든 claim 을 채워 만든다. */
   user?: FakeUser;
-  /** 사용자가 동의한 scope. 기본은 client 에 등록한 scope 전부, 등록하지 않았으면 모든 scope 다. */
+  /** 기본은 client 에 등록한 scope 전부, 등록하지 않았으면 모든 scope 다. */
   scopes?: readonly ClientScope[];
   redirectUri?: string;
-  /** id_token 의 `auth_time`(초). 기본은 지금이다. */
+  /** 초 단위다. */
   authTime?: number;
-  /** id_token 의 `amr`. 기본은 비밀번호 로그인(`["pwd"]`)이다. */
+  /** 기본은 비밀번호 로그인(`["pwd"]`)이다. */
   amr?: string[];
 }
 
-/** 서비스 백엔드의 `POST /auth/login` 에 그대로 보낼 body. 프론트 SDK 가 callback 에서 보내는 것과 같다. */
 export interface FakeLoginBody {
   code: string;
   code_verifier: string;
@@ -56,12 +52,9 @@ export interface FakeLoginBody {
 }
 
 export interface FakeIdp {
-  /** IdP 대신 응답하는 `fetch`. SDK 옵션의 `fetch` 에 넘긴다. issuer 는 `'production'` 이든 무엇이든 된다. */
+  /** issuer 는 `'production'` 이든 무엇이든 된다. */
   fetch: typeof globalThis.fetch;
-  /**
-   * 사용자가 account-fe 에서 로그인하고 동의해 callback 으로 돌아온 것처럼 code 를 만든다.
-   * code 는 한 번만 교환할 수 있고, PKCE 와 nonce 도 진짜 IdP 처럼 확인한다.
-   */
+  /** code 는 한 번만 교환할 수 있고, PKCE 와 nonce 도 진짜 IdP 처럼 확인한다. */
   authorize(options: FakeAuthorizeOptions): Promise<{ body: FakeLoginBody; user: FakeUser }>;
 }
 
@@ -85,18 +78,6 @@ interface IssuedToken {
 const DEFAULT_REDIRECT_URI = 'https://service.example/auth/callback';
 const ACCESS_TOKEN_TTL = 10_800;
 
-/**
- * 프로세스 안에서 도는 가짜 인포팀 계정 IdP 를 만든다. discovery, JWKS, token, userinfo, client 공개 정보에 응답한다.
- *
- * @example
- * ```ts
- * const idp = await createFakeIdp();
- * AccountModule.forRoot({ issuer: 'production', clientId: 'c', clientSecret: 's', fetch: idp.fetch, session });
- *
- * const { body, user } = await idp.authorize({ clientId: 'c' });
- * await request(app.getHttpServer()).post('/auth/login').send(body).expect(200);
- * ```
- */
 export async function createFakeIdp(options: FakeIdpOptions = {}): Promise<FakeIdp> {
   const { privateKey, publicKey } = await generateKeyPair('ES256');
   const jwk = { ...(await exportJWK(publicKey)), kid: 'fake-idp', use: 'sig', alg: 'ES256' };
@@ -249,7 +230,6 @@ export async function createFakeIdp(options: FakeIdpOptions = {}): Promise<FakeI
   };
 }
 
-/** `scopes` 로 허용된 claim 만 남긴다. account-be 의 userinfo 와 id_token 처럼. */
 function claimsOf(user: FakeUser, scopes: readonly ClientScope[]): Record<string, unknown> {
   return Object.fromEntries(
     scopes

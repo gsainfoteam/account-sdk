@@ -8,11 +8,7 @@ export interface CreateLogoutUrlParams {
   postLogoutRedirectUri?: string;
 }
 
-/**
- * IdP 세션까지 끝내는 로그아웃 URL 을 만든다(OpenID Connect RP-Initiated Logout). 돌아올 때 확인할 `state` 도 돌려준다.
- *
- * @returns IdP 가 `end_session_endpoint` 를 광고하지 않으면 `null`.
- */
+/** @returns IdP 가 `end_session_endpoint` 를 광고하지 않으면 `null`. */
 export function createLogoutUrl(
   metadata: AccountMetadata,
   params: CreateLogoutUrlParams,

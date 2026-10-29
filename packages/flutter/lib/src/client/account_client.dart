@@ -22,25 +22,11 @@ import 'account_prompt.dart';
 import 'account_state.dart';
 import 'scopes.generated.dart';
 
-/// [url] 을 브라우저 세션으로 열고 callback URL 로 완료된다. 테스트에서 바꿔 끼울 수 있다.
+/// [url] 을 브라우저 세션으로 열고 callback URL 로 완료된다.
 typedef BrowserAuthenticator = Future<String> Function(Uri url, String callbackUrlScheme);
 
-/// 시스템 브라우저로 사용자를 로그인시키고 서비스 백엔드의 세션을 유지한다.
-///
-/// 로그인 흐름은 웹과 같다. callback 의 code 를 서비스 백엔드(`@gsainfoteam/account-nest` 세션 모듈)에 넘기면
+/// callback 의 code 를 서비스 백엔드(`@gsainfoteam/account-nest` 세션 모듈)에 넘기면
 /// 백엔드가 confidential client 로 교환하고 id_token 으로 사용자를 확인한다.
-///
-/// ```dart
-/// final account = AccountClient(
-///   issuer: AccountIssuer.production,
-///   clientId: 'pot-g',
-///   redirectUri: Uri.parse('pot-g://callback'),
-///   api: Uri.parse('https://api.pot-g.gistory.me'),
-///   loginBody: () async => {'device_id': await deviceId()},
-/// );
-/// await account.restore();
-/// dio.interceptors.add(AccountInterceptor(account, dio));
-/// ```
 class AccountClient {
   AccountClient({
     required this.issuer,
@@ -68,7 +54,6 @@ class AccountClient {
   /// 요청할 scope. `null` 이면 IdP 에 등록한 필수와 선택 scope 전부다. `openid` 는 항상 함께 요청한다.
   final List<AccountScope>? scopes;
 
-  /// 로그인 요청에 더할 필드. pot-g-be 의 `device_id` 같은 것이다.
   final Future<Map<String, Object?>> Function()? loginBody;
 
   final TokenStore _store;
@@ -100,17 +85,9 @@ class AccountClient {
     }
   }
 
-  /// IdP 로그인 페이지를 열고, callback 을 검증하고, 서비스 백엔드에 로그인한다.
-  ///
-  /// PKCE(`S256`), `state`, `nonce` 를 붙이고, callback 의 `state` 를 가장 먼저 확인한다. callback 에 `iss` 가
-  /// 있으면 IdP 의 호스트 중 하나여야 한다.
-  ///
-  /// 로그아웃해도 IdP 자체의 로그인 세션은 끝나지 않는다. 그래서 [logout] 뒤 첫 로그인에는 `prompt=login` 을
-  /// 붙여 사용자가 계정을 바꿀 수 있게 한다. [AccountScope.offlineAccess] 가 있으면 `prompt=consent` 를
+  /// `logout(idp: false)` 는 IdP 로그인 세션을 남기므로, [logout] 뒤 첫 로그인에는 `prompt=login` 을 붙여
+  /// 사용자가 계정을 바꿀 수 있게 한다. [AccountScope.offlineAccess] 가 있으면 `prompt=consent` 를
   /// 붙인다. account-fe 가 이 scope 에 요구한다.
-  ///
-  /// 실패하면 [AccountException] 을 던진다. 사용자가 그만두면 [AccountCancelledException],
-  /// 서비스 백엔드가 거절하면 [AccountSessionRejectedException] 이다.
   Future<void> login() async {
     final metadata = await discover(issuer, client: _http);
     final requested = scopes ?? await _registeredScopes(metadata);
@@ -148,10 +125,8 @@ class AccountClient {
     });
   }
 
-  /// 서비스 백엔드가 거절한 로그인을 [body] 를 더해 다시 보낸다. 예를 들어 약관 동의를 요구하며 거절했을 때
-  /// 동의 내용을 보낸다. 거절 응답의 ticket 으로 보내므로 IdP 를 다시 거치지 않는다.
-  ///
-  /// 이어 갈 로그인이 없으면 [StateError] 를 던진다. [canRetryLogin] 으로 먼저 확인한다.
+  /// 서비스 백엔드가 거절한 로그인을 [body] 를 더해 다시 보낸다. 거절 응답의 ticket 으로 보내므로
+  /// IdP 를 다시 거치지 않는다. 이어 갈 로그인이 없으면 [StateError] 를 던진다.
   Future<void> retryLogin(Map<String, Object?> body) async {
     final ticket = _ticket;
     if (ticket == null) throw StateError('no login to retry');
@@ -159,7 +134,6 @@ class AccountClient {
     await _start({...body, 'ticket': ticket});
   }
 
-  /// 저장한 세션을 지우고 서비스 백엔드에 알린다.
   /// 어차피 기기에서는 로그아웃되므로 서버 쪽 실패는 무시한다.
   ///
   /// [idp] 가 `true` 면 브라우저 세션으로 IdP 로그아웃 페이지를 열어 IdP 로그인 세션도 끝낸다. 돌아올 곳은 [redirectUri] 다.
@@ -196,9 +170,7 @@ class AccountClient {
   }
 
   /// 서비스 백엔드에서 새 access token 을 받고, 세션이 있는지 돌려준다.
-  ///
-  /// 동시에 401 을 받은 요청들은 refresh 하나를 같이 쓴다. [staleToken] 을 다른 호출이 이미 교체했다면
-  /// 다시 refresh 하지 않고 그 새 토큰을 유지한다.
+  /// [staleToken] 을 다른 호출이 이미 교체했다면 다시 refresh 하지 않고 그 새 토큰을 유지한다.
   Future<bool> refresh({String? staleToken}) async {
     if (mutex.isWriteLocked) {
       await mutex.acquireRead();
@@ -324,7 +296,7 @@ class AccountClient {
     }
   }
 
-  /// callback 을 검증하고 code 를 돌려준다. 위조된 redirect 는 에러를 전달하는 것조차 못 하게, `state` 를 먼저 본다.
+  /// 위조된 redirect 는 에러를 전달하는 것조차 못 하게, `state` 를 먼저 본다.
   String _readCallback(AccountMetadata metadata, Map<String, String> parameters, String state) {
     if (parameters['state'] != state) throw const AccountStateMismatchException();
 

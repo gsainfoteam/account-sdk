@@ -15,7 +15,6 @@ final discovery = File('../core/tests/fixtures/discovery.production.json').readA
 http.Response json(Object? body, [int status = 200]) =>
     http.Response(jsonEncode(body), status, headers: {'content-type': 'application/json'});
 
-/// IdP 와 서비스 백엔드를 흉내 낸다. [login] 은 서비스 백엔드 로그인 요청의 body 를 받는다.
 class Servers {
   Servers({this.login, this.registration});
 

@@ -33,35 +33,29 @@ interface SessionRequest {
   [SESSION]?: unknown;
 }
 
-/** Express 의 `Response` 와 Fastify 의 `FastifyReply` 가 함께 가진 메서드. */
 interface HeaderTarget {
   header(name: string, value: string): unknown;
 }
 
-/** 세션 endpoint 의 경로. */
 export interface SessionPaths {
   login: string;
   refresh: string;
   logout: string;
 }
 
-/** 모듈이 만든 세션 관리자와 refresh token 쿠키 설정. */
 export interface SessionRuntime {
   manager: SessionManager<Record<string, unknown>>;
   cookie: { name: string; attributes: SerializeOptions };
 }
 
-/**
- * {@link SessionGuard} 나 {@link OptionalSessionGuard} 가 확인한 세션을 핸들러 인자로 받는다.
- * 타입은 `SessionOf<typeof account>` 로 붙인다.
- */
+/** {@link SessionGuard} 나 {@link OptionalSessionGuard} 가 확인한 세션이다. 타입은 `SessionOf<typeof account>` 로 붙인다. */
 export const CurrentSession = createParamDecorator(
   (_: unknown, context: ExecutionContext) =>
     context.switchToHttp().getRequest<SessionRequest>()[SESSION],
 );
 
 /**
- * refresh token 쿠키의 속성. `Path` 는 refresh endpoint 의 디렉터리라서, 쿠키가 다른 API 요청에는 실리지 않는다.
+ * `Path` 는 refresh endpoint 의 디렉터리라서, 쿠키가 다른 API 요청에는 실리지 않는다.
  * 지울 때도 같은 속성이어야 브라우저가 같은 쿠키로 본다.
  */
 export function cookieSettings(
@@ -80,7 +74,6 @@ export function cookieSettings(
   };
 }
 
-/** 로그인, refresh, 로그아웃 endpoint 를 가진 controller 를 만든다. */
 export function createSessionController(runtimeToken: symbol, paths: SessionPaths): Type<unknown> {
   @Controller()
   class SessionController {
@@ -158,7 +151,6 @@ export function createSessionController(runtimeToken: symbol, paths: SessionPath
   return SessionController;
 }
 
-/** 세션이 없으면 401 을 던지는 guard 와, 세션이 없어도 지나가게 하는 guard 를 만든다. */
 export function createSessionGuards(
   accountToken: abstract new () => {
     verifySession(accessToken: string): Promise<unknown>;
@@ -218,7 +210,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-/** 세션 관리자가 던진 {@link AccountError} 를 HTTP 에러로 바꾼다. 서비스가 `resolve` 에서 던진 에러는 그대로 둔다. */
+/** 서비스가 `resolve` 에서 던진 에러는 HTTP 에러로 바꾸지 않고 그대로 둔다. */
 function toHttpError(error: unknown): never {
   if (!AccountError.is(error)) throw error;
 

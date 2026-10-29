@@ -8,7 +8,6 @@ import { parseIdTokenClaims, type IdTokenClaims } from '../identity/id-token';
 import { parseScopes, type Scope } from '../identity/scopes';
 import { authorizationServer } from '../internal/oauth4webapi';
 
-/** IdP token endpoint 가 돌려준 토큰. id_token claim 은 이미 검증했다. */
 export interface TokenResponse {
   accessToken: string;
   tokenType: string;
@@ -23,12 +22,7 @@ export interface TokenResponse {
   scopes: Scope[];
 }
 
-/**
- * token endpoint 에 client 를 밝힌다.
- *
- * public client(브라우저, 앱)는 `clientSecret` 을 빼고, confidential client(서비스 백엔드)는 넣는다.
- * secret 은 `client_secret_post` 로 보낸다.
- */
+/** public client(브라우저, 앱)는 `clientSecret` 을 빼고, confidential client(서비스 백엔드)는 넣는다. */
 export interface ClientCredentials {
   clientId: string;
   clientSecret?: string;
@@ -37,12 +31,9 @@ export interface ClientCredentials {
 const WithIdTokenSchema = z.object({ id_token: z.string() });
 
 /**
- * `response` 의 id_token 을 어떤 issuer 로 검증할지 고른다.
- *
- * @remarks
  * oauth4webapi 는 id_token `iss` 를 issuer 하나와만 비교한다. IdP 는 issuer 를 여럿 쓰므로, claim 을 먼저 읽고
  * {@link AccountMetadata.issuers} 중 하나면 그 값을 issuer 로 쓴다.
- * 서명은 여기서 확인하지 않는다. 응답이 TLS 로 token endpoint 에서 바로 왔고, OIDC Core 3.1.3.7절은 이것으로
+ * 서명은 확인하지 않는다. 응답이 TLS 로 token endpoint 에서 바로 왔고, OIDC Core 3.1.3.7절은 이것으로
  * 서명 확인을 대신할 수 있다고 한다.
  */
 export async function asForIdTokenOf(
@@ -57,7 +48,7 @@ export async function asForIdTokenOf(
   return authorizationServer(metadata, iss && metadata.issuers.includes(iss) ? iss : undefined);
 }
 
-/** 성공한 토큰 응답의 id_token 을, 응답 body 를 소비하지 않고 읽는다. */
+/** 응답 body 를 소비하지 않고 읽는다. */
 export async function idTokenOf(response: Response): Promise<string | undefined> {
   if (!response.ok) return undefined;
 
@@ -67,7 +58,6 @@ export async function idTokenOf(response: Response): Promise<string | undefined>
   return parsed.success ? parsed.data.id_token : undefined;
 }
 
-/** oauth4webapi 의 토큰 응답을 {@link TokenResponse} 로 바꾼다. */
 export function toTokenResponse(result: oauth.TokenEndpointResponse): TokenResponse {
   const claims = oauth.getValidatedIdTokenClaims(result);
   const refreshTokenExpiresIn = z.optional(z.number()).safeParse(result.refresh_token_expires_in);

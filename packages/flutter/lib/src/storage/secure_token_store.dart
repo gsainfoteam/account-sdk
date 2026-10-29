@@ -3,7 +3,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../constants.dart';
 import 'token_store.dart';
 
-/// `flutter_secure_storage` 로 플랫폼 keychain 이나 keystore 에 저장하는 [TokenStore].
 class SecureTokenStore implements TokenStore {
   SecureTokenStore([FlutterSecureStorage? storage, this.prefix = AccountConstants.storageNamespace])
     : _storage = storage ?? const FlutterSecureStorage();

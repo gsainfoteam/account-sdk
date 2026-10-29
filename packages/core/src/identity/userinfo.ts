@@ -22,7 +22,7 @@ import {
 } from '../internal/oauth4webapi';
 import { parse } from '../internal/validate';
 
-/** account-be 가 돌려주는 userinfo body. 허용된 scope 밖의 claim 은 빠진다. */
+/** 허용된 scope 밖의 claim 은 빠진다. */
 export const UserInfoResponseSchema = z.looseObject({
   sub: z.string().check(z.minLength(1)),
   ...z.partial(UserClaimsSchema).shape,
@@ -30,7 +30,6 @@ export const UserInfoResponseSchema = z.looseObject({
 
 type BaseUserInfo = Simplify<{ sub: string } & Partial<Camel<UserClaims>>>;
 
-/** {@link UserInfoResponseSchema} 를 camelCase 로 바꾼 것. */
 export const UserInfoSchema = z.pipe(
   UserInfoResponseSchema,
   z.transform((raw): BaseUserInfo => {
@@ -52,12 +51,7 @@ export const UserInfoSchema = z.pipe(
 
 export type UserInfoResponse = z.input<typeof UserInfoSchema>;
 
-/**
- * userinfo 로 조회한 사용자.
- *
- * `S` 로 준 scope 의 필드는 반드시 들어 있는 타입이 되고, 나머지 필드는 optional 이다.
- * `S` 는 {@link hasScopeClaims} 같은 런타임 검사를 거친 값에만 붙는다.
- */
+/** `S` 는 {@link hasScopeClaims} 같은 런타임 검사를 거친 값에만 붙는다. */
 export type UserInfo<S extends ClientScope = never> = Simplify<BaseUserInfo & Camel<ClaimsOf<S>>>;
 
 const CAMEL_CLAIMS = {
@@ -96,11 +90,7 @@ function requireScopeClaims<S extends ClientScope>(
   });
 }
 
-/**
- * 검증한 id_token 의 claim 으로 사용자를 만든다. id_token 에는 userinfo 와 같은 claim 이 들어 있다.
- *
- * @throws {@link AccountError} `requiredScopes` 의 claim 이 빠져 있으면 `missing_claims`.
- */
+/** @throws {@link AccountError} `requiredScopes` 의 claim 이 빠져 있으면 `missing_claims`. */
 export function userInfoFromIdToken<S extends ClientScope = never>(
   claims: IdTokenClaims,
   requiredScopes: readonly S[] = [],
@@ -111,21 +101,15 @@ export function userInfoFromIdToken<S extends ClientScope = never>(
 }
 
 export interface FetchUserInfoOptions<S extends ClientScope = never> extends RequestOptions {
-  /** client credentials 토큰으로 조회할 사용자. account-be 는 query string 에서 읽는다. */
+  /** client credentials 토큰으로 조회할 사용자. */
   sub?: string;
-  /** claim 이 반드시 들어 있어야 하는 scope. 하나라도 빠지면 `missing_claims` 로 실패한다. */
   requiredScopes?: readonly S[];
 }
 
 /**
- * access token 의 주인을 조회한다.
- *
  * @throws {@link AccountError} IdP 가 토큰을 401 이나 403 으로 거절하면 `invalid_token`.
  * `requiredScopes` 의 claim 이 빠져 있으면 `missing_claims`.
- *
- * @remarks
- * 지금 account-be 는 모르는 토큰에 500 을 돌려준다. Redis 조회 실패가 그대로 새어 나가기 때문이다.
- * 그래서 account-be 가 고쳐지기 전까지 이 경우는 `server_error` 로 나온다.
+ * 다만 지금 account-be 는 모르는 토큰에 500 을 돌려주므로, 고쳐지기 전까지 이 경우는 `server_error` 로 나온다.
  */
 export async function fetchUserInfo<S extends ClientScope = never>(
   metadata: AccountMetadata,
