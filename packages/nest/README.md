@@ -77,6 +77,8 @@ me(@CurrentSession() session: Session) {
 
 ## 서비스 세션
 
+서비스 세션이 무엇이고 왜 쓰는지는 [루트 README](../../README.md#서비스-세션)에 있다.
+
 `session`을 정의하면 모듈에 `POST /auth/login`, `/auth/refresh`, `/auth/logout`이 생긴다. 웹과 Flutter SDK가 이 endpoint를 호출한다.
 경로를 바꾸려면 `session: { paths: { refresh: '/auth/refresh-token' } }`처럼 준다.
 

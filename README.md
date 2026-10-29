@@ -52,13 +52,26 @@ sequenceDiagram
   Note over C,B: 이후 요청과 갱신에는 서비스 세션만 쓰고, IdP 토큰은 쓰지 않는다
 ```
 
-NestJS라면 `@gsainfoteam/account-nest`의 세션 모듈이 서비스 백엔드 쪽을 모두 맡는다.
+### 서비스 세션
 
-프론트가 IdP access token을 백엔드에 넘기는 방식은 지원하지 않는다. account-be의 access token에는 대상 client가 없어서,
-누구나 등록할 수 있는 다른 client의 토큰으로도 로그인할 수 있기 때문이다. 백엔드가 직접 교환해 받은 id_token으로는 그럴 수 없다.
+IdP 로그인이 끝나면 서비스 백엔드가 자기 세션을 발급한다. IdP 토큰은 로그인할 때 사용자를 확인하는 데 한 번만 쓰고,
+이후의 API 요청과 로그인 유지에는 서비스 세션만 쓴다.
 
-IdP 토큰은 로그인할 때 한 번만 쓰므로 `offline_access`는 요청하지 않는다. 이 scope를 요청하면 account-fe가 로그인할 때마다
-동의 화면을 띄운다.
+- **세션:** 로그인 한 번을 가리킨다. 토큰을 갱신해도 유지되고, 로그아웃하면 끝난다.
+- **access token:** 서비스 백엔드가 서명한 JWT로, 수명은 15분이다. API 요청마다 붙인다.
+- **refresh token:** access token이 만료되면 새로 받는 데 쓴다. 쓸 때마다 새 토큰으로 바뀌고, 이미 쓴 토큰이 다시 오면 탈취된
+  것으로 보고 그 세션을 끝낸다. 웹에서는 JavaScript가 읽을 수 없는 httpOnly 쿠키에 둔다.
+
+IdP 토큰을 서비스 API에 그대로 쓰지 않는 이유는 다음과 같다.
+
+- account-be의 access token에는 대상 client가 없다. 그래서 누구나 등록할 수 있는 다른 client의 토큰으로도 우리 서비스에
+  로그인할 수 있다. 백엔드가 직접 교환해 받은 id_token으로는 그럴 수 없다.
+- IdP 토큰을 오래 쓰려면 `offline_access`가 필요한데, 이 scope를 요청하면 account-fe가 로그인할 때마다 동의 화면을 띄운다.
+- 서비스에 필요한 값(예: 기기 id)을 토큰에 함께 실을 수 있고, IdP가 잠깐 멈춰도 이미 로그인한 사용자는 영향을 받지 않는다.
+
+세션은 SDK가 양쪽에서 처리한다. 프론트 SDK(react, web, flutter)는 토큰을 붙여 요청하고 만료되면 갱신한다. 백엔드는
+[`@gsainfoteam/account-nest`](packages/nest)의 세션 모듈이 로그인, 갱신, 로그아웃 endpoint와 guard를 제공한다. 서비스가 직접
+작성하는 것은 IdP 사용자를 자기 DB의 사용자와 연결하는 함수 하나와, 세션을 저장할 store다.
 
 ### IdP client 등록
 

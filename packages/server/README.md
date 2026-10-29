@@ -1,7 +1,10 @@
 # @gsainfoteam/account-server
 
 서비스 백엔드용 인포팀 계정(IdP) 클라이언트. 특정 프레임워크에 의존하지 않고 `fetch`만 쓴다. NestJS라면 [`@gsainfoteam/account-nest`](../nest)를 쓴다.
-설치 방법도 그 README에 있다.
+GitHub Packages에서 배포하므로 먼저 [설치 인증](../../README.md#설치-인증)을 설정한다.
+
+이 패키지는 IdP로 사용자를 확인하는 데까지만 맡는다. [서비스 세션](../../README.md#서비스-세션)(토큰 발급, 갱신, 로그아웃)은 직접
+구현해야 하므로, 가능하면 NestJS 세션 모듈을 쓴다.
 
 ```ts
 import { createAccountServer } from '@gsainfoteam/account-server';
