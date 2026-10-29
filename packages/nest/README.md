@@ -110,6 +110,17 @@ sequenceDiagram
 
 ### store
 
+store에는 refresh token을 저장한다. 토큰 자체가 아니라 SHA-256 해시를 저장하며, refresh 할 때 토큰을 찾고 재사용을 감지하는 데 쓴다.
+서버를 재시작하거나 여러 대 띄워도 로그인이 유지되어야 하므로 운영에서는 DB나 Redis를 쓴다.
+
+| store                  | 로그아웃한 세션의 access token | 만료된 토큰                |
+| ---------------------- | ------------------------------ | -------------------------- |
+| `prismaSessionStore`   | 만료될 때까지(기본 15분) 통과  | 직접 지운다                |
+| `redisSessionStore`    | 바로 막힌다                    | 자동으로 지워진다          |
+| `memorySessionStore()` | 바로 막힌다                    | 프로세스가 끝나면 사라진다 |
+
+`memorySessionStore()`는 테스트와 서버를 한 대만 띄우는 개발 환경에서만 쓴다.
+
 Prisma를 쓰면 모델을 추가하고 `prismaSessionStore(prisma.accountSession)`를 넘긴다.
 
 ```prisma
@@ -129,11 +140,85 @@ model AccountSession {
 
 만료된 행은 자동으로 지워지지 않으므로 `prisma.accountSession.deleteMany({ where: { expiresAt: { lt: new Date() } } })`를 주기적으로 실행한다.
 
-Redis(ioredis)를 쓰면 `redisSessionStore(redis)`를 넘긴다. 키는 토큰과 함께 만료된다. guard가 요청마다 `EXISTS`를 한 번 호출해서,
-로그아웃한 세션의 access token을 바로 막는다. 키 접두사는 `{ prefix }`로 바꾸며, 기본값은 `account-session:`이다.
+Redis(ioredis)를 쓰면 `redisSessionStore(redis)`를 넘긴다. 키마다 refresh token의 만료 시각을 TTL로 걸어 두므로 따로 지울 필요가 없다.
+대신 guard가 요청마다 `EXISTS`를 한 번 호출한다. 키 접두사는 `{ prefix }`로 바꾸며, 기본값은 `account-session:`이다.
 
-다른 저장소라면 `SessionStore`를 구현한다. `markUsed`는 원자적이어야 한다. `isActive(sessionId)`까지 구현하면 로그아웃한 세션의 access token을
-만료 전에도 막는다. 테스트에는 `memorySessionStore()`를 쓴다.
+다른 저장소라면 `SessionStore`를 구현한다. `markUsed`는 원자적이어야 한다. 동시에 온 refresh 요청 중 하나만 성공해야 재사용을 감지할 수 있기
+때문이다. `isActive(sessionId)`는 선택이다. 구현하면 guard가 요청마다 이 메서드를 불러서, 로그아웃한 세션의 access token을 만료 전에도 막는다.
+
+Drizzle(PostgreSQL)이면 다음과 같이 구현한다. node-postgres와 postgres.js 드라이버에서 모두 동작한다. 만료된 행은 Prisma처럼 주기적으로 지운다.
+
+```ts
+import { type SessionRecord, type SessionStore } from '@gsainfoteam/account-nest';
+import { and, eq, isNull, lt } from 'drizzle-orm';
+import {
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  type PgDatabase,
+  type PgQueryResultHKT,
+} from 'drizzle-orm/pg-core';
+
+export const accountSession = pgTable(
+  'account_session',
+  {
+    tokenHash: text('token_hash').primaryKey(),
+    sessionId: text('session_id').notNull(),
+    subject: text('subject').notNull(),
+    claims: jsonb('claims').$type<SessionRecord['claims']>().notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    usedAt: timestamp('used_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('account_session_session_id_idx').on(table.sessionId),
+    index('account_session_subject_idx').on(table.subject),
+    index('account_session_expires_at_idx').on(table.expiresAt),
+  ],
+);
+
+export function drizzleSessionStore<Schema extends Record<string, unknown>>(
+  db: PgDatabase<PgQueryResultHKT, Schema>,
+): SessionStore {
+  return {
+    async save(record) {
+      await db.insert(accountSession).values(record);
+    },
+
+    async find(tokenHash) {
+      const [row] = await db
+        .select()
+        .from(accountSession)
+        .where(eq(accountSession.tokenHash, tokenHash));
+      return row ?? null;
+    },
+
+    async markUsed(tokenHash, at) {
+      const marked = await db
+        .update(accountSession)
+        .set({ usedAt: at })
+        .where(and(eq(accountSession.tokenHash, tokenHash), isNull(accountSession.usedAt)))
+        .returning({ tokenHash: accountSession.tokenHash });
+      return marked.length > 0;
+    },
+
+    async deleteUsed(sessionId, before) {
+      await db
+        .delete(accountSession)
+        .where(and(eq(accountSession.sessionId, sessionId), lt(accountSession.usedAt, before)));
+    },
+
+    async deleteSession(sessionId) {
+      await db.delete(accountSession).where(eq(accountSession.sessionId, sessionId));
+    },
+
+    async deleteSubject(subject) {
+      await db.delete(accountSession).where(eq(accountSession.subject, subject));
+    },
+  };
+}
+```
 
 ## scope와 필드 타입
 
