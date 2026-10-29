@@ -1,7 +1,7 @@
 # @gsainfoteam/account-testing
 
-테스트용 가짜 인포팀 계정(IdP). 프로세스 안에서 돌고, SDK 옵션의 `fetch` 로 붙인다. 서비스 백엔드가 스테이징 IdP 없이
-`/auth/login` 부터 guard 까지 실제 흐름 그대로 테스트할 수 있다.
+테스트용 가짜 인포팀 계정(IdP). 테스트 프로세스 안에서 동작하며, SDK 옵션의 `fetch`로 연결한다. 서비스 백엔드는 스테이징 IdP 없이
+`/auth/login`부터 guard까지 실제 흐름 그대로 테스트할 수 있다.
 
 ```bash
 pnpm add -D @gsainfoteam/account-testing
@@ -32,8 +32,8 @@ await request(app.getHttpServer()).post('/auth/login').send(body).expect(200);
 await idp.authorize({ clientId: 'c', user: fakeUser({ is_student_id_verified: false }) });
 ```
 
-- discovery, JWKS, token(authorization code 와 client credentials), userinfo, `GET /client/:id/public` 에 응답한다.
-- code 는 한 번만 교환되고, PKCE, redirect URI, client secret 을 진짜 IdP 처럼 확인한다. id_token 은 ES256 으로 서명한다.
-- `user` 를 생략하면 [faker](https://fakerjs.dev) 로 모든 claim 이 채워진 사용자(한국어 이름, `@gm.gist.ac.kr` 이메일, 학번, 전화번호)를 만든다.
-  faker 는 CommonJS 를 함께 내는 9.x 를 써서, jest 에서 변환할 패키지를 늘리지 않는다. jest 설정은 [`account-nest` README](../nest/README.md#설치) 와 같다.
-- id_token 과 userinfo 에는 동의한 scope 의 claim 만 들어간다. `authorize` 의 `amr`, `authTime` 으로 2FA 확인 같은 경우도 만든다.
+- discovery, JWKS, token(authorization code와 client credentials), userinfo, `GET /client/:id/public`에 응답한다.
+- 실제 IdP처럼 code는 한 번만 교환할 수 있고, PKCE와 redirect URI, client secret을 확인한다.
+- `user`를 생략하면 [faker](https://fakerjs.dev)로 모든 claim을 채운 사용자(한국어 이름, `@gm.gist.ac.kr` 이메일, 학번, 전화번호)를 만든다.
+- id_token과 userinfo에는 동의한 scope의 claim만 들어간다. `authorize`의 `amr`, `authTime`으로 재인증 확인 같은 경우도 만들 수 있다.
+- jest 설정은 [`account-nest` README](../nest/README.md#설치)와 같다.
