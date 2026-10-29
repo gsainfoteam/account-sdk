@@ -2,6 +2,8 @@
 
 인포팀 계정(IdP) 로그인을 React 앱에 붙인다. [`@gsainfoteam/account-web`](../web)의 export를 모두 다시 내보내므로 이 패키지 하나만 설치하면 된다.
 
+서비스 백엔드에는 [`@gsainfoteam/account-nest`](../nest)의 세션 모듈이 있어야 한다. 이 패키지는 그 백엔드의 로그인, 갱신, 로그아웃 endpoint를 호출한다.
+
 ## 설치
 
 GitHub Packages에서 배포한다. 먼저 [설치 인증](../../README.md#설치-인증)을 설정한다.
@@ -24,15 +26,21 @@ import { createAccountClient } from '@gsainfoteam/account-react';
 export const account = createAccountClient({
   issuer: 'production',
   clientId: import.meta.env.VITE_ACCOUNT_CLIENT_ID,
-  api: import.meta.env.VITE_API_URL, // @gsainfoteam/account-nest 세션 모듈이 있는 서비스 백엔드
+  api: import.meta.env.VITE_API_URL,
 });
 ```
 
-- `scopes`를 생략하면 IdP에 등록한 필수 scope와 선택 scope를 요청한다. `openid`는 항상 함께 요청한다.
-- `redirectUri`를 생략하면 `/auth/callback`을 쓴다. IdP에 이 URL을 등록만 하고, 라우트는 만들지 않는다.
-- `silentLogin: true`이면 세션이 없을 때 `prompt=none`으로 IdP에 한 번 다녀온다. IdP에 이미 로그인한 사용자는 화면 없이 로그인되고,
-  그렇지 않은 사용자는 에러 없이 비로그인 상태로 돌아온다. 탭마다 한 번만 시도하고, 로그아웃한 뒤에는 시도하지 않는다.
-- 백엔드 경로가 기본값(`/auth/login`, `/auth/refresh`, `/auth/logout`)과 다르면 `api: { baseUrl, paths: { refresh: '/auth/refresh-token' } }`로 준다.
+| 옵션          | 설명                                                                                                              |
+| ------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `issuer`      | `'production'` 또는 `'staging'`                                                                                   |
+| `clientId`    | IdP에 등록한 client id                                                                                            |
+| `api`         | 서비스 백엔드 주소. 경로가 기본값과 다르면 `{ baseUrl, paths: { refresh: '/auth/refresh-token' } }`로 준다        |
+| `scopes`      | 생략하면 IdP에 등록한 필수 scope와 선택 scope를 모두 요청한다. `openid`는 항상 함께 요청한다                      |
+| `redirectUri` | 생략하면 `/auth/callback`이다. IdP에 이 URL을 등록만 하고, 라우트는 만들지 않는다. SDK가 라우터보다 먼저 처리한다 |
+| `silentLogin` | 자동 로그인. 아래 설명 참고                                                                                       |
+
+`silentLogin: true`이면 서비스 세션이 없을 때 화면 없이 IdP에 한 번 다녀온다. 사용자가 다른 인포팀 서비스에서 이미 IdP에 로그인했다면 로그인 버튼을
+누르지 않아도 로그인되고, 아니면 에러 없이 비로그인 상태로 돌아온다. 탭마다 한 번만 시도하고, 로그아웃한 뒤에는 시도하지 않는다.
 
 ### 2. Provider
 
@@ -47,8 +55,8 @@ export const account = createAccountClient({
 
 ### 3. 로그인이 필요한 라우트
 
-라우터의 guard에서 `requireAuth`를 호출한다. 세션이 있으면 그대로 통과하고, 없으면 사용자를 IdP로 보냈다가 돌아오게 한다.
-`returnTo`에는 라우터가 주는 이동 대상을 넘긴다. 생략하면 현재 주소를 쓰는데, 클라이언트 쪽에서 이동하는 중이면 현재 주소는 이전 페이지다.
+라우터의 guard에서 `requireAuth`를 호출한다. 세션이 있으면 그대로 통과하고, 없으면 사용자를 IdP로 보냈다가 원래 가려던 페이지로 돌아오게 한다.
+`returnTo`에는 라우터가 주는 이동 대상을 넘긴다. 생략하면 현재 주소를 쓰는데, 페이지를 이동하는 중에는 현재 주소가 이전 페이지이기 때문이다.
 
 **TanStack Router** (파일 기반이든 `createRoute`든 같다)
 
@@ -89,20 +97,29 @@ account.store.subscribe(() => router.revalidate());
 로그인 화면을 따로 두는 앱은 `redirect={false}`를 넘기고 `fallback`에 로그인 화면을 둔다.
 
 - `requireAuth`는 사용자를 IdP로 보내는 동안 끝나지 않는 Promise를 돌려준다. 그동안 라우터는 이동 중 화면을 유지한다.
-- 이 페이지의 callback이 실패했으면(사용자가 취소했거나 백엔드가 거절했으면) 다시 IdP로 보내지 않고 그 에러를 던진다.
-  다시 보내면 취소한 사용자가 빠져나갈 수 없기 때문이다. 에러 화면에서 `error.code`로 경우를 나누고, 다시 시도하는 버튼에서 `login()`을 호출한다.
+- 로그인이 실패했으면(사용자가 취소했거나 백엔드가 거절했으면) 다시 IdP로 보내지 않고 그 에러를 던진다. 다시 보내면 취소한 사용자가 빠져나갈 수
+  없기 때문이다. 에러 화면에서 `error.code`로 경우를 나누고, 다시 시도하는 버튼에서 `login()`을 호출한다.
 - 다른 origin의 `returnTo`는 버린다.
 
-### 4. 상태와 동작
+### 4. 상태와 로그인
 
 ```tsx
 const { status, error, login, logout, retryLogin, fetch } = useAccount();
+
+if (status === 'unauthenticated') return <button onClick={() => login()}>로그인</button>;
 ```
 
-- `status`는 `loading`, `authenticated`, `unauthenticated` 중 하나다.
-- `error.code`로 실패 이유를 나눈다. 예를 들어 사용자가 IdP 화면에서 취소하면 `user_cancelled`다.
-- 서비스 백엔드가 로그인을 거절하면 `session_rejected`이고, 거절 이유는 `error.details`에 있다.
-  house-moving-out처럼 약관 동의를 받아야 하면 `retryLogin(body)`로 동의 내용을 보낸다. 이때 IdP를 다시 거치지 않는다.
+`status`는 `loading`, `authenticated`, `unauthenticated` 중 하나다. 로그인이 실패하면 `error`에 `AccountError`가 들어가며, 자주 보는 `error.code`는 다음과 같다.
+
+| `error.code`            | 뜻                                                                            |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| `user_cancelled`        | 사용자가 IdP 화면에서 취소했다                                                |
+| `verification_required` | 서비스가 필수로 요구한 정보(예: 학번)를 사용자가 IdP에서 아직 인증하지 않았다 |
+| `session_rejected`      | 서비스 백엔드가 로그인을 거절했다. 거절 이유는 `error.details`에 있다         |
+| `network_error`         | IdP나 서비스 백엔드에 연결하지 못했다                                         |
+
+`session_rejected`는 약관 동의처럼 로그인 전에 추가 입력이 필요할 때 쓴다. 사용자에게 입력을 받은 뒤 `retryLogin(body)`로 보내면 IdP를 다시 거치지 않고
+로그인을 마친다. 백엔드 쪽은 [로그인 전 추가 입력](../nest/README.md#로그인-전-추가-입력)을 참고한다.
 
 ### 5. API 요청
 
@@ -134,9 +151,9 @@ attachAccount(instance, account);
 ### 6. 로그아웃
 
 ```ts
-await logout(); // 서비스 세션만 끝낸다. 다음 로그인에서는 IdP 가 계정을 다시 고르게 한다
-await logout({ idp: true, returnTo: '/' }); // IdP 로그인 세션까지 끝낸다. 공용 PC 같은 경우
+await logout(); // 서비스 세션만 끝낸다
+await logout({ idp: true, returnTo: '/' }); // IdP 로그인 세션까지 끝낸다
 ```
 
-`idp: true`이면 IdP의 로그아웃 페이지에 다녀온다. 돌아올 때 IdP에 등록한 callback URL을 거치므로 따로 등록할 URL은 없다.
-IdP가 아직 로그아웃 endpoint를 제공하지 않으면 서비스 세션만 끝낸다.
+둘의 차이는 [로그아웃](../../README.md#로그아웃)에 있다. `idp: true`이면 IdP의 로그아웃 페이지에 다녀오는데, 돌아올 때 IdP에 등록한 callback URL을
+거치므로 따로 등록할 URL은 없다. IdP가 아직 로그아웃 endpoint를 제공하지 않으면 서비스 세션만 끝낸다.
