@@ -14,6 +14,7 @@ void main() {
     }, idp['environments']);
     expect(AccountConstants.apiHostPrefix, idp['apiHostPrefix']);
     expect(AccountConstants.discoveryPath, idp['discoveryPath']);
+    expect(AccountConstants.clientRegistrationPath, idp['clientRegistrationPath']);
     expect(
       idp['fallbackEndpoints'],
       containsPair('userinfo', AccountConstants.fallbackUserinfoPath),

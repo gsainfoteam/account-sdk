@@ -10,7 +10,6 @@ export interface UseAccountResult extends AccountState {
   fetch: AccountClient['fetch'];
 }
 
-/** client 의 상태를 구독하고 동작을 노출한다. */
 export function useAccount(): UseAccountResult {
   const client = useAccountClient();
   const state = useStore(client.store);

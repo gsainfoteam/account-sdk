@@ -2,114 +2,101 @@ import {
   AccountError,
   AUTHORIZATION_HEADER,
   bearer,
+  CALLBACK_PATH,
   createAuthorization,
+  createLogoutUrl,
   discover,
-  exchangeCode,
+  fetchClientRegistration,
   isCallbackUrl,
   isUnauthorized,
-  OFFLINE_ACCESS_SCOPE,
+  OPENID_SCOPE,
   parseCallback,
   readCallbackState,
+  type ClientScope,
   type Fetch,
   type Prompt,
-  type Scope,
 } from '@gsainfoteam/account-core';
-import { Mutex } from 'es-toolkit';
+import { attempt, isString, Mutex } from 'es-toolkit';
 import * as z from 'zod/mini';
 import { createStore, type StoreApi } from 'zustand/vanilla';
 
 import { type AccountState } from './account-state';
 import { AccountClientOptionsSchema, type AccountClientOptions } from './options';
-import { type LoginCredential } from '../session/session-adapter';
+import { apiSession } from '../session/api-session';
+import { type LoginCredential, type SessionRejection } from '../session/session-adapter';
 import { STORAGE_KEYS } from '../storage/keys';
-import { saveTransaction, takeTransaction } from '../storage/transactions';
+import { saveTransaction, takeTransaction, type StoredTransaction } from '../storage/transactions';
 
 export interface LoginOptions {
-  /** callback 뒤에 사용자를 보낼 위치. {@link AccountClient.handleCallback} 이 돌려준다. */
+  /** 다른 origin을 가리키면 버린다. */
   returnTo?: string;
   prompt?: Prompt;
 }
 
-export interface CallbackResult {
-  returnTo: string | undefined;
+export interface LogoutOptions {
+  /** IdP 로그인 세션도 끝낸다. 공용 PC처럼 다음 사람이 같은 IdP 계정으로 자동 로그인되면 안 될 때 쓴다. */
+  idp?: boolean;
+  /** `idp: true`일 때만 쓴다. 같은 origin이어야 한다. */
+  returnTo?: string;
 }
 
-/** IdP 와 서비스 백엔드 세션을 다루는 브라우저 client. */
+export interface RequireAuthOptions {
+  /**
+   * 생략하면 현재 페이지를 쓰는데, 라우터 guard에서는 현재 페이지가 아직 이전 페이지다. 이동하려는 대상을 넘긴다.
+   * TanStack Router에서는 `location.href`, React Router에서는 `request.url`이 그 대상이다.
+   */
+  returnTo?: string;
+}
+
 export interface AccountClient {
   readonly store: StoreApi<AccountState>;
 
   getAccessToken(): string | null;
 
-  /**
-   * {@link SessionAdapter.refresh} 로 세션을 복구한다. 여러 번 불러도 안전하다.
-   *
-   * @remarks
-   * callback 페이지에서는 건너뛴다. 그곳에서는 {@link AccountClient.handleCallback} 이 세션을 만들고,
-   * 동시에 refresh 하면 서로 경합하기 때문이다.
-   */
+  /** 여러 번 불러도 초기화는 한 번만 한다. 실패해도 에러를 던지지 않고 `store`의 `error`에 남긴다. */
   ready(): Promise<void>;
 
+  /** callback을 처리하거나 자동 로그인을 시도하는 중인지 알려 준다. 곧 떠날 화면이 깜빡이지 않게 가릴 때 쓴다. */
+  isHandlingRedirect(): boolean;
+
   /**
-   * IdP 로그인 페이지로 보낸다.
+   * 세션이 없으면 사용자를 IdP로 보내고 끝나지 않는 Promise를 돌려줘서, 라우터가 이동 중 화면을 유지하게 한다.
    *
-   * @remarks
-   * 로그아웃해도 IdP 자체의 로그인 세션은 끝나지 않는다. 그래서 로그아웃 뒤 첫 로그인에는 `prompt=login` 을
-   * 붙여 사용자가 계정을 바꿀 수 있게 한다.
+   * @throws {@link AccountError} 이 페이지의 callback이 실패했으면 그 에러를 던진다. 다시 IdP로 보내면 취소한 사용자가
+   * 빠져나갈 수 없게 되므로, 라우터의 에러 화면에서 `error.code`로 경우를 나눈다.
+   */
+  requireAuth(options?: RequireAuthOptions): Promise<void>;
+
+  /**
+   * `logout({ idp: false })`는 IdP 로그인 세션을 남기므로, 로그아웃 뒤 첫 로그인에는 `prompt=login`을 붙여
+   * 사용자가 계정을 바꿀 수 있게 한다.
    */
   login(options?: LoginOptions): Promise<void>;
 
   /**
-   * callback 을 검증하고, code 를 교환하고, 서비스 백엔드에 로그인한다.
-   *
-   * @remarks
-   * React StrictMode 는 effect 를 두 번 돌리는데 code 는 한 번만 교환할 수 있다. 그래서 같은 callback 에 대한
-   * 호출은 시도 하나를 같이 쓴다.
-   *
-   * @throws {@link AccountError} `state_mismatch`, `user_cancelled`, `session_rejected` 등.
-   */
-  handleCallback(url?: string): Promise<CallbackResult>;
-
-  /**
-   * 같은 IdP 토큰에 body 를 더해 로그인을 다시 보낸다. 예를 들어 서비스가 첫 시도를 `session_rejected` 로
-   * 거절하며 요구한 동의 내용을 보낼 때 쓴다.
-   *
-   * @remarks
-   * `browser` 교환으로 한 로그인만 재시도할 수 있다. authorization code 는 한 번만 쓸 수 있기 때문이다.
+   * `session_rejected`로 거절된 로그인을 body를 더해 다시 보낸다. 거절 응답의 ticket을 쓰므로 IdP를 다시
+   * 거치지 않는다.
    */
   retryLogin(body: unknown): Promise<void>;
 
-  /** 서비스 세션을 끝낸다. 어차피 로컬에서는 로그아웃되므로 서버 쪽 실패는 조용히 넘긴다. */
-  logout(): Promise<void>;
-
   /**
-   * 서비스 백엔드에서 새 access token 을 받는다.
-   *
-   * @param staleToken 요청이 거절당했을 때 쓴 토큰. 다른 호출이 이미 교체했다면 다시 refresh 하지 않고
-   * 그 새 토큰을 돌려준다.
-   * @returns 새 토큰. refresh 할 세션이 없으면 `null`.
+   * 어차피 로컬에서는 로그아웃되므로 서버 쪽 실패는 조용히 넘긴다. IdP가 로그아웃을 지원하지 않으면 `idp: true`여도
+   * 서비스 세션만 끝낸다.
    */
+  logout(options?: LogoutOptions): Promise<void>;
+
+  /** `staleToken`을 다른 호출이 이미 교체했다면 다시 refresh 하지 않고 그 새 토큰을 돌려준다. */
   refresh(staleToken?: string | null): Promise<string | null>;
 
-  /** access token 을 보내고, 401 이면 refresh 한 뒤 한 번 다시 시도하는 `fetch`. */
+  /** access token을 보내고, 401이면 refresh 한 뒤 한 번 다시 시도하는 `fetch`다. */
   fetch: Fetch;
 }
 
 /**
- * 브라우저 client 를 만든다.
+ * client를 라우터보다 먼저 만들어야 한다. 페이지가 callback으로 열렸으면 만드는 즉시 주소를 로그인 전 위치로 바꾸는데,
+ * 라우터는 만들어질 때 주소를 읽기 때문이다.
  *
- * @example
- * ```ts
- * export const account = createAccountClient({
- *   issuer: 'production',
- *   clientId: import.meta.env.VITE_ACCOUNT_CLIENT_ID,
- *   redirectUri: '/auth/callback',
- *   scopes: ['name', 'email'],
- *   exchange: 'browser',
- *   session: cookieSession({ baseUrl: import.meta.env.VITE_API_URL }),
- * });
- * ```
- *
- * @throws {@link AccountError} 옵션이 없거나 비어 있으면 `invalid_request`.
+ * @throws {@link AccountError} 옵션이 없거나 비어 있으면 `invalid_request`를 던진다.
  */
 export function createAccountClient(input: AccountClientOptions): AccountClient {
   const parsed = AccountClientOptionsSchema.safeParse(input);
@@ -120,15 +107,29 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   }
 
   const options = parsed.data;
-  const { clientId, session, fetch } = options;
-  const scopes: Scope[] = options.offlineAccess
-    ? [...options.scopes, OFFLINE_ACCESS_SCOPE]
-    : options.scopes;
+  const { clientId, fetch } = options;
+  const { baseUrl, paths = {} } = isString(options.api) ? { baseUrl: options.api } : options.api;
+  const session = apiSession(baseUrl, paths, fetch);
   const transactions = options.transactionStorage ?? globalThis.sessionStorage;
   const redirect = options.redirect ?? ((url: string) => window.location.assign(url));
 
   const metadata = () => discover(options.issuer, { fetch });
-  const redirectUri = (): string => new URL(options.redirectUri, window.location.origin).toString();
+  const redirectUri = (): string =>
+    new URL(options.redirectUri ?? CALLBACK_PATH, window.location.origin).toString();
+
+  let registeredScopes: Promise<ClientScope[]> | undefined;
+  const scopes = async (): Promise<ClientScope[]> => {
+    if (options.scopes) return options.scopes;
+
+    registeredScopes ??= metadata()
+      .then((current) => fetchClientRegistration(current, clientId, { fetch }))
+      .then(({ scopes: required, optionalScopes }) => [...required, ...optionalScopes]);
+
+    return registeredScopes.catch((error: unknown) => {
+      registeredScopes = undefined;
+      throw error;
+    });
+  };
 
   const store = createStore<AccountState>(() => ({
     status: 'loading',
@@ -138,18 +139,21 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   }));
 
   const refreshMutex = new Mutex();
-  const callbacks = new Map<string, Promise<CallbackResult>>();
-  let pendingCredential: LoginCredential | null = null;
+  const callback = takeCallback(redirectUri(), transactions);
+  const trySilentLogin =
+    options.silentLogin === true &&
+    callback === null &&
+    transactions.getItem(STORAGE_KEYS.silentLoginTried) === null &&
+    localStorage.getItem(STORAGE_KEYS.loggedOut) === null;
+  let callbackError: AccountError | null = null;
+  let rejection: SessionRejection | null = null;
   let initializing: Promise<void> | undefined;
+  let settled = false;
 
   const authenticate = (accessToken: string): void => {
-    pendingCredential = null;
-    store.setState({
-      status: 'authenticated',
-      accessToken,
-      error: null,
-      canRetryLogin: false,
-    });
+    rejection = null;
+    callbackError = null;
+    store.setState({ status: 'authenticated', accessToken, error: null, canRetryLogin: false });
   };
 
   const unauthenticate = (error: AccountError | null = null): void => {
@@ -157,51 +161,79 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
       status: 'unauthenticated',
       accessToken: null,
       error,
-      canRetryLogin: pendingCredential !== null,
+      canRetryLogin: rejection?.ticket !== undefined,
     });
   };
 
   const startSession = async (credential: LoginCredential, body?: unknown): Promise<void> => {
+    const result = await session.start(credential, body);
+
+    if ('rejected' in result) {
+      rejection = result.rejected;
+      throw result.rejected.error;
+    }
+
+    localStorage.removeItem(STORAGE_KEYS.loggedOut);
+    authenticate(result.tokens.accessToken);
+  };
+
+  const finishCallback = async ({ url, transaction }: Callback): Promise<void> => {
     try {
-      const tokens = await session.start(credential, body);
-      localStorage.removeItem(STORAGE_KEYS.loggedOut);
-      authenticate(tokens.accessToken);
+      const params = parseCallback(await metadata(), url, { clientId, state: transaction?.state });
+      if (!transaction) throw new AccountError('state_mismatch');
+
+      const { codeVerifier, redirectUri: sentRedirectUri, nonce } = transaction;
+      await startSession({
+        code: params.code,
+        codeVerifier,
+        redirectUri: sentRedirectUri,
+        nonce,
+        iss: params.iss,
+      });
     } catch (error) {
       const accountError = toAccountError(error);
-      const retryable =
-        credential.type === 'idp_token' && AccountError.is(accountError, 'session_rejected');
-      pendingCredential = retryable ? credential : null;
-      unauthenticate(accountError);
-      throw accountError;
+      if (transaction?.silent && SILENT_LOGIN_FAILURES.has(accountError.code)) {
+        unauthenticate();
+        return;
+      }
+
+      callbackError = accountError;
+      unauthenticate(callbackError);
     }
   };
 
-  const credentialOf = async (
-    url: string,
-  ): Promise<{ credential: LoginCredential; returnTo?: string }> => {
-    const transaction = takeTransaction(transactions, readCallbackState(url));
-    const current = await metadata();
-    const callback = parseCallback(current, url, { clientId, state: transaction?.state });
-    if (!transaction) throw new AccountError('state_mismatch');
+  const authorize = async (
+    returnTo: string,
+    prompt: Prompt | undefined,
+    silent: boolean,
+  ): Promise<void> => {
+    const loggedOut = localStorage.getItem(STORAGE_KEYS.loggedOut) !== null;
+    const { url, transaction } = await createAuthorization(await metadata(), {
+      clientId,
+      redirectUri: redirectUri(),
+      scopes: [OPENID_SCOPE, ...(await scopes())],
+      prompt: prompt ?? (loggedOut ? 'login' : undefined),
+    });
 
-    const { codeVerifier, redirectUri, nonce, returnTo } = transaction;
-    const { code, iss } = callback;
+    saveTransaction(transactions, transaction, { returnTo: sameOriginPath(returnTo), silent });
+    redirect(url);
+  };
 
-    if (options.exchange === 'backend') {
-      return {
-        credential: { type: 'code', code, codeVerifier, redirectUri, nonce, iss },
-        returnTo,
-      };
+  const restoreSession = async (): Promise<void> => {
+    try {
+      const tokens = await session.refresh();
+      if (tokens) return authenticate(tokens.accessToken);
+
+      if (trySilentLogin) {
+        transactions.setItem(STORAGE_KEYS.silentLoginTried, '1');
+        await authorize(window.location.href, 'none', true);
+        return new Promise<never>(() => undefined);
+      }
+
+      unauthenticate();
+    } catch (error) {
+      unauthenticate(toAccountError(error));
     }
-
-    const tokens = await exchangeCode(
-      current,
-      { clientId },
-      { code, codeVerifier, redirectUri, nonce, iss },
-      { fetch },
-    );
-    const { accessToken, idToken, idTokenClaims } = tokens;
-    return { credential: { type: 'idp_token', accessToken, idToken, idTokenClaims }, returnTo };
   };
 
   const client: AccountClient = {
@@ -212,73 +244,64 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
     },
 
     ready() {
-      initializing ??= (async () => {
-        const onCallbackPage =
-          isCallbackUrl(window.location.href) &&
-          window.location.pathname === new URL(redirectUri()).pathname;
-        if (onCallbackPage) return;
-
-        try {
-          const tokens = await session.refresh();
-          if (tokens) authenticate(tokens.accessToken);
-          else unauthenticate();
-        } catch (error) {
-          unauthenticate(toAccountError(error));
-        }
-      })();
+      initializing ??= (callback ? finishCallback(callback) : restoreSession()).finally(() => {
+        settled = true;
+      });
 
       return initializing;
     },
 
-    async login({ returnTo, prompt } = {}) {
-      const loggedOut = localStorage.getItem(STORAGE_KEYS.loggedOut) !== null;
-      const { url, transaction } = await createAuthorization(await metadata(), {
-        clientId,
-        redirectUri: redirectUri(),
-        scopes,
-        prompt: prompt ?? (loggedOut ? 'login' : undefined),
-      });
-
-      saveTransaction(transactions, transaction, returnTo);
-      redirect(url);
+    isHandlingRedirect() {
+      return !settled && (callback !== null || trySilentLogin);
     },
 
-    handleCallback(url = window.location.href) {
-      const key = readCallbackState(url) ?? url;
+    async requireAuth({ returnTo } = {}) {
+      await client.ready();
+      if (store.getState().status === 'authenticated') return;
+      if (callbackError) throw callbackError;
 
-      let pending = callbacks.get(key);
-      if (!pending) {
-        pending = (async () => {
-          const { credential, returnTo } = await credentialOf(url);
-          await startSession(credential);
-          return { returnTo };
-        })().catch((error: unknown) => {
-          const accountError = toAccountError(error);
-          if (store.getState().status !== 'unauthenticated') unauthenticate(accountError);
-          throw accountError;
-        });
-        callbacks.set(key, pending);
-      }
+      await client.login({ returnTo });
+      return new Promise<never>(() => undefined);
+    },
 
-      return pending;
+    async login({ returnTo = window.location.href, prompt } = {}) {
+      await authorize(returnTo, prompt, false);
     },
 
     async retryLogin(body) {
-      if (!pendingCredential) {
+      if (rejection?.ticket === undefined) {
         throw new AccountError('unauthenticated', { description: 'no login to retry' });
       }
 
-      await startSession(pendingCredential, body);
+      try {
+        await startSession({ ticket: rejection.ticket }, body);
+      } catch (error) {
+        unauthenticate(toAccountError(error));
+        throw error;
+      }
     },
 
-    async logout() {
+    async logout({ idp = false, returnTo = '/' } = {}) {
       const { accessToken } = store.getState();
 
-      pendingCredential = null;
+      rejection = null;
       localStorage.setItem(STORAGE_KEYS.loggedOut, '1');
       unauthenticate();
 
       await session.end(accessToken).catch(() => undefined);
+      if (!idp) return;
+
+      const logout = createLogoutUrl(await metadata(), {
+        clientId,
+        postLogoutRedirectUri: redirectUri(),
+      });
+      if (!logout) return;
+
+      transactions.setItem(
+        STORAGE_KEYS.logoutPrefix + logout.state,
+        sameOriginPath(returnTo) ?? '/',
+      );
+      redirect(logout.url);
     },
 
     async refresh(staleToken = store.getState().accessToken) {
@@ -326,6 +349,50 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   };
 
   return client;
+}
+
+/** 사용자가 직접 로그인하면 되는 자동 로그인 실패 코드다. 에러로 알리지 않는다. */
+const SILENT_LOGIN_FAILURES = new Set<string>([
+  'login_required',
+  'consent_required',
+  'interaction_required',
+]);
+
+interface Callback {
+  url: string;
+  transaction: StoredTransaction | null;
+}
+
+/**
+ * 동기로 처리해야 한다. 라우터가 만들어지기 전에 주소가 바뀌어 있어야 라우터가 callback 주소를 라우팅하지 않는다.
+ * 같은 이유로 돌아갈 위치가 든 트랜잭션도 미리 꺼낸다.
+ */
+function takeCallback(redirectUri: string, transactions: Storage): Callback | null {
+  const url = window.location.href;
+  if (new URL(url).pathname !== new URL(redirectUri).pathname) return null;
+
+  const logoutKey = STORAGE_KEYS.logoutPrefix + readCallbackState(url);
+  const afterLogout = transactions.getItem(logoutKey);
+  if (afterLogout !== null && !isCallbackUrl(url)) {
+    transactions.removeItem(logoutKey);
+    window.history.replaceState(null, '', afterLogout);
+    return null;
+  }
+
+  if (!isCallbackUrl(url)) return null;
+
+  const transaction = takeTransaction(transactions, readCallbackState(url));
+  window.history.replaceState(null, '', transaction?.returnTo ?? '/');
+
+  return { url, transaction };
+}
+
+/** 로그인 뒤 사용자를 다른 사이트로 보내지 않도록 다른 origin은 버린다. */
+function sameOriginPath(value: string): string | undefined {
+  const [, url] = attempt(() => new URL(value, window.location.origin));
+  if (url?.origin !== window.location.origin) return undefined;
+
+  return url.pathname + url.search + url.hash;
 }
 
 function toAccountError(error: unknown): AccountError {

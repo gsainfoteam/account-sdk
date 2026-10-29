@@ -2,10 +2,13 @@ import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import {
   exchangeCode,
+  fetchClientRegistration,
   fetchUserInfo,
   refreshTokens,
   requestClientCredentials,
   revokeToken,
+  userInfoFromIdToken,
+  type IdTokenClaims,
 } from '../src';
 import { createSigner, jsonResponse, metadata } from './helpers';
 
@@ -293,5 +296,61 @@ describe('fetchUserInfo', () => {
     await expect(
       fetchUserInfo(metadata, { clientId: 'client-1' }, 'bogus', { fetch }),
     ).rejects.toMatchObject({ code: 'server_error' });
+  });
+});
+
+describe('userInfoFromIdToken', () => {
+  const claims: IdTokenClaims = {
+    iss: 'https://api.account.gistory.me',
+    sub: 'user-1',
+    aud: 'client-1',
+    iat: 0,
+    exp: 0,
+    student_id: '20240000',
+    is_student_id_verified: false,
+  };
+
+  it('reads the user claims of the id_token like a userinfo body', () => {
+    const user = userInfoFromIdToken(claims, ['student_id']);
+
+    expect(user).toEqual({ sub: 'user-1', studentId: '20240000', isStudentIdVerified: false });
+    expectTypeOf(user.isStudentIdVerified).toEqualTypeOf<boolean>();
+  });
+
+  it('fails with missing_claims when a required scope was not granted', () => {
+    expect(() => userInfoFromIdToken(claims, ['email'])).toThrow(
+      expect.objectContaining({ code: 'missing_claims', description: 'email' }),
+    );
+  });
+});
+
+describe('fetchClientRegistration', () => {
+  it('reads the public registration from the API host and drops scopes the SDK does not know', async () => {
+    const fetch = mockFetch(
+      jsonResponse({
+        clientId: 'client-1',
+        name: 'ziggle',
+        scopes: ['name', 'something_new'],
+        optionalScopes: ['email'],
+        tokenEndpointAuthMethod: 'client_secret_post',
+      }),
+    );
+
+    await expect(fetchClientRegistration(metadata, 'client-1', { fetch })).resolves.toEqual({
+      scopes: ['name'],
+      optionalScopes: ['email'],
+      tokenEndpointAuthMethod: 'client_secret_post',
+    });
+    expect(String(fetch.mock.calls[0]?.[0])).toBe(
+      'https://api.account.gistory.me/client/client-1/public',
+    );
+  });
+
+  it('reports an unknown client as invalid_client', async () => {
+    const fetch = mockFetch(jsonResponse({ statusCode: 404 }, 404));
+
+    await expect(fetchClientRegistration(metadata, 'nope', { fetch })).rejects.toMatchObject({
+      code: 'invalid_client',
+    });
   });
 });

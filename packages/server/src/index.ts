@@ -1,4 +1,9 @@
-export { createAccountServer, type AccountServer } from './account-server';
+export {
+  createAccountServer,
+  type AccountServer,
+  type AuthenticationRequirement,
+  type LoginWithCodeParams,
+} from './account-server';
 export { AccountServerOptionsSchema, type AccountServerOptions } from './options';
 export {
   AccountError,

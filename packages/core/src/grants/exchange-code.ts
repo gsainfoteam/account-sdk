@@ -2,11 +2,13 @@ import * as oauth from 'oauth4webapi';
 
 import {
   asForIdTokenOf,
+  idTokenOf,
   toTokenResponse,
   type ClientCredentials,
   type TokenResponse,
 } from './token-response';
 import { type AccountMetadata } from '../discovery/normalize-discovery';
+import { AccountError } from '../errors/account-error';
 import { type RequestOptions } from '../http/fetch';
 import {
   authorizationServer,
@@ -18,27 +20,19 @@ import {
 
 export interface ExchangeCodeParams {
   code: string;
-  /** {@link AuthorizationTransaction} 에 저장한 PKCE verifier. */
   codeVerifier: string;
-  /** authorization 요청의 `redirect_uri` 와 같아야 한다. */
+  /** authorization 요청의 `redirect_uri`와 같아야 한다. */
   redirectUri: string;
-  /** `openid` 와 함께 보낸 nonce. id_token 에 같은 값이 있어야 한다. */
+  /** `openid`와 함께 보낸 nonce다. id_token에 같은 값이 있어야 한다. */
   nonce?: string;
-  /** callback 의 `iss`. callback 을 받은 쪽이 넘겨줄 때만 있다. */
   iss?: string;
 }
 
 /**
- * authorization code 를 토큰으로 교환한다.
+ * `state`는 확인하지 않는다. callback을 받은 쪽이 이미 {@link parseCallback}으로 확인했어야 한다.
  *
- * 브라우저의 public client 와, 프론트에서 code 를 넘겨받은 서버의 confidential client 모두에서 쓴다.
- *
- * @remarks
- * 여기서는 `state` 를 확인하지 않는다. callback 을 받은 쪽이 이미 {@link parseCallback} 으로 확인했다.
- * 그래서 서버가 프론트에서 넘겨받은 code 에도 이 함수를 그대로 쓸 수 있다.
- *
- * @throws {@link AccountError} 이미 쓰였거나 만료된 code 면 `invalid_grant`. 그 밖에 `invalid_id_token`,
- * `issuer_mismatch`, `network_error`.
+ * @throws {@link AccountError} 이미 쓰였거나 만료된 code면 `invalid_grant`. `nonce`를 줬는데 id_token이 없거나
+ * 맞지 않으면 `invalid_id_token`. 그 밖에 `issuer_mismatch`, `network_error`.
  */
 export async function exchangeCode(
   metadata: AccountMetadata,
@@ -66,6 +60,12 @@ export async function exchangeCode(
       params.codeVerifier,
       httpOptions(options),
     );
+
+    if (params.nonce !== undefined && response.ok && !(await idTokenOf(response))) {
+      throw new AccountError('invalid_id_token', {
+        description: 'the token response has no id_token for the openid request',
+      });
+    }
 
     const result = await oauth.processAuthorizationCodeResponse(
       await asForIdTokenOf(metadata, response),

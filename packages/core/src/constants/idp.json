@@ -5,6 +5,7 @@
   },
   "apiHostPrefix": "api.",
   "discoveryPath": "/.well-known/openid-configuration",
+  "clientRegistrationPath": "/client/{clientId}/public",
   "fallbackEndpoints": {
     "userinfo": "/oauth/userinfo",
     "revocation": "/oauth/token"
@@ -16,5 +17,6 @@
     "refresh": "/auth/refresh",
     "logout": "/auth/logout"
   },
+  "callbackPath": "/auth/callback",
   "storageNamespace": "gsainfoteam-account"
 }

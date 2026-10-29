@@ -3,12 +3,16 @@ import { createRemoteJWKSet, customFetch, jwtVerify, type JWTVerifyGetKey } from
 import * as z from 'zod/mini';
 
 import { ID_TOKEN_CLOCK_TOLERANCE_SEC } from '../constants';
+import { UserClaimsSchema } from './user-claims';
 import { type AccountMetadata } from '../discovery/normalize-discovery';
 import { AccountError } from '../errors/account-error';
 import { type Fetch } from '../http/fetch';
 import { parse } from '../internal/validate';
 
-/** account-be 가 서명하는 id_token 의 claim. 프로필 claim 은 허용된 scope 의 것만 들어 있다. */
+/**
+ * 사용자 claim 중에서는 허용된 scope의 claim만 들어 있다.
+ * `auth_time`과 `amr`은 그 기록이 생기기 전의 세션에는 없다.
+ */
 export const IdTokenClaimsSchema = z.looseObject({
   iss: z.string(),
   sub: z.string().check(z.minLength(1)),
@@ -17,13 +21,9 @@ export const IdTokenClaimsSchema = z.looseObject({
   iat: z.number(),
   nonce: z.optional(z.string()),
   auth_time: z.optional(z.number()),
+  amr: z.optional(z.array(z.string())),
   scope: z.optional(z.string()),
-  name: z.optional(z.string()),
-  profile: z.optional(z.nullable(z.string())),
-  picture: z.optional(z.nullable(z.string())),
-  email: z.optional(z.string()),
-  student_id: z.optional(z.string()),
-  phone_number: z.optional(z.string()),
+  ...z.partial(UserClaimsSchema).shape,
 });
 
 export type IdTokenClaims = z.infer<typeof IdTokenClaimsSchema>;
@@ -48,9 +48,7 @@ function jwksOf(metadata: AccountMetadata, fetch: Fetch | undefined): JWTVerifyG
 }
 
 export interface VerifyIdTokenOptions {
-  /** 토큰을 발급받은 client id. */
   audience: string;
-  /** authorization 요청에 보낸 nonce. 주면 토큰에 같은 값이 있어야 한다. */
   nonce?: string;
   clockToleranceSec?: number;
   currentDate?: Date;
@@ -58,11 +56,7 @@ export interface VerifyIdTokenOptions {
 }
 
 /**
- * 앱이 백엔드로 보낸 것처럼, token endpoint 에서 바로 오지 않은 id_token 을 검증한다.
- * IdP JWKS 로 서명을 확인하고, issuer, audience, 만료, nonce 를 확인한다.
- *
- * @remarks
- * 키는 JWKS URI 마다 한 번 받고, 모르는 `kid` 가 나오면 jose 가 다시 받는다.
+ * 앱이 백엔드로 보낸 것처럼, token endpoint에서 바로 오지 않은 id_token을 서명까지 검증한다.
  *
  * @throws {@link AccountError} `invalid_id_token`.
  */

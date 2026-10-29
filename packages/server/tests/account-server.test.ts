@@ -1,7 +1,8 @@
-import { clearDiscoveryCache } from '@gsainfoteam/account-core';
+import { clearDiscoveryCache, type ClientScope } from '@gsainfoteam/account-core';
 import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import production from '../../core/tests/fixtures/discovery.production.json' with { type: 'json' };
+import { createSigner } from '../../core/tests/helpers';
 import { AccountServerOptionsSchema, createAccountServer } from '../src';
 
 type Route = (request: {
@@ -56,89 +57,101 @@ describe('createAccountServer', () => {
   });
 });
 
-describe('getUserInfo', () => {
-  it('checks the IdP token the frontend sent', async () => {
-    const fetch = idp({
-      '/oauth/userinfo': () => Response.json({ sub: 'user-1', name: '홍길동' }),
-    });
-    const server = createAccountServer({ issuer: 'production', clientId: 'c', fetch });
-    await expect(server.getUserInfo('at-1')).resolves.toMatchObject({
-      sub: 'user-1',
-      name: '홍길동',
-    });
-  });
+describe('loginWithCode', async () => {
+  const signer = await createSigner();
+  const now = Math.floor(Date.now() / 1000);
+  const login = {
+    code: 'x',
+    codeVerifier: 'v',
+    redirectUri: 'https://app.example/cb',
+    nonce: 'n-1',
+  };
 
-  it('types the fields of the required scopes as present', async () => {
-    const fetch = idp({
-      '/oauth/userinfo': () =>
-        Response.json({ sub: 'user-1', name: '홍길동', email: 'a@gm.gist.ac.kr' }),
-    });
-    const server = createAccountServer({
-      issuer: 'production',
-      clientId: 'c',
-      requiredScopes: ['name', 'email'],
-      fetch,
-    });
-
-    const user = await server.getUserInfo('at-1');
-
-    expectTypeOf(user.name).toEqualTypeOf<string>();
-    expectTypeOf(user.email).toEqualTypeOf<string>();
-    expectTypeOf(user.studentId).toEqualTypeOf<string | undefined>();
-  });
-
-  it('fails with missing_claims when a required scope was not granted', async () => {
-    const fetch = idp({
-      '/oauth/userinfo': () => Response.json({ sub: 'user-1', name: '홍길동' }),
-    });
-    const server = createAccountServer({
-      issuer: 'production',
-      clientId: 'c',
-      requiredScopes: ['name', 'student_id'],
-      fetch,
-    });
-
-    await expect(server.getUserInfo('at-1')).rejects.toMatchObject({
-      code: 'missing_claims',
-      description: 'student_id is_student_id_verified',
-    });
-  });
-});
-
-describe('exchangeCode', () => {
-  it('needs a client secret', async () => {
-    const server = createAccountServer({ issuer: 'production', clientId: 'c', fetch: idp({}) });
-    await expect(
-      server.exchangeCode({ code: 'x', codeVerifier: 'v', redirectUri: 'r' }),
-    ).rejects.toMatchObject({
-      code: 'invalid_client',
-    });
-  });
-
-  it('signs in with a code in one call', async () => {
-    const fetch = idp({
-      '/oauth/token': ({ body }) => {
+  const idpIssuing = (claims: Record<string, unknown>) =>
+    idp({
+      '/oauth/token': async ({ body }) => {
         expect(body.get('client_secret')).toBe('s');
-        return Response.json(tokenBody);
-      },
-      '/oauth/userinfo': ({ headers }) => {
-        expect(headers.get('authorization')).toBe('Bearer at-1');
-        return Response.json({ sub: 'user-1', email: 'a@gm.gist.ac.kr' });
+        const idToken = await signer.sign({
+          iss: 'https://api.account.gistory.me',
+          aud: 'c',
+          iat: now,
+          exp: now + 3600,
+          nonce: 'n-1',
+          ...claims,
+        });
+        return Response.json({ ...tokenBody, scope: 'openid name email', id_token: idToken });
       },
     });
-    const server = createAccountServer({
+
+  const serverOf = <const R extends readonly ClientScope[] = []>(
+    fetch: typeof globalThis.fetch,
+    requiredScopes?: R,
+  ) =>
+    createAccountServer({
       issuer: 'production',
       clientId: 'c',
       clientSecret: 's',
+      requiredScopes,
       fetch,
     });
-    const { tokens, user } = await server.loginWithCode({
-      code: 'x',
-      codeVerifier: 'v',
-      redirectUri: 'r',
-    });
+
+  it('needs a client secret', async () => {
+    const server = createAccountServer({ issuer: 'production', clientId: 'c', fetch: idp({}) });
+    await expect(server.loginWithCode(login)).rejects.toMatchObject({ code: 'invalid_client' });
+  });
+
+  it('reads the user from the id_token of its own exchange, without userinfo', async () => {
+    const fetch = idpIssuing({ sub: 'user-1', name: '홍길동', email: 'a@gm.gist.ac.kr' });
+    const { tokens, user } = await serverOf(fetch, ['name', 'email']).loginWithCode(login);
+
     expect(tokens.accessToken).toBe('at-1');
-    expect(user.email).toBe('a@gm.gist.ac.kr');
+    expect(user).toEqual({ sub: 'user-1', name: '홍길동', email: 'a@gm.gist.ac.kr' });
+    expect(fetch).not.toHaveBeenCalledWith(
+      expect.stringContaining('/oauth/userinfo'),
+      expect.anything(),
+    );
+    expectTypeOf(user.name).toEqualTypeOf<string>();
+    expectTypeOf(user.studentId).toEqualTypeOf<string | undefined>();
+  });
+
+  it('rejects an id_token from another login', async () => {
+    const fetch = idpIssuing({ sub: 'user-1', nonce: 'n-other' });
+    await expect(serverOf(fetch).loginWithCode(login)).rejects.toMatchObject({
+      code: 'invalid_id_token',
+    });
+  });
+
+  it('fails without an id_token instead of trusting the access token', async () => {
+    const fetch = idp({ '/oauth/token': () => Response.json(tokenBody) });
+    await expect(serverOf(fetch).loginWithCode(login)).rejects.toMatchObject({
+      code: 'invalid_id_token',
+    });
+  });
+
+  it('checks how recently and how the user signed in to the IdP when asked', async () => {
+    const fetch = idpIssuing({ sub: 'user-1', auth_time: now - 600, amr: ['pwd'] });
+    const server = serverOf(fetch);
+
+    await expect(server.loginWithCode(login, { maxAge: 300 })).rejects.toMatchObject({
+      code: 'insufficient_authentication',
+    });
+    await expect(server.loginWithCode(login, { amr: ['hwk'] })).rejects.toMatchObject({
+      code: 'insufficient_authentication',
+      description: 'the IdP login used pwd, not hwk',
+    });
+    await expect(
+      server.loginWithCode(login, { maxAge: 900, amr: ['pwd', 'hwk'] }),
+    ).resolves.toBeTruthy();
+  });
+
+  it('fails with missing_claims when a required scope was not granted', async () => {
+    const fetch = idpIssuing({ sub: 'user-1', name: '홍길동' });
+    await expect(
+      serverOf(fetch, ['name', 'student_id']).loginWithCode(login),
+    ).rejects.toMatchObject({
+      code: 'missing_claims',
+      description: 'student_id is_student_id_verified',
+    });
   });
 });
 
@@ -200,5 +213,49 @@ describe('getUserInfoBySub', () => {
     });
     await expect(server.getUserInfoBySub('u-1')).resolves.toMatchObject({ sub: 'u-1' });
     expect(issued).toBe(2);
+  });
+});
+
+describe('verifyRegistration', () => {
+  const registered = (body: unknown) => idp({ '/client/c/public': () => Response.json(body) });
+
+  it('passes when the code matches the registration', async () => {
+    const server = createAccountServer({
+      issuer: 'production',
+      clientId: 'c',
+      clientSecret: 's',
+      requiredScopes: ['name'],
+      clientCredentialsScopes: ['email'],
+      fetch: registered({
+        scopes: ['name'],
+        optionalScopes: ['email'],
+        tokenEndpointAuthMethod: 'client_secret_post',
+      }),
+    });
+
+    await expect(server.verifyRegistration()).resolves.toBeUndefined();
+  });
+
+  it('lists every mismatch', async () => {
+    const server = createAccountServer({
+      issuer: 'production',
+      clientId: 'c',
+      clientSecret: 's',
+      requiredScopes: ['name', 'email'],
+      clientCredentialsScopes: ['student_id'],
+      fetch: registered({
+        scopes: ['name'],
+        optionalScopes: ['email'],
+        tokenEndpointAuthMethod: 'client_secret_basic',
+      }),
+    });
+
+    await expect(server.verifyRegistration()).rejects.toMatchObject({
+      code: 'invalid_client',
+      description:
+        'requiredScopes has email, which is not a required scope of the client; ' +
+        'clientCredentialsScopes has student_id, which the client does not have; ' +
+        'the client authenticates with client_secret_basic, not client_secret_post',
+    });
   });
 });

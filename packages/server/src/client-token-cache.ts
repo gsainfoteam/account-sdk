@@ -6,7 +6,6 @@ export interface ClientTokenCache {
   invalidate(): void;
 }
 
-/** client credentials 토큰을 만료 직전까지 캐시한다. 동시에 호출하면 요청 하나를 같이 쓴다. */
 export function createClientTokenCache(request: () => Promise<TokenResponse>): ClientTokenCache {
   const mutex = new Mutex();
   let token: CachedToken | undefined;

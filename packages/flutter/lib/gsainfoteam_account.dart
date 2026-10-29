@@ -8,8 +8,6 @@ export 'src/discovery/account_metadata.dart';
 export 'src/discovery/discover.dart';
 export 'src/errors/account_exception.dart';
 export 'src/http/dio_interceptor.dart';
-export 'src/session/body_session.dart';
-export 'src/session/session_adapter.dart';
 export 'src/session/session_paths.dart';
 export 'src/session/session_tokens.dart';
 export 'src/storage/memory_token_store.dart';

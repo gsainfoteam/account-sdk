@@ -4,6 +4,7 @@ export {
   type CreateAuthorizationParams,
   type Prompt,
 } from './authorization/create-authorization';
+export { createLogoutUrl, type CreateLogoutUrlParams } from './authorization/create-logout-url';
 export {
   isCallbackUrl,
   parseCallback,
@@ -61,12 +62,17 @@ export {
   fetchUserInfo,
   hasScopeClaims,
   UserInfoResponseSchema,
+  userInfoFromIdToken,
   UserInfoSchema,
   type FetchUserInfoOptions,
   type UserInfo,
   type UserInfoResponse,
 } from './identity/userinfo';
 export { type Fetch, type RequestOptions } from './http/fetch';
+export {
+  fetchClientRegistration,
+  type ClientRegistration,
+} from './registration/fetch-client-registration';
 export * from './constants';
 export {
   AUTHORIZATION_HEADER,

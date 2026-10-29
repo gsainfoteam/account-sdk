@@ -12,11 +12,7 @@ import {
   toAccountError,
 } from '../internal/oauth4webapi';
 
-/**
- * 사용자가 없는 상황에서 사용자를 조회할 수 있도록, client 자신의 access token 을 받는다.
- *
- * @param scopes client 에 등록한 scope 중에서 골라야 한다.
- */
+/** @param scopes client에 등록한 scope 중에서 골라야 한다. */
 export async function requestClientCredentials(
   metadata: AccountMetadata,
   client: Required<ClientCredentials>,

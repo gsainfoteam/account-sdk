@@ -8,7 +8,7 @@ const DENIAL_REASONS_OUTPUT = 'packages/flutter/lib/src/errors/denial_reasons.ge
 
 const DART_IDENTIFIER = /^[a-z][a-z0-9_]*$/;
 const GENERATED =
-  '`pnpm contract:dart` 가 `packages/contract` 에서 생성한다. 손으로 고치지 않는다.';
+  '이 파일은 `pnpm contract:dart`가 `packages/contract`에서 생성한다. 손으로 고치지 않는다.';
 
 const check = process.argv.includes('--check');
 
@@ -24,9 +24,9 @@ const values = (wires) => {
   return wires.map((wire) => `  ${camelCase(wire)}('${wire}')`);
 };
 
-const scopes = `/// \`openid\` 를 뺀, IdP 가 받는 scope.
+const scopes = `/// \`openid\`를 뺀, IdP가 받는 scope다.
 ///
-/// 이 패키지는 id_token 을 검증하지 않으므로 요청하지도 않는다.
+/// \`openid\`는 [AccountClient]가 항상 함께 요청한다. 서비스 백엔드가 id_token으로 사용자를 확인하기 때문이다.
 ///
 /// ${GENERATED}
 enum AccountScope {
@@ -34,12 +34,12 @@ ${values([...CLIENT_SCOPES, OFFLINE_ACCESS_SCOPE]).join(',\n')};
 
   const AccountScope(this.value);
 
-  /// IdP 에 보내는 scope 문자열.
+  /// IdP에 보내는 scope 문자열이다.
   final String value;
 }
 `;
 
-const denialReasons = `/// account-fe 가 사용자를 돌려보낸 사유. \`access_denied\` 응답의 \`error_description\` 에서 읽는다.
+const denialReasons = `/// account-fe가 사용자를 돌려보낸 사유다. \`access_denied\` 응답의 \`error_description\`에서 읽는다.
 ///
 /// ${GENERATED}
 enum AccountDenialReason {
@@ -47,7 +47,7 @@ ${[...values(DENIAL_REASONS), "  other('')"].join(',\n')};
 
   const AccountDenialReason(this.wire);
 
-  /// account-fe 가 \`error_description\` 에 담아 보내는 값.
+  /// account-fe가 \`error_description\`에 담아 보내는 값이다.
   final String wire;
 
   static AccountDenialReason parse(String? wire) =>

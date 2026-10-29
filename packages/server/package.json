@@ -1,7 +1,7 @@
 {
   "name": "@gsainfoteam/account-server",
   "version": "0.0.0",
-  "description": "Backend client for the Infoteam account IdP: IdP token checks, code exchange and user lookup with client credentials",
+  "description": "Backend client for the Infoteam account IdP: code exchange with id_token login and user lookup with client credentials",
   "license": "MIT",
   "type": "module",
   "repository": {
@@ -16,14 +16,8 @@
     "dist"
   ],
   "sideEffects": false,
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.cts",
   "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    },
+    ".": "./dist/index.js",
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -49,5 +43,6 @@
   },
   "peerDependencies": {
     "zod": "^4.0.0"
-  }
+  },
+  "types": "./dist/index.d.ts"
 }

@@ -18,26 +18,23 @@ export const StoredTransactionSchema = z.object({
   scopes: z.array(ScopeSchema),
   createdAt: z.number(),
   returnTo: z.optional(z.string()),
+  silent: z.optional(z.boolean()),
 });
 
 export type StoredTransaction = z.infer<typeof StoredTransactionSchema>;
 
-/**
- * 진행 중인 인가를 그 인가의 `state` 를 키로 저장한다. 여러 탭에서 동시에 로그인을 시작해도 서로의
- * verifier 를 덮어쓰지 않게 하기 위해서다.
- */
+/** `state`를 키로 저장해야 여러 탭에서 동시에 로그인을 시작해도 서로의 verifier를 덮어쓰지 않는다. */
 export function saveTransaction(
   storage: Storage,
   transaction: AuthorizationTransaction,
-  returnTo?: string,
+  extra: Pick<StoredTransaction, 'returnTo' | 'silent'> = {},
 ): void {
   pruneExpired(storage);
 
-  const stored: StoredTransaction = { ...transaction, returnTo };
+  const stored: StoredTransaction = { ...transaction, ...extra };
   storage.setItem(PREFIX + transaction.state, JSON.stringify(stored));
 }
 
-/** `state` 의 트랜잭션을 꺼내면서 지운다. 없거나, 모양이 틀렸거나, authorization code 수명보다 오래됐으면 `null` 이다. */
 export function takeTransaction(storage: Storage, state: string | null): StoredTransaction | null {
   if (!state) return null;
 

@@ -1,10 +1,9 @@
-import { cookieSession, createAccountClient } from '@gsainfoteam/account-react';
+import { createAccountClient } from '@gsainfoteam/account-react';
+
+export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
 
 export const account = createAccountClient({
   issuer: import.meta.env.VITE_ACCOUNT_ISSUER ?? 'staging',
   clientId: import.meta.env.VITE_ACCOUNT_CLIENT_ID ?? '',
-  redirectUri: '/auth/callback',
-  scopes: ['name', 'email'],
-  exchange: 'browser',
-  session: cookieSession({ baseUrl: import.meta.env.VITE_API_URL ?? 'http://localhost:4000' }),
+  api: API_URL,
 });

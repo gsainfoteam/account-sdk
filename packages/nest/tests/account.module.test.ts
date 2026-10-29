@@ -3,35 +3,48 @@ import 'reflect-metadata';
 import { clearDiscoveryCache } from '@gsainfoteam/account-core';
 import { Inject, Injectable, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
+import { afterEach, describe, expect, expectTypeOf, it } from 'vitest';
 
-import production from '../../core/tests/fixtures/discovery.production.json' with { type: 'json' };
 import { AccountModule, AccountService, defineAccount } from '../src';
+import { createFakeIdp } from './support/fake-idp';
 
-const fetch = vi.fn<typeof globalThis.fetch>(async (input) => {
-  const url = new URL(String(input));
-  if (url.pathname === '/.well-known/openid-configuration') return Response.json(production);
-  if (url.pathname === '/oauth/userinfo') return Response.json({ sub: 'user-1', name: '홍길동' });
-  return new Response('not found', { status: 404 });
-});
+const idp = await createFakeIdp();
+const options = {
+  issuer: 'production',
+  clientId: 'c',
+  clientSecret: 's',
+  fetch: idp.fetch,
+} as const;
+
+async function login() {
+  const { body } = await idp.authorize({ clientId: 'c', user: { sub: 'user-1', name: '홍길동' } });
+  return {
+    code: body.code,
+    codeVerifier: body.code_verifier,
+    redirectUri: body.redirect_uri,
+    nonce: body.nonce,
+  };
+}
 
 afterEach(() => clearDiscoveryCache());
 
 describe('AccountModule', () => {
   it('provides AccountService with forRoot', async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [AccountModule.forRoot({ issuer: 'production', clientId: 'c', fetch })],
+      imports: [AccountModule.forRoot(options)],
     }).compile();
-    await expect(moduleRef.get(AccountService).getUserInfo('at-1')).resolves.toMatchObject({
-      sub: 'user-1',
-    });
+    await expect(moduleRef.get(AccountService).loginWithCode(await login())).resolves.toMatchObject(
+      {
+        user: { sub: 'user-1' },
+      },
+    );
   });
 
   it('reads options from another provider with forRootAsync', async () => {
     @Injectable()
     class Config {
       get(key: string): string {
-        return { ACCOUNT_CLIENT_ID: 'from-config' }[key] ?? '';
+        return { ACCOUNT_CLIENT_ID: 'c' }[key] ?? '';
       }
     }
     @Module({ providers: [Config], exports: [Config] })
@@ -45,14 +58,17 @@ describe('AccountModule', () => {
           useFactory: (config: Config) => ({
             issuer: 'production',
             clientId: config.get('ACCOUNT_CLIENT_ID'),
-            fetch,
+            clientSecret: 's',
+            fetch: idp.fetch,
           }),
         }),
       ],
     }).compile();
-    await expect(moduleRef.get(AccountService).getUserInfo('at-1')).resolves.toMatchObject({
-      name: '홍길동',
-    });
+    await expect(moduleRef.get(AccountService).loginWithCode(await login())).resolves.toMatchObject(
+      {
+        user: { name: '홍길동' },
+      },
+    );
   });
 
   it('is injectable from feature modules when global', async () => {
@@ -64,10 +80,7 @@ describe('AccountModule', () => {
     class AuthModule {}
 
     const moduleRef = await Test.createTestingModule({
-      imports: [
-        AccountModule.forRoot({ issuer: 'production', clientId: 'c', fetch, isGlobal: true }),
-        AuthModule,
-      ],
+      imports: [AccountModule.forRoot({ ...options, isGlobal: true }), AuthModule],
     }).compile();
     expect(moduleRef.get(AuthService).account).toBe(moduleRef.get(AccountService));
   });
@@ -77,14 +90,14 @@ describe('AccountModule', () => {
     type StudentAccount = InstanceType<typeof student.AccountService>;
 
     const moduleRef = await Test.createTestingModule({
-      imports: [student.AccountModule.forRoot({ issuer: 'production', clientId: 'c', fetch })],
+      imports: [student.AccountModule.forRoot(options)],
     }).compile();
     const account: StudentAccount = moduleRef.get(student.AccountService);
 
     expectTypeOf<
-      Awaited<ReturnType<StudentAccount['getUserInfo']>>['studentId']
+      Awaited<ReturnType<StudentAccount['loginWithCode']>>['user']['studentId']
     >().toEqualTypeOf<string>();
-    await expect(account.getUserInfo('at-1')).rejects.toMatchObject({
+    await expect(account.loginWithCode(await login())).rejects.toMatchObject({
       code: 'missing_claims',
       description: 'student_id is_student_id_verified',
     });
@@ -95,16 +108,17 @@ describe('AccountModule', () => {
     const student = defineAccount({ requiredScopes: ['student_id'] });
 
     const moduleRef = await Test.createTestingModule({
-      imports: [
-        named.AccountModule.forRoot({ issuer: 'production', clientId: 'c', fetch }),
-        student.AccountModule.forRoot({ issuer: 'production', clientId: 'c', fetch }),
-      ],
+      imports: [named.AccountModule.forRoot(options), student.AccountModule.forRoot(options)],
     }).compile();
 
-    await expect(moduleRef.get(named.AccountService).getUserInfo('at-1')).resolves.toMatchObject({
-      name: '홍길동',
+    await expect(
+      moduleRef.get(named.AccountService).loginWithCode(await login()),
+    ).resolves.toMatchObject({
+      user: { name: '홍길동' },
     });
-    await expect(moduleRef.get(student.AccountService).getUserInfo('at-1')).rejects.toMatchObject({
+    await expect(
+      moduleRef.get(student.AccountService).loginWithCode(await login()),
+    ).rejects.toMatchObject({
       code: 'missing_claims',
     });
   });
@@ -115,5 +129,26 @@ describe('AccountModule', () => {
         imports: [AccountModule.forRoot({ issuer: 'production', clientId: '' })],
       }).compile(),
     ).rejects.toMatchObject({ code: 'invalid_request' });
+  });
+
+  it('refuses to start when the IdP registration does not match the declared scopes', async () => {
+    const strict = await createFakeIdp({
+      clients: [{ clientId: 'c', clientSecret: 's', scopes: ['email'], optionalScopes: ['name'] }],
+    });
+    const named = defineAccount({ requiredScopes: ['name'] });
+    const start = async (verifyRegistration?: 'warn') => {
+      const moduleRef = await Test.createTestingModule({
+        imports: [
+          named.AccountModule.forRoot({ ...options, fetch: strict.fetch, verifyRegistration }),
+        ],
+      }).compile();
+      return moduleRef.createNestApplication({ logger: false }).init();
+    };
+
+    await expect(start()).rejects.toMatchObject({
+      code: 'invalid_client',
+      description: 'requiredScopes has name, which is not a required scope of the client',
+    });
+    await expect(start('warn')).resolves.toBeTruthy();
   });
 });

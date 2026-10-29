@@ -109,6 +109,15 @@ describe('parseCallback', () => {
     ).toThrow(expect.objectContaining({ code: 'verification_required' }));
   });
 
+  it('reads the OIDC prompt=none errors as their own codes', () => {
+    expect(() => parse('error=login_required&state=s-1')).toThrow(
+      expect.objectContaining({ code: 'login_required' }),
+    );
+    expect(() => parse('error=interaction_required&state=s-1')).toThrow(
+      expect.objectContaining({ code: 'interaction_required' }),
+    );
+  });
+
   it('rejects an iss from another issuer', () => {
     expect(() => parse('code=c-1&state=s-1&iss=https://evil.example')).toThrow(
       expect.objectContaining({ code: 'issuer_mismatch' }),
