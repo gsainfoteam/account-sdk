@@ -120,6 +120,12 @@ const { status, error, login, logout, retryLogin, fetch } = useAccount();
 `fetch`는 access token을 붙여 요청하고, 401을 받으면 토큰을 한 번 갱신한 뒤 다시 보낸다. 여러 요청이 동시에 401을 받아도 갱신은 한 번만 한다.
 access token은 메모리에만 두고, refresh token은 서비스 백엔드가 httpOnly 쿠키로 관리한다. 페이지를 새로 고치면 refresh로 세션을 복구한다.
 
+`fetch`는 전역 `fetch`와 사용법이 같다. 상대 경로는 `api` 기준이 아니라 현재 페이지 기준이므로 백엔드 주소를 붙여 쓴다.
+
+```ts
+const response = await account.fetch(`${API_URL}/me`); // 컴포넌트 안에서는 useAccount().fetch
+```
+
 openapi-fetch를 쓰면 다음과 같다.
 
 ```ts
