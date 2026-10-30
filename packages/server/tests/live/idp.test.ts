@@ -48,8 +48,6 @@ describe.skipIf(!clientId || !clientSecret)('staging test client', () => {
     });
     await expect(
       server.getUserInfoBySub('00000000-0000-0000-0000-000000000000'),
-    ).rejects.toMatchObject({
-      code: expect.stringMatching(/invalid_token|server_error/),
-    });
+    ).resolves.toBeNull();
   });
 });

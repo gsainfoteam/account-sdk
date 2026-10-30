@@ -54,8 +54,10 @@ export interface AccountServer<
   /**
    * IdP가 재시작해 기존 토큰이 무효가 되면 401 대신 500을 돌려주므로, 두 응답 모두 토큰을 새로 받아 한 번 다시
    * 시도한다.
+   *
+   * 이 client에 동의하지 않았거나 없는 사용자면 `null`이다. IdP는 둘을 구분해 주지 않는다.
    */
-  getUserInfoBySub(sub: string): Promise<UserInfo<LookupScope>>;
+  getUserInfoBySub(sub: string): Promise<UserInfo<LookupScope> | null>;
   verifyIdToken(idToken: string, options?: { nonce?: string }): Promise<IdTokenClaims>;
   revoke(params: RevokeParams): Promise<void>;
   /**
@@ -141,6 +143,13 @@ export function createAccountServer<
           fetch,
           sub,
           requiredScopes: requireScopes('getUserInfoBySub'),
+        }).catch((error: unknown) => {
+          // account-be answers a user who never consented, or does not exist, with 404.
+          // Older account-be answered the same case with 400 invalid_grant, its only 400 on userinfo.
+          // The status is all there is to check: oauth4webapi does not read the body of a failed userinfo response.
+          // shortcut: drop the 400 once gsainfoteam/account-be#237 is deployed to production.
+          if (AccountError.is(error) && (error.status === 404 || error.status === 400)) return null;
+          throw error;
         });
 
       try {
