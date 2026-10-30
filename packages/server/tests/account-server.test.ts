@@ -188,7 +188,6 @@ describe('getUserInfoBySub', () => {
     const users = await Promise.all(
       ['u-1', 'u-2', 'u-3'].map((sub) => server.getUserInfoBySub(sub)),
     );
-    expectTypeOf<NonNullable<(typeof users)[number]>['email']>().toEqualTypeOf<string>();
     expect(users.map((user) => user?.sub)).toEqual(['u-1', 'u-2', 'u-3']);
     await server.getUserInfoBySub('u-4');
     expect(tokenRequests).toHaveBeenCalledTimes(1);
@@ -213,6 +212,44 @@ describe('getUserInfoBySub', () => {
     });
     await expect(server.getUserInfoBySub('u-1')).resolves.toMatchObject({ sub: 'u-1' });
     expect(issued).toBe(2);
+  });
+
+  it('leaves the claims of an optional scope the user declined empty', async () => {
+    const server = createAccountServer({
+      issuer: 'production',
+      clientId: 'c',
+      clientSecret: 's',
+      requiredScopes: ['name'],
+      clientCredentialsScopes: ['name', 'email'],
+      fetch: idp({
+        '/oauth/token': () => Response.json({ ...tokenBody, access_token: 'client-token' }),
+        '/oauth/userinfo': () => Response.json({ sub: 'u-1', name: 'n' }),
+      }),
+    });
+
+    const user = await server.getUserInfoBySub('u-1');
+    expect(user).toEqual({ sub: 'u-1', name: 'n' });
+    expectTypeOf<NonNullable<typeof user>['name']>().toEqualTypeOf<string>();
+    expectTypeOf<NonNullable<typeof user>['email']>().toEqualTypeOf<string | undefined>();
+  });
+
+  it('fails with missing_claims when a required scope is missing', async () => {
+    const server = createAccountServer({
+      issuer: 'production',
+      clientId: 'c',
+      clientSecret: 's',
+      requiredScopes: ['name', 'email'],
+      clientCredentialsScopes: ['name', 'email'],
+      fetch: idp({
+        '/oauth/token': () => Response.json({ ...tokenBody, access_token: 'client-token' }),
+        '/oauth/userinfo': () => Response.json({ sub: 'u-1', name: 'n' }),
+      }),
+    });
+
+    await expect(server.getUserInfoBySub('u-1')).rejects.toMatchObject({
+      code: 'missing_claims',
+      description: 'email',
+    });
   });
 
   it.each([
