@@ -40,12 +40,12 @@ user.studentId; // string | undefined
 
 ## 메서드
 
-| 메서드                             | 기능                                                     | secret    |
-| ---------------------------------- | -------------------------------------------------------- | --------- |
-| `loginWithCode(params)`            | code를 교환하고 id_token으로 사용자를 만든다             | 필요      |
-| `getUserInfoBySub(sub)`            | client credentials 토큰으로 사용자 조회. 토큰은 캐시한다 | 필요      |
-| `verifyIdToken(idToken)`           | 앱이 보낸 id_token 검증                                  | 필요 없음 |
-| `revoke({ token, tokenTypeHint })` | 토큰 폐기                                                | 필요 없음 |
-| `verifyRegistration()`             | IdP 등록 정보와 `requiredScopes`, 인증 방식 대조         | 필요 없음 |
+| 메서드                             | 기능                                                                                                         | secret    |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------ | --------- |
+| `loginWithCode(params)`            | code를 교환하고 id_token으로 사용자를 만든다                                                                 | 필요      |
+| `getUserInfoBySub(sub)`            | client credentials 토큰으로 사용자 조회. 이 client에 동의하지 않았거나 없는 사용자면 `null`. 토큰은 캐시한다 | 필요      |
+| `verifyIdToken(idToken)`           | 앱이 보낸 id_token 검증                                                                                      | 필요 없음 |
+| `revoke({ token, tokenTypeHint })` | 토큰 폐기                                                                                                    | 필요 없음 |
+| `verifyRegistration()`             | IdP 등록 정보와 `requiredScopes`, 인증 방식 대조                                                             | 필요 없음 |
 
 실패하면 `AccountError`를 던지므로 `code`로 경우를 나눈다.

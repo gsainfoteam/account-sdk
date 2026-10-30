@@ -188,8 +188,8 @@ describe('getUserInfoBySub', () => {
     const users = await Promise.all(
       ['u-1', 'u-2', 'u-3'].map((sub) => server.getUserInfoBySub(sub)),
     );
-    expectTypeOf<(typeof users)[number]['email']>().toEqualTypeOf<string>();
-    expect(users.map((user) => user.sub)).toEqual(['u-1', 'u-2', 'u-3']);
+    expectTypeOf<NonNullable<(typeof users)[number]>['email']>().toEqualTypeOf<string>();
+    expect(users.map((user) => user?.sub)).toEqual(['u-1', 'u-2', 'u-3']);
     await server.getUserInfoBySub('u-4');
     expect(tokenRequests).toHaveBeenCalledTimes(1);
   });
@@ -213,6 +213,23 @@ describe('getUserInfoBySub', () => {
     });
     await expect(server.getUserInfoBySub('u-1')).resolves.toMatchObject({ sub: 'u-1' });
     expect(issued).toBe(2);
+  });
+
+  it.each([
+    ['404', () => Response.json({ message: 'Not Found', statusCode: 404 }, { status: 404 })],
+    ['400 from older IdPs', () => Response.json({ error: 'invalid_grant' }, { status: 400 })],
+  ])('answers a user the IdP will not show with null (%s)', async (_, userinfo) => {
+    const server = createAccountServer({
+      issuer: 'production',
+      clientId: 'c',
+      clientSecret: 's',
+      clientCredentialsScopes: ['name'],
+      fetch: idp({
+        '/oauth/token': () => Response.json({ ...tokenBody, access_token: 'client-token' }),
+        '/oauth/userinfo': userinfo,
+      }),
+    });
+    await expect(server.getUserInfoBySub('u-1')).resolves.toBeNull();
   });
 });
 
