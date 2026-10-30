@@ -56,8 +56,12 @@ export interface AccountServer<
    * 시도한다.
    *
    * 이 client에 동의하지 않았거나 없는 사용자면 `null`이다. IdP는 둘을 구분해 주지 않는다.
+   *
+   * 사용자가 선택 scope를 거절했을 수 있어서, `requiredScopes`에도 있는 scope의 필드만 반드시 채워진다.
+   *
+   * @throws {@link AccountError} `requiredScopes`에도 있는 scope의 claim이 빠졌으면 `missing_claims`.
    */
-  getUserInfoBySub(sub: string): Promise<UserInfo<LookupScope> | null>;
+  getUserInfoBySub(sub: string): Promise<UserInfo<Extract<LookupScope, RequiredScope>> | null>;
   verifyIdToken(idToken: string, options?: { nonce?: string }): Promise<IdTokenClaims>;
   revoke(params: RevokeParams): Promise<void>;
   /**
@@ -138,11 +142,16 @@ export function createAccountServer<
     },
 
     async getUserInfoBySub(sub) {
+      const guaranteed = requireScopes('getUserInfoBySub').filter(
+        (scope): scope is Extract<LookupScopes[number], RequiredScopes[number]> =>
+          requiredScopes?.some((required) => required === scope) ?? false,
+      );
+
       const lookup = async (token: string) =>
-        fetchUserInfo<LookupScopes[number]>(await metadata(), client, token, {
+        fetchUserInfo(await metadata(), client, token, {
           fetch,
           sub,
-          requiredScopes: requireScopes('getUserInfoBySub'),
+          requiredScopes: guaranteed,
         }).catch((error: unknown) => {
           // account-be answers a user who never consented, or does not exist, with 404.
           // Older account-be answered the same case with 400 invalid_grant, its only 400 on userinfo.
