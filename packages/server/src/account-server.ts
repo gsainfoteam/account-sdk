@@ -142,7 +142,6 @@ export function createAccountServer<
     },
 
     async getUserInfoBySub(sub) {
-      // account-be leaves out the claims of an optional scope the user declined
       const guaranteed = requireScopes('getUserInfoBySub').filter(
         (scope): scope is Extract<LookupScopes[number], RequiredScopes[number]> =>
           requiredScopes?.some((required) => required === scope) ?? false,
