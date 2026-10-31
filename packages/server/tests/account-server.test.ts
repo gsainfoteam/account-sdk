@@ -72,7 +72,7 @@ describe('loginWithCode', async () => {
       '/oauth/token': async ({ body }) => {
         expect(body.get('client_secret')).toBe('s');
         const idToken = await signer.sign({
-          iss: 'https://api.account.gistory.me',
+          iss: 'https://account.gistory.me',
           aud: 'c',
           iat: now,
           exp: now + 3600,

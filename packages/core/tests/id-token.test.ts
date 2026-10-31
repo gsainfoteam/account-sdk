@@ -6,7 +6,7 @@ import { createSigner, jsonResponse, metadata } from './helpers';
 const now = new Date('2027-01-15T00:00:00Z');
 const iat = Math.floor(now.getTime() / 1000);
 const claims = {
-  iss: 'https://api.account.gistory.me',
+  iss: 'https://account.gistory.me',
   sub: 'user-1',
   aud: 'client-1',
   iat,
@@ -21,7 +21,7 @@ describe('verifyIdToken', async () => {
   const verify = (token: string) =>
     verifyIdToken(metadata, token, { fetch, audience: 'client-1', nonce: 'n-1', currentDate: now });
 
-  it('returns the claims of a valid token, with keys from the API host', async () => {
+  it('returns the claims of a valid token, with keys from the jwks_uri', async () => {
     await expect(verify(await signer.sign(claims))).resolves.toMatchObject({
       sub: 'user-1',
       name: '홍길동',
@@ -30,12 +30,6 @@ describe('verifyIdToken', async () => {
       'https://api.account.gistory.me/oauth/certs',
       expect.anything(),
     );
-  });
-
-  it('accepts either issuer the IdP uses', async () => {
-    await expect(
-      verify(await signer.sign({ ...claims, iss: 'https://account.gistory.me' })),
-    ).resolves.toBeTruthy();
   });
 
   it.each([

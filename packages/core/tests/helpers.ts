@@ -1,12 +1,9 @@
 import { exportJWK, generateKeyPair, SignJWT, type JWK, type JWTPayload } from 'jose';
 
-import { discoveryUrlOf, normalizeDiscovery, type AccountMetadata } from '../src';
+import { normalizeDiscovery, type AccountMetadata } from '../src';
 import production from './fixtures/discovery.production.json' with { type: 'json' };
 
-export const metadata: AccountMetadata = normalizeDiscovery(
-  production,
-  discoveryUrlOf('production'),
-);
+export const metadata: AccountMetadata = normalizeDiscovery(production);
 
 export interface TestSigner {
   jwks: { keys: JWK[] };

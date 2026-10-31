@@ -43,5 +43,5 @@ Future<AccountMetadata> _fetch(Uri url, http.Client client) async {
     throw AccountDiscoveryException('$url is not JSON');
   }
 
-  return normalizeDiscovery(json, url);
+  return normalizeDiscovery(json);
 }

@@ -73,10 +73,6 @@ describe('parseCallback', () => {
     });
   });
 
-  it('accepts the API host as iss, which account-be sends today', () => {
-    expect(parse('code=c-1&state=s-1&iss=https://api.account.gistory.me').code).toBe('c-1');
-  });
-
   it('accepts a response without iss', () => {
     expect(parse('code=c-1&state=s-1').code).toBe('c-1');
   });

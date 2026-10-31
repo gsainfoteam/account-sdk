@@ -10,8 +10,6 @@ enum AccountEnvironment {
 
 /// 각각 `packages/core/src/constants/idp.json`의 필드와 같아야 하고, 어긋나면 테스트가 실패한다.
 abstract final class AccountConstants {
-  /// IdP는 API를 `api.<host>`에서, 로그인 페이지를 `<host>`에서 제공한다.
-  static const apiHostPrefix = 'api.';
   static const discoveryPath = '/.well-known/openid-configuration';
 
   static const clientRegistrationPath = '/client/{clientId}/public';

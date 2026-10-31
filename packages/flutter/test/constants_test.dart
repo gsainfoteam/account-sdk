@@ -12,7 +12,6 @@ void main() {
     expect({
       for (final environment in AccountEnvironment.values) environment.name: environment.apiOrigin,
     }, idp['environments']);
-    expect(AccountConstants.apiHostPrefix, idp['apiHostPrefix']);
     expect(AccountConstants.discoveryPath, idp['discoveryPath']);
     expect(AccountConstants.clientRegistrationPath, idp['clientRegistrationPath']);
     expect(AccountConstants.storageNamespace, idp['storageNamespace']);
