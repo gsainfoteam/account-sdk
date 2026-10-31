@@ -73,7 +73,7 @@ typedef Callback = String Function(Uri authorize);
   return (client: client, servers: fake, authorizations: authorizations);
 }
 
-String success(Uri authorize, {String? state, String iss = 'https://api.account.gistory.me'}) =>
+String success(Uri authorize, {String? state, String iss = 'https://account.gistory.me'}) =>
     'pot-g-idp-login-redirect://callback?code=c-1&state=${state ?? authorize.queryParameters['state']}&iss=$iss';
 
 void main() {
@@ -100,7 +100,7 @@ void main() {
       'code_verifier': login['code_verifier'],
       'redirect_uri': 'pot-g-idp-login-redirect://callback',
       'nonce': authorize['nonce'],
-      'iss': 'https://api.account.gistory.me',
+      'iss': 'https://account.gistory.me',
       'transport': 'body',
     });
     final verifier = login['code_verifier']! as String;
@@ -251,10 +251,7 @@ void main() {
       store: MemoryTokenStore(),
       httpClient: MockClient((request) async {
         if (request.url.path == '/.well-known/openid-configuration') {
-          return json({
-            ...body,
-            'end_session_endpoint': 'https://account.account.gistory.me/logout',
-          });
+          return json(body);
         }
         return json(null, 204);
       }),

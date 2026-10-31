@@ -1,11 +1,6 @@
 import * as oauth from 'oauth4webapi';
 
-import {
-  asForIdTokenOf,
-  toTokenResponse,
-  type ClientCredentials,
-  type TokenResponse,
-} from './token-response';
+import { toTokenResponse, type ClientCredentials, type TokenResponse } from './token-response';
 import { type AccountMetadata } from '../discovery/normalize-discovery';
 import { type RequestOptions } from '../http/fetch';
 import {
@@ -37,7 +32,7 @@ export async function refreshTokens(
     );
 
     const result = await oauth.processRefreshTokenResponse(
-      await asForIdTokenOf(metadata, response),
+      authorizationServer(metadata),
       oauthClient(client.clientId),
       response,
     );

@@ -10,7 +10,6 @@ import {
   normalizeDiscovery,
 } from '../src';
 import production from './fixtures/discovery.production.json' with { type: 'json' };
-import staging from './fixtures/discovery.staging.json' with { type: 'json' };
 
 describe('discoveryUrlOf', () => {
   it('maps environments to the API host', () => {
@@ -34,51 +33,29 @@ describe('discoveryUrlOf', () => {
 });
 
 describe('normalizeDiscovery', () => {
-  it('keeps the production endpoints', () => {
-    const metadata = normalizeDiscovery(production, discoveryUrlOf('production'));
+  it('reads the endpoints as the IdP sends them', () => {
+    const metadata = normalizeDiscovery(production);
+    expect(metadata.issuer).toBe('https://account.gistory.me');
     expect(metadata.authorizationEndpoint).toBe('https://account.gistory.me/authorize');
     expect(metadata.tokenEndpoint).toBe('https://api.account.gistory.me/oauth/token');
-    expect(metadata.userinfoEndpoint).toBe('https://api.account.gistory.me/oauth/userinfo');
-    expect(metadata.jwksUri).toBe('https://api.account.gistory.me/oauth/certs');
-    expect(metadata.issuers).toEqual([
-      'https://account.gistory.me',
-      'https://api.account.gistory.me',
-    ]);
-  });
-
-  it('rebuilds the broken staging endpoints from the host it was fetched from', () => {
-    const metadata = normalizeDiscovery(staging, discoveryUrlOf('staging'));
-    expect(metadata.authorizationEndpoint).toBe('https://stg.account.gistory.me/authorize');
-    expect(metadata.tokenEndpoint).toBe('https://api.stg.account.gistory.me/oauth/token');
-    expect(metadata.jwksUri).toBe('https://api.stg.account.gistory.me/oauth/certs');
-    expect(metadata.issuers).toContain('https://stg.account.gistory.me');
-    expect(metadata.issuers).toContain('https://api.stg.account.gistory.me');
+    expect(metadata.revocationEndpoint).toBe('https://api.account.gistory.me/oauth/revoke');
   });
 
   it('rejects a document without endpoints', () => {
-    expect(() => normalizeDiscovery({ issuer: 'x' }, discoveryUrlOf('production'))).toThrow(
+    expect(() => normalizeDiscovery({ issuer: 'x' })).toThrow(
       expect.objectContaining({ code: 'discovery_failed' }),
     );
-  });
-
-  it('puts the revocation endpoint on the API host', () => {
-    const metadata = normalizeDiscovery(staging, discoveryUrlOf('staging'));
-    expect(metadata.revocationEndpoint).toBe('https://api.stg.account.gistory.me/oauth/revoke');
   });
 });
 
 describe('end_session_endpoint', () => {
-  it('points at the login host and builds a logout URL that returns with a state', () => {
-    const metadata = normalizeDiscovery(
-      { ...production, end_session_endpoint: 'https://account.account.gistory.me/logout' },
-      discoveryUrlOf('production'),
-    );
-    const logout = createLogoutUrl(metadata, {
+  it('builds a logout URL that returns with a state', () => {
+    const logout = createLogoutUrl(normalizeDiscovery(production), {
       clientId: 'c',
       postLogoutRedirectUri: 'https://app.example/auth/callback',
     });
 
-    expect(metadata.endSessionEndpoint).toBe('https://account.gistory.me/logout');
+    expect(logout!.url.startsWith('https://account.gistory.me/logout?')).toBe(true);
     expect(new URL(logout!.url).searchParams.toString()).toBe(
       `client_id=c&post_logout_redirect_uri=${encodeURIComponent('https://app.example/auth/callback')}&state=${logout!.state}`,
     );
@@ -86,8 +63,7 @@ describe('end_session_endpoint', () => {
 
   it('has no logout URL when the IdP does not advertise one', () => {
     const { end_session_endpoint: _, ...withoutLogout } = production;
-    const metadata = normalizeDiscovery(withoutLogout, discoveryUrlOf('production'));
-    expect(createLogoutUrl(metadata, { clientId: 'c' })).toBeNull();
+    expect(createLogoutUrl(normalizeDiscovery(withoutLogout), { clientId: 'c' })).toBeNull();
   });
 });
 

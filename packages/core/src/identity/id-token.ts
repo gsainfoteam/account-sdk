@@ -68,7 +68,7 @@ export async function verifyIdToken(
   let payload: unknown;
   try {
     ({ payload } = await jwtVerify(token, jwksOf(metadata, options.fetch), {
-      issuer: [...metadata.issuers],
+      issuer: metadata.issuer,
       audience: options.audience,
       algorithms: [...metadata.idTokenSigningAlgs],
       requiredClaims: ['sub', 'iat', 'exp'],

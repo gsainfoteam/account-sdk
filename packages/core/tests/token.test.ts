@@ -65,11 +65,11 @@ describe('exchangeCode', () => {
     expect(bodyOf(fetch).get('client_secret')).toBe('s-1');
   });
 
-  it('validates the id_token nonce and the issuer account-be signs with', async () => {
+  it('validates the id_token nonce and issuer', async () => {
     const signer = await createSigner();
     const iat = Math.floor(Date.now() / 1000);
     const idToken = await signer.sign({
-      iss: 'https://api.account.gistory.me',
+      iss: 'https://account.gistory.me',
       sub: 'user-1',
       aud: 'client-1',
       iat,
@@ -301,7 +301,7 @@ describe('fetchUserInfo', () => {
 
 describe('userInfoFromIdToken', () => {
   const claims: IdTokenClaims = {
-    iss: 'https://api.account.gistory.me',
+    iss: 'https://account.gistory.me',
     sub: 'user-1',
     aud: 'client-1',
     iat: 0,

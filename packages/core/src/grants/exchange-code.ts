@@ -1,7 +1,6 @@
 import * as oauth from 'oauth4webapi';
 
 import {
-  asForIdTokenOf,
   idTokenOf,
   toTokenResponse,
   type ClientCredentials,
@@ -67,8 +66,9 @@ export async function exchangeCode(
       });
     }
 
+    // id_token 서명은 확인하지 않는다. TLS로 token endpoint에서 바로 받았고, OIDC Core 3.1.3.7절이 이것으로 대신할 수 있다고 한다.
     const result = await oauth.processAuthorizationCodeResponse(
-      await asForIdTokenOf(metadata, response),
+      authorizationServer(metadata),
       oauthClient(client.clientId),
       response,
       { expectedNonce: params.nonce ?? oauth.expectNoNonce },

@@ -64,5 +64,5 @@ async function fetchDiscovery(
     });
   }
 
-  return normalizeDiscovery(doc, url);
+  return normalizeDiscovery(doc);
 }

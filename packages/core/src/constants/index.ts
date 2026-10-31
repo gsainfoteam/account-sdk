@@ -2,7 +2,6 @@ import idp from './idp.json' with { type: 'json' };
 
 /** Flutter 패키지와 함께 쓰는 값은 `idp.json`에서 가져오고, 둘이 같은지는 Flutter 테스트가 확인한다. */
 export const ENVIRONMENTS: Readonly<typeof idp.environments> = idp.environments;
-export const API_HOST_PREFIX: string = idp.apiHostPrefix;
 export const DISCOVERY_PATH: string = idp.discoveryPath;
 export const CLIENT_REGISTRATION_PATH: string = idp.clientRegistrationPath;
 export const AUTHORIZATION_CODE_TTL_MS: number = idp.authorizationCodeTtlSeconds * 1000;

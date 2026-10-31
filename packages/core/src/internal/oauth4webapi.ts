@@ -8,20 +8,17 @@ import { type RequestOptions } from '../http/fetch';
 
 const ArgumentErrorSchema = z.object({ code: z.string().check(z.startsWith('ERR_')) });
 
-/**
- * oauth4webapi는 issuer를 하나만 받는다. IdP가 issuer를 여럿 쓰는 동안에는, 주어진 `issuer`를 먼저
- * {@link AccountMetadata.issuers}와 대조한 뒤 쓴다. 그래야 라이브러리의 검증도 그대로 실행된다.
- */
+/** callback의 `iss`가 다르면 oauth4webapi보다 먼저 `issuer_mismatch`로 실패시킨다. */
 export function authorizationServer(
   metadata: AccountMetadata,
   issuer?: string,
 ): oauth.AuthorizationServer {
-  if (issuer !== undefined && !metadata.issuers.includes(issuer)) {
+  if (issuer !== undefined && issuer !== metadata.issuer) {
     throw new AccountError('issuer_mismatch', { description: issuer });
   }
 
   return {
-    issuer: issuer ?? metadata.issuer,
+    issuer: metadata.issuer,
     authorization_endpoint: metadata.authorizationEndpoint,
     token_endpoint: metadata.tokenEndpoint,
     userinfo_endpoint: metadata.userinfoEndpoint,

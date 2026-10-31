@@ -33,7 +33,7 @@ async function startLogin({ client, redirect }: ReturnType<typeof setup>, return
 
 async function loginAndReturn(
   servers: ReturnType<typeof setup>,
-  query = (state: string) => `code=code-1&state=${state}&iss=https://api.account.gistory.me`,
+  query = (state: string) => `code=code-1&state=${state}&iss=https://account.gistory.me`,
 ) {
   const { authorize, state } = await startLogin(servers);
   window.history.replaceState(null, '', `/auth/callback?${query(state)}`);
@@ -133,7 +133,7 @@ describe('the callback page', () => {
       code_verifier: expect.any(String),
       redirect_uri: 'http://localhost:3000/auth/callback',
       nonce: authorize.searchParams.get('nonce'),
-      iss: 'https://api.account.gistory.me',
+      iss: 'https://account.gistory.me',
       transport: 'cookie',
     });
     expect(servers.callsTo('api.account.gistory.me/oauth/token')).toHaveLength(0);

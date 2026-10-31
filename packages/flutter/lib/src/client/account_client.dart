@@ -302,7 +302,7 @@ class AccountClient {
     if (parameters['state'] != state) throw const AccountStateMismatchException();
 
     final iss = parameters['iss'];
-    if (iss != null && !metadata.issuers.contains(iss)) throw AccountIssuerMismatchException(iss);
+    if (iss != null && iss != metadata.issuer) throw AccountIssuerMismatchException(iss);
 
     if (parameters['error'] case final String error) {
       throw _fromAuthorizationError(error, parameters['error_description']);
