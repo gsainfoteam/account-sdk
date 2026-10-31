@@ -1,5 +1,12 @@
 # @gsainfoteam/account-server
 
+## 0.2.0
+
+### Patch Changes
+
+- Updated dependencies [b2621bd]
+  - @gsainfoteam/account-core@0.2.0
+
 ## 0.1.0
 
 ### Minor Changes

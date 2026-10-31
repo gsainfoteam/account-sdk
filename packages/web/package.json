@@ -1,6 +1,6 @@
 {
   "name": "@gsainfoteam/account-web",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Browser client for the Infoteam account IdP: sign-in redirect, callback handling and service sessions",
   "license": "MIT",
   "type": "module",
