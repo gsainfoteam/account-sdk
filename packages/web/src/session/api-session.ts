@@ -1,4 +1,11 @@
-import { AccountError, isAuthFailure, SESSION_PATHS, type Fetch } from '@gsainfoteam/account-core';
+import {
+  AccountError,
+  isAuthFailure,
+  SESSION_PATHS,
+  SESSION_REJECTED,
+  type Fetch,
+  type LoginRequestBody,
+} from '@gsainfoteam/account-core';
 import { attemptAsync, isPlainObject } from 'es-toolkit';
 import * as z from 'zod/mini';
 
@@ -21,7 +28,7 @@ export function apiSession(
   return {
     async start(credential, body) {
       const extra = isPlainObject(body) ? body : {};
-      const protocol =
+      const protocol: LoginRequestBody =
         'ticket' in credential
           ? { ticket: credential.ticket }
           : {
@@ -34,13 +41,13 @@ export function apiSession(
 
       const response = await request({
         path: login,
-        body: { ...extra, ...protocol, transport: 'cookie' },
+        body: { ...extra, ...protocol, transport: 'cookie' } satisfies LoginRequestBody,
       });
       if (response.ok) return { tokens: await readTokens(response, login) };
 
       const [, raw] = await attemptAsync<unknown>(() => response.json());
       const rejection = RejectionSchema.safeParse(raw);
-      const error = new AccountError('session_rejected', {
+      const error = new AccountError(SESSION_REJECTED, {
         description: `POST ${login}`,
         status: response.status,
         details: rejection.success ? rejection.data.details : raw,

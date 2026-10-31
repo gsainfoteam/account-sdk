@@ -2,6 +2,9 @@ import { createHash, hkdfSync, randomBytes, randomUUID } from 'node:crypto';
 
 import {
   AccountError,
+  LOGIN_PROTOCOL_FIELDS,
+  LoginCodeBodySchema,
+  LoginTicketBodySchema,
   parseIdTokenClaims,
   userInfoFromIdToken,
   type ClientScope,
@@ -100,26 +103,9 @@ const TICKET_TTL = '5m';
  * 흔해서, 이를 재사용으로 보면 사용자가 로그아웃된다.
  */
 const REUSE_GRACE_MS = 10_000;
-const PROTOCOL_FIELDS = new Set([
-  'code',
-  'code_verifier',
-  'redirect_uri',
-  'nonce',
-  'iss',
-  'ticket',
-  'transport',
-]);
+const PROTOCOL_FIELDS = new Set(LOGIN_PROTOCOL_FIELDS);
 
-const TicketBodySchema = z.object({ ticket: z.string() });
-const CodeBodySchema = z.object({
-  code: z.string(),
-  code_verifier: z.string(),
-  redirect_uri: z.string(),
-  nonce: z.string(),
-  iss: z.optional(z.string()),
-});
-
-type Credential = z.output<typeof TicketBodySchema> | z.output<typeof CodeBodySchema>;
+type Credential = z.output<typeof LoginTicketBodySchema> | z.output<typeof LoginCodeBodySchema>;
 
 const SessionOptionsSchema = z.looseObject({
   secret: z.string().check(z.minLength(32)),
@@ -304,10 +290,10 @@ export function createSessionManager<
 }
 
 function credentialOf(input: unknown): Credential {
-  const ticket = TicketBodySchema.safeParse(input);
+  const ticket = LoginTicketBodySchema.safeParse(input);
   if (ticket.success) return ticket.data;
 
-  const code = CodeBodySchema.safeParse(input);
+  const code = LoginCodeBodySchema.safeParse(input);
   if (code.success) return code.data;
 
   throw new AccountError('invalid_request', { description: z.prettifyError(code.error) });

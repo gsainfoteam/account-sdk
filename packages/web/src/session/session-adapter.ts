@@ -1,4 +1,4 @@
-import { type AccountError } from '@gsainfoteam/account-core';
+import { SessionTokensResponseSchema, type AccountError } from '@gsainfoteam/account-core';
 import * as z from 'zod/mini';
 
 export type LoginCredential =
@@ -6,16 +6,13 @@ export type LoginCredential =
       code: string;
       codeVerifier: string;
       redirectUri: string;
-      nonce: string | undefined;
+      nonce: string;
       iss: string | undefined;
     }
   | { ticket: string };
 
 export const SessionTokensSchema = z.pipe(
-  z.looseObject({
-    access_token: z.string().check(z.minLength(1)),
-    expires_in: z.optional(z.number()),
-  }),
+  SessionTokensResponseSchema,
   z.transform((raw) => ({ accessToken: raw.access_token, expiresIn: raw.expires_in })),
 );
 
