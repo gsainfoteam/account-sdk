@@ -3,8 +3,8 @@ import type { ClientScope } from './scopes';
 /** wire 이름(snake_case) 그대로다. */
 export interface UserClaims {
   name: string;
-  profile: string | null;
-  picture: string | null;
+  profile?: string;
+  picture?: string;
   email: string;
   student_id: string;
   is_student_id_verified: boolean;
@@ -21,5 +21,15 @@ export const SCOPE_CLAIMS = {
   student_id: ['student_id', 'is_student_id_verified'],
   phone_number: ['phone_number', 'is_phone_number_verified'],
 } as const satisfies Record<ClientScope, readonly (keyof UserClaims)[]>;
+
+/**
+ * 사용자에게 값이 없으면 scope를 받았어도 빠지는 claim이다. OIDC Core 5.3.2는 값이 없는 claim을 `null`로 두지 말고
+ * 빼라고 한다.
+ */
+export const OPTIONAL_CLAIMS = ['profile', 'picture'] as const satisfies readonly OptionalClaim[];
+
+type OptionalClaim = {
+  [K in keyof UserClaims]-?: object extends Pick<UserClaims, K> ? K : never;
+}[keyof UserClaims];
 
 export type ClaimsOf<S extends ClientScope> = Pick<UserClaims, (typeof SCOPE_CLAIMS)[S][number]>;

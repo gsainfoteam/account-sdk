@@ -1,3 +1,4 @@
+import { type Prompt } from '@gsainfoteam/account-contract';
 import { difference, uniq } from 'es-toolkit';
 import * as oauth from 'oauth4webapi';
 
@@ -6,7 +7,7 @@ import { type AccountMetadata } from '../discovery/normalize-discovery';
 import { AccountError } from '../errors/account-error';
 import { OFFLINE_ACCESS_SCOPE, OPENID_SCOPE, type Scope } from '../identity/scopes';
 
-export type Prompt = 'none' | 'login' | 'consent';
+export type { Prompt };
 
 /** 이 트랜잭션은 callback에서 읽을 수 있는 곳에 둔다. 브라우저라면 `sessionStorage`, 앱이라면 메모리다. */
 export interface AuthorizationTransaction {

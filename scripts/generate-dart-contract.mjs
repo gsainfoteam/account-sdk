@@ -1,10 +1,22 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 
 import { DENIAL_REASONS } from '../packages/contract/src/denial-reasons.ts';
-import { CLIENT_SCOPES, OFFLINE_ACCESS_SCOPE } from '../packages/contract/src/scopes.ts';
+import {
+  CODE_CHALLENGE_METHOD,
+  OAUTH_ERROR_CODES,
+  PROMPTS,
+} from '../packages/contract/src/oauth.ts';
+import {
+  CLIENT_SCOPES,
+  OFFLINE_ACCESS_SCOPE,
+  OPENID_SCOPE,
+} from '../packages/contract/src/scopes.ts';
 
 const SCOPES_OUTPUT = 'packages/flutter/lib/src/client/scopes.generated.dart';
 const DENIAL_REASONS_OUTPUT = 'packages/flutter/lib/src/errors/denial_reasons.generated.dart';
+const OAUTH_ERROR_CODES_OUTPUT = 'packages/flutter/lib/src/errors/oauth_error_codes.generated.dart';
+const PROMPTS_OUTPUT = 'packages/flutter/lib/src/client/prompts.generated.dart';
+const OAUTH_OUTPUT = 'packages/flutter/lib/src/client/oauth.generated.dart';
 
 const DART_IDENTIFIER = /^[a-z][a-z0-9_]*$/;
 const GENERATED =
@@ -55,12 +67,48 @@ ${[...values(DENIAL_REASONS), "  other('')"].join(',\n')};
 }
 `;
 
+const oauthErrorCodes = `/// IdP가 \`error\`에 담아 보내는 OAuth 에러 코드다. 모르는 값은 [unknown]이다.
+///
+/// ${GENERATED}
+enum OAuthErrorCode {
+${[...values(OAUTH_ERROR_CODES), "  unknown('')"].join(',\n')};
+
+  const OAuthErrorCode(this.wire);
+
+  final String wire;
+
+  static OAuthErrorCode parse(String wire) =>
+      values.firstWhere((code) => code.wire == wire, orElse: () => unknown);
+}
+`;
+
+const prompts = `/// ${GENERATED}
+enum AccountPrompt {
+${values(PROMPTS).join(',\n')};
+
+  const AccountPrompt(this.wire);
+
+  /// authorize 요청의 \`prompt\`에 넣는 값이다.
+  final String wire;
+}
+`;
+
+const oauth = `// ${GENERATED}
+
+const openidScope = '${OPENID_SCOPE}';
+const codeChallengeMethod = '${CODE_CHALLENGE_METHOD}';
+`;
+
 const outputs = [
   [SCOPES_OUTPUT, scopes],
   [DENIAL_REASONS_OUTPUT, denialReasons],
+  [OAUTH_ERROR_CODES_OUTPUT, oauthErrorCodes],
+  [PROMPTS_OUTPUT, prompts],
+  [OAUTH_OUTPUT, oauth],
 ];
 
-const stale = outputs.filter(([path, content]) => readFileSync(path, 'utf8') !== content);
+const read = (path) => (existsSync(path) ? readFileSync(path, 'utf8') : undefined);
+const stale = outputs.filter(([path, content]) => read(path) !== content);
 
 if (check) {
   if (stale.length) {

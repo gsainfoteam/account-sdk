@@ -150,6 +150,14 @@ void main() {
     await expectLater(client.login(), throwsA(isA<AccountIssuerMismatchException>()));
   });
 
+  test('rejects a callback with neither code nor error', () async {
+    final (:client, :servers, authorizations: _) = setup(
+      (url) => 'pot-g-idp-login-redirect://callback?state=${url.queryParameters['state']}',
+    );
+    await expectLater(client.login(), throwsA(isA<AccountMissingCodeException>()));
+    expect(servers.logins, isEmpty);
+  });
+
   test('reports when the user backs out on the IdP page', () async {
     final (:client, servers: _, authorizations: _) = setup(
       (url) =>

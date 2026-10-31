@@ -1,9 +1,14 @@
 import {
   CLIENT_SCOPES,
+  CODE_CHALLENGE_METHOD,
+  GRANT_TYPES,
+  IDP_PAGE_PATHS,
   OPENID_SCOPE,
   SCOPE_CLAIMS,
   SCOPES,
   type ClientScope,
+  type OAuthErrorCode,
+  type TokenEndpointAuthMethod,
   type UserClaims,
 } from '@gsainfoteam/account-contract';
 import { exportJWK, generateKeyPair, SignJWT } from 'jose';
@@ -23,7 +28,7 @@ export interface FakeClient {
   clientSecret?: string;
   scopes?: ClientScope[];
   optionalScopes?: ClientScope[];
-  tokenEndpointAuthMethod?: 'none' | 'client_secret_basic' | 'client_secret_post';
+  tokenEndpointAuthMethod?: TokenEndpointAuthMethod;
 }
 
 export interface FakeIdpOptions {
@@ -256,7 +261,7 @@ function basicCredentials(header: string | null): [string | null, string | null]
   return [id ? decodeURIComponent(id) : null, secret ? decodeURIComponent(secret) : null];
 }
 
-function oauthError(error: string, status: number): Response {
+function oauthError(error: OAuthErrorCode, status: number): Response {
   return Response.json({ error }, { status, headers: { 'cache-control': 'no-store' } });
 }
 
@@ -270,16 +275,16 @@ function discovery(apiOrigin: string) {
 
   return {
     issuer: front,
-    authorization_endpoint: `${front}/authorize`,
-    end_session_endpoint: `${front}/logout`,
+    authorization_endpoint: `${front}${IDP_PAGE_PATHS.authorize}`,
+    end_session_endpoint: `${front}${IDP_PAGE_PATHS.logout}`,
     token_endpoint: `${apiOrigin}/oauth/token`,
     userinfo_endpoint: `${apiOrigin}/oauth/userinfo`,
     jwks_uri: `${apiOrigin}/oauth/certs`,
     revocation_endpoint: `${apiOrigin}/oauth/revoke`,
     scopes_supported: SCOPES,
     response_types_supported: ['code'],
-    grant_types_supported: ['authorization_code', 'refresh_token', 'client_credentials'],
+    grant_types_supported: GRANT_TYPES,
     id_token_signing_alg_values_supported: ['ES256'],
-    code_challenge_methods_supported: ['S256'],
+    code_challenge_methods_supported: [CODE_CHALLENGE_METHOD],
   };
 }
