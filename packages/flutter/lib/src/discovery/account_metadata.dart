@@ -20,12 +20,17 @@ class AccountMetadata {
 }
 
 AccountMetadata normalizeDiscovery(Object? json) {
-  if (json case {
-    'issuer': final String issuer,
-    'authorization_endpoint': final String authorizationEndpoint,
-    'token_endpoint': final String tokenEndpoint,
-    'userinfo_endpoint': final String userinfoEndpoint,
-  } when issuer.isNotEmpty && authorizationEndpoint.isNotEmpty && tokenEndpoint.isNotEmpty) {
+  if (json
+      case {
+        'issuer': final String issuer,
+        'authorization_endpoint': final String authorizationEndpoint,
+        'token_endpoint': final String tokenEndpoint,
+        'userinfo_endpoint': final String userinfoEndpoint,
+      }
+      when issuer.isNotEmpty &&
+          _isHttpUrl(authorizationEndpoint) &&
+          _isHttpUrl(tokenEndpoint) &&
+          _isHttpUrl(userinfoEndpoint)) {
     return AccountMetadata(
       issuer: issuer,
       authorizationEndpoint: Uri.parse(authorizationEndpoint),
@@ -36,10 +41,15 @@ AccountMetadata normalizeDiscovery(Object? json) {
         _ => const [],
       },
       endSessionEndpoint: switch (json['end_session_endpoint']) {
-        final String endpoint => Uri.parse(endpoint),
+        final String endpoint when _isHttpUrl(endpoint) => Uri.parse(endpoint),
         _ => null,
       },
     );
   }
   throw const AccountDiscoveryException('missing issuer or endpoints');
 }
+
+bool _isHttpUrl(String value) => switch (Uri.tryParse(value)) {
+  final Uri uri => uri.hasAuthority && (uri.isScheme('http') || uri.isScheme('https')),
+  null => false,
+};

@@ -34,6 +34,7 @@ describe('verifyIdToken', async () => {
 
   it.each([
     ['another issuer', { iss: 'https://evil.example' }],
+    ['the API host as issuer', { iss: 'https://api.account.gistory.me' }],
     ['another audience', { aud: 'client-2' }],
     ['an expired token', { exp: iat - 3600 }],
     ['another nonce', { nonce: 'n-2' }],

@@ -16,7 +16,14 @@ void main() {
     expect(metadata.scopesSupported, contains('student_id'));
   });
 
-  test('rejects a document without endpoints', () {
+  test('rejects a document without absolute endpoints', () {
     expect(() => normalizeDiscovery({'issuer': 'x'}), throwsA(isA<AccountDiscoveryException>()));
+    expect(
+      () => normalizeDiscovery({
+        ...fixture('production')! as Map<String, Object?>,
+        'authorization_endpoint': '/authorize',
+      }),
+      throwsA(isA<AccountDiscoveryException>()),
+    );
   });
 }
