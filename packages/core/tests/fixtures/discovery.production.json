@@ -1,13 +1,15 @@
 {
   "issuer": "https://account.gistory.me",
   "authorization_endpoint": "https://account.gistory.me/authorize",
+  "end_session_endpoint": "https://account.gistory.me/logout",
   "token_endpoint": "https://api.account.gistory.me/oauth/token",
   "userinfo_endpoint": "https://api.account.gistory.me/oauth/userinfo",
   "jwks_uri": "https://api.account.gistory.me/oauth/certs",
+  "revocation_endpoint": "https://api.account.gistory.me/oauth/revoke",
   "response_types_supported": ["code"],
   "subject_types_supported": ["public"],
   "id_token_signing_alg_values_supported": ["ES256"],
-  "scope_supported": [
+  "scopes_supported": [
     "profile",
     "name",
     "picture",
@@ -17,7 +19,13 @@
     "openid",
     "offline_access"
   ],
-  "token_endpoint_auth_methods_supported": ["client_secret_basic", "client_secret_post"],
+  "code_challenge_methods_supported": ["S256"],
+  "token_endpoint_auth_methods_supported": ["none", "client_secret_basic", "client_secret_post"],
+  "revocation_endpoint_auth_methods_supported": [
+    "none",
+    "client_secret_basic",
+    "client_secret_post"
+  ],
   "claims_supported": [
     "sub",
     "aud",
@@ -25,6 +33,7 @@
     "iat",
     "iss",
     "auth_time",
+    "amr",
     "nonce",
     "profile",
     "name",

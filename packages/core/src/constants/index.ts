@@ -5,8 +5,6 @@ export const ENVIRONMENTS: Readonly<typeof idp.environments> = idp.environments;
 export const API_HOST_PREFIX: string = idp.apiHostPrefix;
 export const DISCOVERY_PATH: string = idp.discoveryPath;
 export const CLIENT_REGISTRATION_PATH: string = idp.clientRegistrationPath;
-export const FALLBACK_ENDPOINTS: Readonly<typeof idp.fallbackEndpoints> = idp.fallbackEndpoints;
-export const DEFAULT_ID_TOKEN_SIGNING_ALGS: readonly string[] = idp.idTokenSigningAlgs;
 export const AUTHORIZATION_CODE_TTL_MS: number = idp.authorizationCodeTtlSeconds * 1000;
 /** ziggle-be와 house-moving-out-be가 쓰는 경로를 따른다. */
 export const SESSION_PATHS: Readonly<typeof idp.sessionPaths> = idp.sessionPaths;

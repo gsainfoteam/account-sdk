@@ -4,8 +4,6 @@
 enum AccountDenialReason {
   userCancelled('user_cancelled'),
   verificationRequired('verification_required'),
-  consentRequired('consent_required'),
-  loginRequired('login_required'),
   other('');
 
   const AccountDenialReason(this.wire);

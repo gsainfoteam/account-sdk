@@ -47,7 +47,6 @@ describe('normalizeDiscovery', () => {
   });
 
   it('rebuilds the broken staging endpoints from the host it was fetched from', () => {
-    expect(staging.issuer).toBe('https://account.account.gistory.me');
     const metadata = normalizeDiscovery(staging, discoveryUrlOf('staging'));
     expect(metadata.authorizationEndpoint).toBe('https://stg.account.gistory.me/authorize');
     expect(metadata.tokenEndpoint).toBe('https://api.stg.account.gistory.me/oauth/token');
@@ -62,29 +61,9 @@ describe('normalizeDiscovery', () => {
     );
   });
 
-  it('reads the misspelled scope_supported', () => {
-    const metadata = normalizeDiscovery(production, discoveryUrlOf('production'));
-    expect(metadata.scopesSupported).toContain('student_id');
-    expect(metadata.scopesSupported).toContain('offline_access');
-  });
-
-  it('falls back to DELETE /oauth/token for revocation', () => {
-    const metadata = normalizeDiscovery(production, discoveryUrlOf('production'));
-    expect(metadata.revocation).toEqual({
-      endpoint: 'https://api.account.gistory.me/oauth/token',
-      method: 'DELETE',
-    });
-  });
-
-  it('uses a standard revocation endpoint once the IdP advertises one', () => {
-    const metadata = normalizeDiscovery(
-      { ...production, revocation_endpoint: 'https://api.account.gistory.me/oauth/revoke' },
-      discoveryUrlOf('production'),
-    );
-    expect(metadata.revocation).toEqual({
-      endpoint: 'https://api.account.gistory.me/oauth/revoke',
-      method: 'POST',
-    });
+  it('puts the revocation endpoint on the API host', () => {
+    const metadata = normalizeDiscovery(staging, discoveryUrlOf('staging'));
+    expect(metadata.revocationEndpoint).toBe('https://api.stg.account.gistory.me/oauth/revoke');
   });
 });
 
@@ -105,8 +84,9 @@ describe('end_session_endpoint', () => {
     );
   });
 
-  it('has no logout URL until the IdP advertises one', () => {
-    const metadata = normalizeDiscovery(production, discoveryUrlOf('production'));
+  it('has no logout URL when the IdP does not advertise one', () => {
+    const { end_session_endpoint: _, ...withoutLogout } = production;
+    const metadata = normalizeDiscovery(withoutLogout, discoveryUrlOf('production'));
     expect(createLogoutUrl(metadata, { clientId: 'c' })).toBeNull();
   });
 });
@@ -114,7 +94,7 @@ describe('end_session_endpoint', () => {
 describe('scopes', () => {
   it('match what the IdP advertises', () => {
     expect([...SCOPES].sort(), 'account-be and @gsainfoteam/account-contract disagree').toEqual(
-      [...production.scope_supported].sort(),
+      [...production.scopes_supported].sort(),
     );
   });
 });

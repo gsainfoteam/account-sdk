@@ -22,20 +22,15 @@ export async function revokeToken(
   { token, tokenTypeHint }: RevokeParams,
   options: RequestOptions = {},
 ): Promise<void> {
-  const base = httpOptions(options);
-  const fetch = options.fetch ?? globalThis.fetch;
-
   try {
     const response = await oauth.revocationRequest(
-      { ...authorizationServer(metadata), revocation_endpoint: metadata.revocation.endpoint },
+      { ...authorizationServer(metadata), revocation_endpoint: metadata.revocationEndpoint },
       oauthClient(client.clientId),
       clientAuthentication(client.clientSecret),
       token,
       {
-        ...base,
+        ...httpOptions(options),
         additionalParameters: { token_type_hint: tokenTypeHint },
-        [oauth.customFetch]: (url, init) =>
-          fetch(url, { ...init, method: metadata.revocation.method }),
       },
     );
 

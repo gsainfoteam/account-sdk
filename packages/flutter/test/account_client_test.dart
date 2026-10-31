@@ -210,7 +210,7 @@ void main() {
       httpClient: MockClient(
         (request) async => json({
           ...body,
-          'scope_supported': ['email'],
+          'scopes_supported': ['email'],
         }),
       ),
       authenticate: (url, scheme) async {

@@ -154,10 +154,8 @@ export function createAccountServer<
           requiredScopes: guaranteed,
         }).catch((error: unknown) => {
           // account-be answers a user who never consented, or does not exist, with 404.
-          // Older account-be answered the same case with 400 invalid_grant, its only 400 on userinfo.
           // The status is all there is to check: oauth4webapi does not read the body of a failed userinfo response.
-          // shortcut: drop the 400 once gsainfoteam/account-be#237 is deployed to production.
-          if (AccountError.is(error) && (error.status === 404 || error.status === 400)) return null;
+          if (AccountError.is(error) && error.status === 404) return null;
           throw error;
         });
 

@@ -16,7 +16,6 @@ abstract final class AccountConstants {
 
   static const clientRegistrationPath = '/client/{clientId}/public';
 
-  static const fallbackUserinfoPath = '/oauth/userinfo';
   static const storageNamespace = 'gsainfoteam-account';
 
   /// OAuth `state`, `nonce`, PKCE verifier에 넣는 무작위 바이트 수다.

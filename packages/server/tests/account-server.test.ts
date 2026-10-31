@@ -252,10 +252,7 @@ describe('getUserInfoBySub', () => {
     });
   });
 
-  it.each([
-    ['404', () => Response.json({ message: 'Not Found', statusCode: 404 }, { status: 404 })],
-    ['400 from older IdPs', () => Response.json({ error: 'invalid_grant' }, { status: 400 })],
-  ])('answers a user the IdP will not show with null (%s)', async (_, userinfo) => {
+  it('answers a user the IdP will not show with null', async () => {
     const server = createAccountServer({
       issuer: 'production',
       clientId: 'c',
@@ -263,7 +260,8 @@ describe('getUserInfoBySub', () => {
       clientCredentialsScopes: ['name'],
       fetch: idp({
         '/oauth/token': () => Response.json({ ...tokenBody, access_token: 'client-token' }),
-        '/oauth/userinfo': userinfo,
+        '/oauth/userinfo': () =>
+          Response.json({ message: 'Not Found', statusCode: 404 }, { status: 404 }),
       }),
     });
     await expect(server.getUserInfoBySub('u-1')).resolves.toBeNull();
