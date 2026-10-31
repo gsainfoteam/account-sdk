@@ -1,5 +1,13 @@
 # @gsainfoteam/account-nest
 
+## 0.3.0
+
+### Patch Changes
+
+- Updated dependencies [bf59e4c]
+  - @gsainfoteam/account-core@0.3.0
+  - @gsainfoteam/account-server@0.3.0
+
 ## 0.2.0
 
 ### Patch Changes
