@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 
 import { clearDiscoveryCache } from '@gsainfoteam/account-core';
+import { createFakeIdp } from '@gsainfoteam/account-testing';
 import { Controller, Get, Module, UseGuards, type INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
@@ -15,7 +16,6 @@ import {
   type SessionModuleOptions,
   type SessionOf,
 } from '../src';
-import { createFakeIdp } from './support/fake-idp';
 
 const idp = await createFakeIdp();
 const code = async () =>
