@@ -22,10 +22,7 @@ export const SCOPE_CLAIMS = {
   phone_number: ['phone_number', 'is_phone_number_verified'],
 } as const satisfies Record<ClientScope, readonly (keyof UserClaims)[]>;
 
-/**
- * 사용자에게 값이 없으면 scope를 받았어도 빠지는 claim이다. OIDC Core 5.3.2는 값이 없는 claim을 `null`로 두지 말고
- * 빼라고 한다.
- */
+/** 값이 없으면 `null` 대신 claim을 뺀다(OIDC Core 5.3.2). */
 export const OPTIONAL_CLAIMS = ['profile', 'picture'] as const satisfies readonly OptionalClaim[];
 
 type OptionalClaim = {

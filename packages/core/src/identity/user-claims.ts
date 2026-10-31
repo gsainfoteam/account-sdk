@@ -14,10 +14,10 @@ export const UserClaimsSchema = z.object({
   is_phone_number_verified: z.boolean(),
 });
 
-// contract의 claim이 추가, 삭제되거나 타입이 넓어지고 좁아지면 여기서 컴파일 에러가 난다.
+// contract와 어긋나면 여기서 컴파일 에러가 난다.
 true satisfies Equals<z.output<typeof UserClaimsSchema>, UserClaims>;
 
-/** account-be v2.5.0은 값이 없는 claim을 `null`로 보낸다. 받아 들이고 빠진 것으로 읽는다. */
+/** account-be v2.5.0은 값이 없는 claim을 `null`로 보낸다. */
 export const LegacyNullClaimsShape = {
   profile: z.nullish(z.string()),
   picture: z.nullish(z.string()),

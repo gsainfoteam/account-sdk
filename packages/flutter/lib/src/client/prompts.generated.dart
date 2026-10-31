@@ -6,6 +6,5 @@ enum AccountPrompt {
 
   const AccountPrompt(this.wire);
 
-  /// authorize 요청의 `prompt`에 넣는 값이다.
   final String wire;
 }

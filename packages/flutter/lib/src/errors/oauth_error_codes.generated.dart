@@ -1,5 +1,3 @@
-/// IdP가 `error`에 담아 보내는 OAuth 에러 코드다. 모르는 값은 [unknown]이다.
-///
 /// 이 파일은 `pnpm contract:dart`가 `packages/contract`에서 생성한다. 손으로 고치지 않는다.
 enum OAuthErrorCode {
   invalidRequest('invalid_request'),

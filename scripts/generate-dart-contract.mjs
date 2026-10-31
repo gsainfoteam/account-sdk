@@ -67,9 +67,7 @@ ${[...values(DENIAL_REASONS), "  other('')"].join(',\n')};
 }
 `;
 
-const oauthErrorCodes = `/// IdP가 \`error\`에 담아 보내는 OAuth 에러 코드다. 모르는 값은 [unknown]이다.
-///
-/// ${GENERATED}
+const oauthErrorCodes = `/// ${GENERATED}
 enum OAuthErrorCode {
 ${[...values(OAUTH_ERROR_CODES), "  unknown('')"].join(',\n')};
 
@@ -88,7 +86,6 @@ ${values(PROMPTS).join(',\n')};
 
   const AccountPrompt(this.wire);
 
-  /// authorize 요청의 \`prompt\`에 넣는 값이다.
   final String wire;
 }
 `;

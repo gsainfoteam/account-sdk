@@ -32,7 +32,6 @@ final class AccountStateMismatchException extends AccountException {
   String toString() => 'AccountStateMismatchException';
 }
 
-/// IdP가 \`code\`도 \`error\`도 없이 돌려보냈다.
 final class AccountMissingCodeException extends AccountException {
   const AccountMissingCodeException();
 

@@ -75,7 +75,7 @@ function missingClaims(user: UserInfo, scopes: readonly ClientScope[]): (keyof U
     .filter((claim) => !optionalClaims.has(claim) && user[CAMEL_CLAIMS[claim]] === undefined);
 }
 
-/** `user`에 `scopes`의 필수 claim이 모두 들어 있는지 알려 준다. 값이 없을 수 있는 claim(`OPTIONAL_CLAIMS`)은 보지 않는다. */
+/** `OPTIONAL_CLAIMS`는 값이 없어도 통과한다. */
 export function hasScopeClaims<S extends ClientScope>(
   user: UserInfo,
   scopes: readonly S[],

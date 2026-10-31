@@ -13,6 +13,6 @@ export type Simplify<T> = { [K in keyof T]: T[K] } & {};
  */
 export type OrUndefined<T> = { [K in keyof T]: T[K] | undefined };
 
-/** 두 타입이 서로 할당 가능하면 `true`. optional과 `| undefined`, `null` 차이까지 구분한다. */
+/** 서로 할당 가능한지로는 optional과 `| undefined`를 구분하지 못해서 이 형태를 쓴다. */
 export type Equals<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
