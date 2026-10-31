@@ -1,26 +1,26 @@
 # @gsainfoteam/account-testing
 
-[`@gsainfoteam/account-nest`](../nest)를 붙인 서비스 백엔드를 진짜 IdP 없이 테스트하는 가짜 IdP다.
+[`@gsainfoteam/account-nest`](../nest)를 붙인 서비스 백엔드를 실제 IdP 없이 테스트하는 가짜 IdP다.
 
 ## 테스트 대상
 
-`/auth/login`, `/auth/refresh`, `/auth/logout`과 토큰 처리는 SDK가 만들고 SDK에서 테스트한다. 서비스가 테스트할 것은 그 위에 직접 짠 코드다.
+`/auth/login`, `/auth/refresh`, `/auth/logout`과 토큰 처리는 SDK가 만들고 SDK에서 테스트한다. 서비스가 테스트할 것은 그 위에 직접 작성한 코드다.
 
-- `resolve`: IdP 사용자를 서비스 DB의 사용자와 제대로 연결하는가. 기존 사용자를 찾지 못해 새로 만들어 버리면 사용자는 자기 데이터를 잃은 것처럼 보인다.
-- guard를 붙인 API: 로그인하지 않으면 막히고, 로그인하면 세션에서 사용자를 찾아 동작하는가.
+- `resolve`: IdP 사용자를 서비스 DB의 사용자와 제대로 연결하는가. 기존 사용자를 찾지 못해 새로 만들어 버리면 사용자에게는 자기 데이터가 사라진 것처럼 보인다.
+- guard를 붙인 API: 로그인하지 않은 요청을 막고, 로그인한 요청에서는 세션으로 사용자를 찾아 동작하는가.
 - 서비스 정책: 약관 동의(`SessionRejected`), 한 기기 로그인(`onLogin: 'replace'`) 등.
 
-`resolve`를 실행하려면 `/auth/login`을 거쳐야 하고, `/auth/login`은 IdP와 통신한다. 가짜 IdP는 이 통신에 진짜 IdP처럼 응답해서, 서비스
-코드를 실제 로그인 경로 그대로 돌릴 수 있게 한다.
+`resolve`를 실행하려면 `/auth/login`을 거쳐야 하고, `/auth/login`은 IdP와 통신한다. 가짜 IdP는 이 통신에 실제 IdP처럼 응답하므로, 서비스
+코드를 실제 로그인 경로 그대로 실행할 수 있다.
 
 | 실제 로그인                                          | 테스트에서                                    |
 | ---------------------------------------------------- | --------------------------------------------- |
 | 사용자가 브라우저에서 IdP에 로그인하고 code를 받는다 | `idp.authorize()`가 그 결과(code 등)를 만든다 |
 | 프론트가 code를 `POST /auth/login`으로 보낸다        | 테스트가 supertest로 보낸다                   |
 | SDK가 IdP에서 code를 교환하고 사용자를 확인한다      | 가짜 IdP가 응답한다                           |
-| 서비스의 `resolve`가 사용자를 연결하고 세션이 생긴다 | 진짜로 실행된다(서비스 코드, 서비스 DB)       |
+| 서비스의 `resolve`가 사용자를 연결하고 세션이 생긴다 | 실제로 실행된다(서비스 코드, 서비스 DB)       |
 
-진짜 IdP와의 연동(client 등록, redirect URI)은 확인하지 못하므로, 스테이징 IdP로 한 번은 직접 로그인해 본다.
+실제 IdP와의 연동(client 등록, redirect URI)은 확인하지 못하므로, 스테이징 IdP로 한 번은 직접 로그인해 본다.
 
 ## 설치
 
@@ -37,7 +37,7 @@ ESM으로만 배포한다.
 
 ## 예시
 
-서비스 앱을 그대로 띄우고, SDK가 IdP에 보내는 요청만 가짜 IdP로 돌린다. SDK는 `fetch` 옵션이 없으면 전역 `fetch`를 쓰므로 전역 `fetch`를
+서비스 앱을 그대로 띄우고, SDK가 IdP에 보내는 요청만 가짜 IdP로 보낸다. SDK는 `fetch` 옵션이 없으면 전역 `fetch`를 쓰므로 전역 `fetch`를
 바꾸면 된다. 서비스 코드는 바꾸지 않는다.
 
 ```ts
@@ -92,10 +92,10 @@ it('로그인해야 내 정보를 볼 수 있다', async () => {
 
 ### `createFakeIdp(options?)`
 
-| 옵션      | 설명                                                                                                                             |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `clients` | 등록된 client 목록(`clientId`, `clientSecret`, `scopes`, `optionalScopes`). 생략하면 어떤 client든 받고 모든 scope를 필수로 본다 |
-| `users`   | client credentials로 조회(`getUserInfoBySub`)할 수 있는 사용자. `authorize()`한 사용자는 저절로 들어간다                         |
+| 옵션      | 설명                                                                                                                                                |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `clients` | 등록된 client 목록(`clientId`, `clientSecret`, `scopes`, `optionalScopes`). 생략하면 어떤 client든 허용하고, 모든 scope를 필수로 등록한 것으로 본다 |
+| `users`   | client credentials로 조회(`getUserInfoBySub`)할 수 있는 사용자. `authorize()`한 사용자는 자동으로 추가된다                                          |
 
 `clients`를 넘기면 서버가 시작할 때 하는 등록 점검(`requiredScopes`가 필수 scope로 등록됐는가)까지 시험할 수 있다.
 
@@ -109,7 +109,7 @@ it('로그인해야 내 정보를 볼 수 있다', async () => {
 | `clientId`        | 필수. 서비스가 쓰는 client id와 같아야 한다                                                   |
 | `user`            | 로그인할 사용자. 생략하면 `fakeUser()`                                                        |
 | `scopes`          | 사용자가 동의한 scope. 생략하면 client에 등록된 전부. 선택 scope를 거절한 경우를 만들 때 쓴다 |
-| `authTime`, `amr` | 로그인 시각(초)과 방식. 기본값은 지금과 비밀번호(`['pwd']`)                                   |
+| `authTime`, `amr` | 로그인 시각(초)과 방식. 기본값은 현재 시각과 비밀번호(`['pwd']`)                              |
 
 ### `fakeUser(overrides?)`
 
@@ -117,5 +117,5 @@ it('로그인해야 내 정보를 볼 수 있다', async () => {
 
 ### `idp.fetch`
 
-IdP 요청에 응답하는 `fetch`다. host는 보지 않고 경로만 보며, IdP 경로가 아니면 404를 준다. 테스트에서 다른 외부 API도 부른다면 주소를 보고 원래
+IdP 요청에 응답하는 `fetch`다. host는 확인하지 않고 경로만 확인하며, IdP 경로가 아니면 404를 준다. 테스트에서 다른 외부 API도 호출한다면 주소를 보고 원래
 `fetch`로 넘긴다. `AccountModule.forRoot()`를 테스트에서 직접 만든다면 전역 `fetch`를 바꾸지 않고 `fetch: idp.fetch` 옵션으로 넘겨도 된다.
