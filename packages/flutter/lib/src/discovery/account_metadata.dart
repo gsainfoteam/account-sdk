@@ -32,6 +32,7 @@ AccountMetadata normalizeDiscovery(Object? json, Uri fetchedFrom) {
     'issuer': final String issuer,
     'authorization_endpoint': final String authorizationEndpoint,
     'token_endpoint': final String tokenEndpoint,
+    'userinfo_endpoint': final String userinfoEndpoint,
   } when issuer.isNotEmpty && authorizationEndpoint.isNotEmpty && tokenEndpoint.isNotEmpty) {
     final apiOrigin = fetchedFrom.replace(path: '', query: null);
     final frontOrigin = apiOrigin.replace(
@@ -47,11 +48,8 @@ AccountMetadata normalizeDiscovery(Object? json, Uri fetchedFrom) {
       issuers: {issuer, _origin(frontOrigin), _origin(apiOrigin)}.toList(),
       authorizationEndpoint: frontOrigin.replace(path: Uri.parse(authorizationEndpoint).path),
       tokenEndpoint: onApi(tokenEndpoint),
-      userinfoEndpoint: onApi(switch (json['userinfo_endpoint']) {
-        final String endpoint => endpoint,
-        _ => AccountConstants.fallbackUserinfoPath,
-      }),
-      scopesSupported: switch (json['scopes_supported'] ?? json['scope_supported']) {
+      userinfoEndpoint: onApi(userinfoEndpoint),
+      scopesSupported: switch (json['scopes_supported']) {
         final List<Object?> scopes => scopes.whereType<String>().toList(),
         _ => const [],
       },

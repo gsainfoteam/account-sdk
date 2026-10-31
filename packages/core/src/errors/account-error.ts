@@ -4,10 +4,6 @@ import * as z from 'zod/mini';
 
 export const DenialReasonSchema = z.enum(DENIAL_REASONS);
 
-/**
- * 예전 account-fe는 `login_required`와 `consent_required`를 `access_denied`의 `error_description`으로 보냈다.
- * 그 경우는 {@link fromOAuthError}가 같은 코드로 바꾼다.
- */
 export const OAuthErrorCodeSchema = z.enum([
   'access_denied',
   'login_required',

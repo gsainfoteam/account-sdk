@@ -314,21 +314,18 @@ describe('silentLogin', () => {
 
 describe('logout with the IdP', () => {
   const routes = { [`${API}/auth/logout`]: () => new Response(null, { status: 204 }) };
-  const withEndSession = (servers: ReturnType<typeof setup>) => {
+  const withoutEndSession = (servers: ReturnType<typeof setup>) => {
+    const { end_session_endpoint: _, ...discovery } = production;
     const original = servers.fetch.getMockImplementation()!;
     servers.fetch.mockImplementation(async (input, init) =>
       String(input).endsWith('/.well-known/openid-configuration')
-        ? Response.json({
-            ...production,
-            end_session_endpoint: 'https://account.gistory.me/logout',
-          })
+        ? Response.json(discovery)
         : original(input, init),
     );
   };
 
   it('ends the IdP session through the registered callback URL and comes back to returnTo', async () => {
     const servers = setup(routes);
-    withEndSession(servers);
     await servers.client.logout({ idp: true, returnTo: '/bye' });
 
     const logout = new URL(servers.redirect.mock.calls[0]![0]);
@@ -348,8 +345,9 @@ describe('logout with the IdP', () => {
     expect(returned.isHandlingRedirect()).toBe(false);
   });
 
-  it('only ends the service session while the IdP does not advertise logout', async () => {
+  it('only ends the service session when the IdP does not advertise logout', async () => {
     const servers = setup(routes);
+    withoutEndSession(servers);
     await servers.client.logout({ idp: true });
 
     expect(servers.redirect).not.toHaveBeenCalled();

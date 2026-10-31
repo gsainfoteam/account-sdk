@@ -170,7 +170,7 @@ describe('requestClientCredentials', () => {
 });
 
 describe('revokeToken', () => {
-  it('uses DELETE /oauth/token until the IdP has a revocation endpoint', async () => {
+  it('posts to the revocation endpoint', async () => {
     const fetch = mockFetch(new Response(null, { status: 200 }));
     await revokeToken(
       metadata,
@@ -178,8 +178,8 @@ describe('revokeToken', () => {
       { token: 'rt-1', tokenTypeHint: 'refresh_token' },
       { fetch },
     );
-    expect(fetch.mock.calls[0]?.[0]).toBe('https://api.account.gistory.me/oauth/token');
-    expect(fetch.mock.calls[0]?.[1]?.method).toBe('DELETE');
+    expect(fetch.mock.calls[0]?.[0]).toBe('https://api.account.gistory.me/oauth/revoke');
+    expect(fetch.mock.calls[0]?.[1]?.method).toBe('POST');
     expect(Object.fromEntries(bodyOf(fetch))).toMatchObject({
       token: 'rt-1',
       token_type_hint: 'refresh_token',

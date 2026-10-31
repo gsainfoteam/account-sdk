@@ -15,10 +15,6 @@ void main() {
     expect(AccountConstants.apiHostPrefix, idp['apiHostPrefix']);
     expect(AccountConstants.discoveryPath, idp['discoveryPath']);
     expect(AccountConstants.clientRegistrationPath, idp['clientRegistrationPath']);
-    expect(
-      idp['fallbackEndpoints'],
-      containsPair('userinfo', AccountConstants.fallbackUserinfoPath),
-    );
     expect(AccountConstants.storageNamespace, idp['storageNamespace']);
     const paths = SessionPaths();
     expect({
@@ -33,7 +29,7 @@ void main() {
       File('../core/tests/fixtures/discovery.production.json').readAsStringSync(),
     );
     expect(
-      discovery['scope_supported'],
+      discovery['scopes_supported'],
       unorderedEquals([...AccountScope.values.map((scope) => scope.value), 'openid']),
     );
   });
@@ -41,7 +37,7 @@ void main() {
   test('parses OAuth error codes and denial reasons from their wire values', () {
     expect(OAuthErrorCode.parse('invalid_grant'), OAuthErrorCode.invalidGrant);
     expect(OAuthErrorCode.parse('something_new'), OAuthErrorCode.unknown);
-    expect(AccountDenialReason.parse('consent_required'), AccountDenialReason.consentRequired);
+    expect(AccountDenialReason.parse('user_cancelled'), AccountDenialReason.userCancelled);
     expect(AccountDenialReason.parse(null), AccountDenialReason.other);
   });
 }
