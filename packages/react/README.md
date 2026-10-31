@@ -115,7 +115,8 @@ if (status === 'unauthenticated') return <button onClick={() => login()}>로그�
 | ----------------------- | ----------------------------------------------------------------------------- |
 | `user_cancelled`        | 사용자가 IdP 화면에서 취소했다                                                |
 | `verification_required` | 서비스가 필수로 요구한 정보(예: 학번)를 사용자가 IdP에서 아직 인증하지 않았다 |
-| `session_rejected`      | 서비스 백엔드가 로그인을 거절했다. 거절 이유는 `error.details`에 있다         |
+| `session_rejected`      | 서비스 백엔드가 403으로 로그인을 거절했다. 거절 이유는 `error.details`에 있다 |
+| `server_error`          | 서비스 백엔드가 5xx로 응답했다. 백엔드가 IdP와 통신하지 못한 경우도 포함한다  |
 | `network_error`         | IdP나 서비스 백엔드에 연결하지 못했다                                         |
 
 `session_rejected`는 약관 동의처럼 로그인 전에 추가 입력이 필요할 때 쓴다. 사용자에게 입력을 받은 뒤 `retryLogin(body)`로 보내면 IdP를 다시 거치지 않고

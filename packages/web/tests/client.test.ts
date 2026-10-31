@@ -199,6 +199,23 @@ describe('a service that asks for consent before login (house-moving-out)', () =
       transport: 'cookie',
     });
   });
+
+  it.each([
+    [400, 'unknown'],
+    [502, 'server_error'],
+  ])('does not treat a %i login failure as a rejection', async (status, code) => {
+    const servers = setup({
+      [`${API}/auth/login`]: () => Response.json({ error: 'invalid_request' }, { status }),
+    });
+    const { returned } = await loginAndReturn(servers);
+    await returned.ready();
+
+    expect(returned.store.getState()).toMatchObject({
+      status: 'unauthenticated',
+      canRetryLogin: false,
+      error: { code, status },
+    });
+  });
 });
 
 describe('requireAuth', () => {
@@ -245,6 +262,17 @@ describe('ready', () => {
     });
     await client.ready();
     expect(client.store.getState()).toMatchObject({ status: 'unauthenticated', error: null });
+  });
+
+  it('reports a failing refresh endpoint as server_error', async () => {
+    const { client } = setup({
+      [`${API}/auth/refresh`]: () => new Response(null, { status: 503 }),
+    });
+    await client.ready();
+    expect(client.store.getState()).toMatchObject({
+      status: 'unauthenticated',
+      error: { code: 'server_error', status: 503 },
+    });
   });
 });
 
