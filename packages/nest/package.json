@@ -1,6 +1,6 @@
 {
   "name": "@gsainfoteam/account-nest",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "NestJS module for the Infoteam account IdP",
   "license": "MIT",
   "type": "module",
