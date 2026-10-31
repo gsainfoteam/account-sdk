@@ -280,6 +280,6 @@ SDK는 실패하면 `AccountError`를 던지므로 `code`로 경우를 나눈다
 
 ## 테스트
 
-[`@gsainfoteam/account-testing`](../testing)의 가짜 IdP로 진짜 IdP 없이 `/auth/login`부터 guard까지 e2e 테스트를 돌린다.
+[`@gsainfoteam/account-testing`](../testing)의 가짜 IdP로 진짜 IdP 없이 `/auth/login`부터 guard까지 e2e 테스트를 돌린다. 사용법은 [그 README](../testing/README.md)에 있다.
 
 전체 예시는 [`examples/nest`](../../examples/nest)에 있다.

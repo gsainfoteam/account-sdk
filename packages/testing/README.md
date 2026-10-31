@@ -52,6 +52,6 @@ it('logs in', async () => {
 - `authorize()`는 브라우저가 IdP에서 로그인하고 돌아온 상태를 만든다. 돌려받은 `body`를 그대로 서비스의 `/auth/login`에 보내면 된다.
 - `user`를 생략하면 모든 필드가 채워진 무작위 사용자(`fakeUser()`)로 로그인한다.
 - `clients`를 생략하면 어떤 client id와 secret이든 받는다. 넘기면 등록 정보가 서비스 선언과 맞는지 시작할 때 확인하는 것까지 시험할 수 있다.
-- 가짜 IdP는 IdP가 아닌 주소에 404를 준다. 테스트에서 다른 외부 API도 부른다면 주소를 보고 원래 `fetch`로 넘긴다.
+- 가짜 IdP는 host를 보지 않고 경로만 본다. IdP 경로가 아니면 404를 주므로, 테스트에서 다른 외부 API도 부른다면 주소를 보고 원래 `fetch`로 넘긴다.
 
 `AccountModule.forRoot()`를 테스트에서 직접 만든다면 전역 `fetch`를 바꾸지 않고 `fetch: idp.fetch`를 옵션으로 넘겨도 된다.

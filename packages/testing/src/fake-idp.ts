@@ -125,6 +125,9 @@ export async function createFakeIdp(options: FakeIdpOptions = {}): Promise<FakeI
         scope: scopes.join(' '),
       });
     }
+    if (!body.has('grant_type')) return oauthError('invalid_request', 400);
+    if (body.get('grant_type') !== 'authorization_code')
+      return oauthError('unsupported_grant_type', 400);
 
     const pending = codes.get(body.get('code') ?? '');
     codes.delete(body.get('code') ?? '');
