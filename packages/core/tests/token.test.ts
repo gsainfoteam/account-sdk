@@ -271,16 +271,19 @@ describe('fetchUserInfo', () => {
     });
   });
 
-  it('counts a null profile as present', async () => {
-    const fetch = mockFetch(jsonResponse({ sub: 'user-1', profile: null }));
-    const user = await fetchUserInfo(metadata, { clientId: 'client-1' }, 'at-1', {
-      fetch,
-      requiredScopes: ['profile'],
-    });
+  it.each([{ profile: null }, {}])(
+    'accepts a profile without a value as absent: %o',
+    async (claims) => {
+      const fetch = mockFetch(jsonResponse({ sub: 'user-1', ...claims }));
+      const user = await fetchUserInfo(metadata, { clientId: 'client-1' }, 'at-1', {
+        fetch,
+        requiredScopes: ['profile', 'picture'],
+      });
 
-    expect(user.profile).toBeNull();
-    expectTypeOf(user.profile).toEqualTypeOf<string | null>();
-  });
+      expect(user.profile).toBeUndefined();
+      expectTypeOf(user.profile).toEqualTypeOf<string | undefined>();
+    },
+  );
 
   it('reports an unknown token as invalid_token', async () => {
     const fetch = mockFetch(jsonResponse({ statusCode: 401, message: 'Unauthorized' }, 401));

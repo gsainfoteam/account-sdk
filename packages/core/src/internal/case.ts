@@ -12,3 +12,7 @@ export type Simplify<T> = { [K in keyof T]: T[K] } & {};
  * `-?`로 optional을 제거하면 TS가 값에서 `undefined`까지 지워 버리므로, 필수 키를 가진 타입에 쓴다.
  */
 export type OrUndefined<T> = { [K in keyof T]: T[K] | undefined };
+
+/** 서로 할당 가능한지로는 optional과 `| undefined`를 구분하지 못해서 이 형태를 쓴다. */
+export type Equals<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;

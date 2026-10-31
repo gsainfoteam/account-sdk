@@ -13,6 +13,7 @@ import {
   type ExchangeCodeParams,
   type IdTokenClaims,
   type RevokeParams,
+  type TokenEndpointAuthMethod,
   type TokenResponse,
   type UserInfo,
 } from '@gsainfoteam/account-core';
@@ -196,7 +197,9 @@ export function createAccountServer<
         ...(clientCredentialsScopes ?? [])
           .filter((scope) => !registered.includes(scope))
           .map((scope) => `clientCredentialsScopes has ${scope}, which the client does not have`),
-        ...(clientSecret && registration.tokenEndpointAuthMethod !== 'client_secret_post'
+        ...(clientSecret &&
+        registration.tokenEndpointAuthMethod !==
+          ('client_secret_post' satisfies TokenEndpointAuthMethod)
           ? [
               `the client authenticates with ${registration.tokenEndpointAuthMethod ?? 'an unknown method'}, not client_secret_post`,
             ]

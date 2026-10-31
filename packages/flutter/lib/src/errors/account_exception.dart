@@ -1,6 +1,8 @@
 import 'denial_reasons.generated.dart';
+import 'oauth_error_codes.generated.dart';
 
 export 'denial_reasons.generated.dart';
+export 'oauth_error_codes.generated.dart';
 
 sealed class AccountException implements Exception {
   const AccountException();
@@ -11,30 +13,6 @@ final class AccountCancelledException extends AccountException {
 
   @override
   String toString() => 'AccountCancelledException';
-}
-
-enum OAuthErrorCode {
-  accessDenied('access_denied'),
-  loginRequired('login_required'),
-  consentRequired('consent_required'),
-  interactionRequired('interaction_required'),
-  invalidRequest('invalid_request'),
-  invalidScope('invalid_scope'),
-  unauthorizedClient('unauthorized_client'),
-  unsupportedResponseType('unsupported_response_type'),
-  serverError('server_error'),
-  temporarilyUnavailable('temporarily_unavailable'),
-  invalidGrant('invalid_grant'),
-  invalidClient('invalid_client'),
-  unsupportedGrantType('unsupported_grant_type'),
-  unknown('');
-
-  const OAuthErrorCode(this.wire);
-
-  final String wire;
-
-  static OAuthErrorCode parse(String wire) =>
-      values.firstWhere((code) => code.wire == wire, orElse: () => unknown);
 }
 
 final class AccountDeniedException extends AccountException {
@@ -52,6 +30,13 @@ final class AccountStateMismatchException extends AccountException {
 
   @override
   String toString() => 'AccountStateMismatchException';
+}
+
+final class AccountMissingCodeException extends AccountException {
+  const AccountMissingCodeException();
+
+  @override
+  String toString() => 'AccountMissingCodeException';
 }
 
 final class AccountIssuerMismatchException extends AccountException {

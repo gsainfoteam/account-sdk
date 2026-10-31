@@ -15,6 +15,7 @@ import {
   type ClientScope,
   type Fetch,
   type Prompt,
+  type OAuthErrorCode,
 } from '@gsainfoteam/account-core';
 import { attempt, isString, Mutex } from 'es-toolkit';
 import * as z from 'zod/mini';
@@ -356,7 +357,7 @@ const SILENT_LOGIN_FAILURES = new Set<string>([
   'login_required',
   'consent_required',
   'interaction_required',
-]);
+] satisfies OAuthErrorCode[]);
 
 interface Callback {
   url: string;

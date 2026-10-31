@@ -7,7 +7,7 @@ export function fakeUser(overrides: Partial<FakeUser> = {}): FakeUser {
   return {
     sub: faker.string.uuid(),
     name: fakerKO.person.lastName() + fakerKO.person.firstName(),
-    profile: null,
+    profile: faker.internet.url(),
     picture: faker.image.avatar(),
     email: `${faker.internet.username().toLowerCase()}@gm.gist.ac.kr`,
     student_id: `${faker.number.int({ min: 2018, max: 2026 })}${faker.string.numeric(4)}`,

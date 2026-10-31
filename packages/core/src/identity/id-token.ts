@@ -3,7 +3,7 @@ import { createRemoteJWKSet, customFetch, jwtVerify, type JWTVerifyGetKey } from
 import * as z from 'zod/mini';
 
 import { ID_TOKEN_CLOCK_TOLERANCE_SEC } from '../constants';
-import { UserClaimsSchema } from './user-claims';
+import { LegacyNullClaimsShape, UserClaimsSchema } from './user-claims';
 import { type AccountMetadata } from '../discovery/normalize-discovery';
 import { AccountError } from '../errors/account-error';
 import { type Fetch } from '../http/fetch';
@@ -24,6 +24,7 @@ export const IdTokenClaimsSchema = z.looseObject({
   amr: z.optional(z.array(z.string())),
   scope: z.optional(z.string()),
   ...z.partial(UserClaimsSchema).shape,
+  ...LegacyNullClaimsShape,
 });
 
 export type IdTokenClaims = z.infer<typeof IdTokenClaimsSchema>;

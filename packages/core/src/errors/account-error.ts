@@ -1,24 +1,10 @@
-import { DENIAL_REASONS } from '@gsainfoteam/account-contract';
+import { DENIAL_REASONS, OAUTH_ERROR_CODES } from '@gsainfoteam/account-contract';
 import { isError } from 'es-toolkit';
 import * as z from 'zod/mini';
 
 export const DenialReasonSchema = z.enum(DENIAL_REASONS);
 
-export const OAuthErrorCodeSchema = z.enum([
-  'access_denied',
-  'login_required',
-  'consent_required',
-  'interaction_required',
-  'invalid_request',
-  'invalid_scope',
-  'unauthorized_client',
-  'unsupported_response_type',
-  'server_error',
-  'temporarily_unavailable',
-  'invalid_grant',
-  'invalid_client',
-  'unsupported_grant_type',
-]);
+export const OAuthErrorCodeSchema = z.enum(OAUTH_ERROR_CODES);
 
 export const SdkErrorCodeSchema = z.enum([
   'state_mismatch',

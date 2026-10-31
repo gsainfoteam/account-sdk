@@ -18,7 +18,8 @@ import '../session/api_session.dart';
 import '../session/session_paths.dart';
 import '../storage/secure_token_store.dart';
 import '../storage/token_store.dart';
-import 'account_prompt.dart';
+import 'oauth.generated.dart';
+import 'prompts.generated.dart';
 import 'account_state.dart';
 import 'scopes.generated.dart';
 
@@ -104,12 +105,12 @@ class AccountClient {
         'response_type': 'code',
         'client_id': clientId,
         'redirect_uri': redirectUri.toString(),
-        'scope': [_openidScope, ...requested.map((scope) => scope.value)].join(' '),
+        'scope': [openidScope, ...requested.map((scope) => scope.value)].join(' '),
         'state': state,
         'nonce': nonce,
         'code_challenge': _challenge(verifier),
-        'code_challenge_method': _codeChallengeMethod,
-        if (prompt != null) 'prompt': prompt.name,
+        'code_challenge_method': codeChallengeMethod,
+        if (prompt != null) 'prompt': prompt.wire,
       },
     );
 
@@ -310,17 +311,14 @@ class AccountClient {
 
     final code = parameters['code'];
     if (code == null || code.isEmpty) {
-      throw AccountOAuthException(_invalidResponseError, 'missing code');
+      throw const AccountMissingCodeException();
     }
 
     return code;
   }
 }
 
-const _openidScope = 'openid';
-const _codeChallengeMethod = 'S256';
 const _browserCancelledCode = 'CANCELED';
-const _invalidResponseError = 'invalid_response';
 
 Future<String> _systemBrowser(Uri url, String callbackUrlScheme) =>
     FlutterWebAuth2.authenticate(url: url.toString(), callbackUrlScheme: callbackUrlScheme);

@@ -1,3 +1,4 @@
+import { type TokenEndpointAuthMethod } from '@gsainfoteam/account-contract';
 import { attemptAsync } from 'es-toolkit';
 import * as z from 'zod/mini';
 
@@ -24,7 +25,9 @@ const ClientRegistrationSchema = z.pipe(
   })),
 );
 
-/** SDK가 모르는 scope는 버린다. */
+export type { TokenEndpointAuthMethod };
+
+/** SDK가 모르는 scope는 버린다. 인증 방식은 새 값이 생겨도 비교만 하므로 문자열 그대로 둔다. */
 export type ClientRegistration = z.output<typeof ClientRegistrationSchema>;
 
 /**

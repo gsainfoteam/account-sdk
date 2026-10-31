@@ -1,4 +1,5 @@
 import {
+  OPTIONAL_CLAIMS,
   SCOPE_CLAIMS,
   type ClaimsOf,
   type ClientScope,
@@ -8,7 +9,7 @@ import * as oauth from 'oauth4webapi';
 import * as z from 'zod/mini';
 
 import { type IdTokenClaims } from './id-token';
-import { UserClaimsSchema } from './user-claims';
+import { LegacyNullClaimsShape, UserClaimsSchema } from './user-claims';
 import { type AccountMetadata } from '../discovery/normalize-discovery';
 import { AccountError } from '../errors/account-error';
 import { type ClientCredentials } from '../grants/token-response';
@@ -26,6 +27,7 @@ import { parse } from '../internal/validate';
 export const UserInfoResponseSchema = z.looseObject({
   sub: z.string().check(z.minLength(1)),
   ...z.partial(UserClaimsSchema).shape,
+  ...LegacyNullClaimsShape,
 });
 
 type BaseUserInfo = Simplify<{ sub: string } & Partial<Camel<UserClaims>>>;
@@ -36,8 +38,8 @@ export const UserInfoSchema = z.pipe(
     const user: { sub: string } & OrUndefined<Camel<UserClaims>> = {
       sub: raw.sub,
       name: raw.name,
-      profile: raw.profile,
-      picture: raw.picture,
+      profile: raw.profile ?? undefined,
+      picture: raw.picture ?? undefined,
       email: raw.email,
       studentId: raw.student_id,
       isStudentIdVerified: raw.is_student_id_verified,
@@ -65,13 +67,15 @@ const CAMEL_CLAIMS = {
   is_phone_number_verified: 'isPhoneNumberVerified',
 } as const satisfies { [K in keyof UserClaims]: CamelCase<K> };
 
+const optionalClaims: ReadonlySet<keyof UserClaims> = new Set(OPTIONAL_CLAIMS);
+
 function missingClaims(user: UserInfo, scopes: readonly ClientScope[]): (keyof UserClaims)[] {
   return scopes
     .flatMap((scope) => SCOPE_CLAIMS[scope])
-    .filter((claim) => user[CAMEL_CLAIMS[claim]] === undefined);
+    .filter((claim) => !optionalClaims.has(claim) && user[CAMEL_CLAIMS[claim]] === undefined);
 }
 
-/** `user`에 `scopes`의 claim이 모두 들어 있는지 알려 준다. `null`은 들어 있는 것으로 본다. */
+/** `OPTIONAL_CLAIMS`는 값이 없어도 통과한다. */
 export function hasScopeClaims<S extends ClientScope>(
   user: UserInfo,
   scopes: readonly S[],

@@ -72,6 +72,7 @@ export { type Fetch, type RequestOptions } from './http/fetch';
 export {
   fetchClientRegistration,
   type ClientRegistration,
+  type TokenEndpointAuthMethod,
 } from './registration/fetch-client-registration';
 export * from './constants';
 export {
