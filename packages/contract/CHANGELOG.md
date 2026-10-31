@@ -4,11 +4,11 @@
 
 ### Minor Changes
 
-- bf59e4c: OAuth 에러 코드, `prompt`, PKCE 방식, client 인증 방식, grant type, `amr`, IdP 화면 경로를 contract로 옮겼다. Dart의 `OAuthErrorCode`와 `AccountPrompt`는 이제 contract에서 생성한다.
+- bf59e4c: Move OAuth error codes, `prompt`, the PKCE method, client authentication methods, grant types, `amr` and IdP page paths into the contract. The Dart `OAuthErrorCode` and `AccountPrompt` are now generated from it.
 
-  `profile`과 `picture`는 사용자에게 값이 없으면 `null` 대신 빠진다(OIDC Core 5.3.2). 타입은 `string | null`에서 `string | undefined`로 바뀌고, `requiredScopes`에 있어도 값이 없다는 이유로 `missing_claims`가 나지 않는다. `null`을 보내는 지금의 IdP 응답도 받아서 빠진 것으로 읽는다.
+  `profile` and `picture` are now absent instead of `null` when the user has no value (OIDC Core 5.3.2). Their type changes from `string | null` to `string | undefined`, and a missing value no longer fails `missing_claims` even when the scope is in `requiredScopes`. IdP responses that still send `null` are accepted and read as absent.
 
-  Flutter에서 `code`도 `error`도 없는 콜백은 `AccountOAuthException('invalid_response')` 대신 `AccountMissingCodeException`으로 알린다.
+  On Flutter, a callback with neither `code` nor `error` now throws `AccountMissingCodeException` instead of `AccountOAuthException('invalid_response')`.
 
 ## 0.1.0
 
