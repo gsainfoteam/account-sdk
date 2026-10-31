@@ -75,6 +75,7 @@ export {
   type TokenEndpointAuthMethod,
 } from './registration/fetch-client-registration';
 export * from './constants';
+export * from './session/protocol';
 export {
   AUTHORIZATION_HEADER,
   bearer,

@@ -1,4 +1,11 @@
-import { AccountError, readBearer } from '@gsainfoteam/account-core';
+import {
+  AccountError,
+  readBearer,
+  SESSION_REJECTED,
+  type SessionRejectedResponse,
+  type SessionTokensResponse,
+  type SessionTransport,
+} from '@gsainfoteam/account-core';
 import {
   BadGatewayException,
   BadRequestException,
@@ -84,7 +91,10 @@ export function createSessionController(runtimeToken: symbol, paths: SessionPath
     async login(@Body() body: unknown, @Res({ passthrough: true }) res: HeaderTarget) {
       const result = await this.runtime.manager.login(body).catch(toHttpError);
       if ('rejected' in result) {
-        throw new ForbiddenException({ error: 'session_rejected', ...result.rejected });
+        throw new ForbiddenException({
+          error: SESSION_REJECTED,
+          ...result.rejected,
+        } satisfies SessionRejectedResponse);
       }
 
       return this.respond(result.tokens, isBodyTransport(body), res);
@@ -124,7 +134,10 @@ export function createSessionController(runtimeToken: symbol, paths: SessionPath
     }
 
     private respond(tokens: IssuedTokens, inBody: boolean, res: HeaderTarget) {
-      const response = { access_token: tokens.accessToken, expires_in: tokens.expiresIn };
+      const response: SessionTokensResponse = {
+        access_token: tokens.accessToken,
+        expires_in: tokens.expiresIn,
+      };
       if (inBody) return { ...response, refresh_token: tokens.refreshToken };
 
       const { name, attributes } = this.runtime.cookie;
@@ -199,7 +212,7 @@ export function createSessionGuards(
 }
 
 function isBodyTransport(body: unknown): boolean {
-  return isRecord(body) && body.transport === 'body';
+  return isRecord(body) && body.transport === ('body' satisfies SessionTransport);
 }
 
 function refreshTokenIn(body: unknown): string | undefined {
