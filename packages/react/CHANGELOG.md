@@ -1,5 +1,11 @@
 # @gsainfoteam/account-react
 
+## 0.3.0
+
+### Patch Changes
+
+- @gsainfoteam/account-web@0.3.0
+
 ## 0.2.0
 
 ### Patch Changes

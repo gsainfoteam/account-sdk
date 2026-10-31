@@ -1,6 +1,6 @@
 {
   "name": "@gsainfoteam/account-testing",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "In-memory fake of the Infoteam account IdP for testing services that use the account SDK",
   "license": "MIT",
   "type": "module",

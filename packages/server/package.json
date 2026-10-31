@@ -1,6 +1,6 @@
 {
   "name": "@gsainfoteam/account-server",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Backend client for the Infoteam account IdP: code exchange with id_token login and user lookup with client credentials",
   "license": "MIT",
   "type": "module",
