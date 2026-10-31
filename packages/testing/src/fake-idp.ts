@@ -145,7 +145,7 @@ export async function createFakeIdp(options: FakeIdpOptions = {}): Promise<FakeI
       scope: [OPENID_SCOPE, ...pending.scopes].join(' '),
     })
       .setProtectedHeader({ alg: 'ES256', kid: jwk.kid })
-      .setIssuer(new URL(request.url).origin)
+      .setIssuer(frontOrigin(new URL(request.url).origin))
       .setSubject(pending.user.sub)
       .setAudience(pending.clientId)
       .setIssuedAt(now)
@@ -257,12 +257,18 @@ function oauthError(error: string, status: number): Response {
   return Response.json({ error }, { status, headers: { 'cache-control': 'no-store' } });
 }
 
+/** 진짜 IdP처럼 issuer와 브라우저용 endpoint는 `api.`를 뺀 로그인 페이지 host에 둔다. */
+function frontOrigin(apiOrigin: string): string {
+  return apiOrigin.replace('://api.', '://');
+}
+
 function discovery(apiOrigin: string) {
-  const front = apiOrigin.replace('://api.', '://');
+  const front = frontOrigin(apiOrigin);
 
   return {
-    issuer: apiOrigin,
+    issuer: front,
     authorization_endpoint: `${front}/authorize`,
+    end_session_endpoint: `${front}/logout`,
     token_endpoint: `${apiOrigin}/oauth/token`,
     userinfo_endpoint: `${apiOrigin}/oauth/userinfo`,
     jwks_uri: `${apiOrigin}/oauth/certs`,

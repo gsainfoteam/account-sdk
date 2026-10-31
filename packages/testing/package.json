@@ -1,0 +1,43 @@
+{
+  "name": "@gsainfoteam/account-testing",
+  "version": "0.1.0",
+  "description": "In-memory fake of the Infoteam account IdP for testing services that use the account SDK",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gsainfoteam/account-sdk.git",
+    "directory": "packages/testing"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsdown": "^0.23.0",
+    "typescript": "~6.0.3"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^9.9.0",
+    "@gsainfoteam/account-contract": "workspace:^",
+    "jose": "^6.2.12",
+    "oauth4webapi": "^3.8.8"
+  },
+  "types": "./dist/index.d.ts"
+}

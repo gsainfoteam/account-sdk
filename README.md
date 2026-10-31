@@ -22,6 +22,7 @@
 | [`@gsainfoteam/account-server`](packages/server)     | NestJS를 쓰지 않는 Node, Bun 백엔드. 세션은 직접 구현한다     | GitHub Packages |
 | [`@gsainfoteam/account-core`](packages/core)         | 위 패키지들의 공용 코어. 직접 설치하지 않는다                 | GitHub Packages |
 | [`@gsainfoteam/account-contract`](packages/contract) | IdP와 SDK가 함께 쓰는 값(scope, 거절 사유). account-be도 쓴다 | GitHub Packages |
+| [`@gsainfoteam/account-testing`](packages/testing)   | 서비스 백엔드 테스트용 가짜 IdP                               | GitHub Packages |
 
 ### 설치 인증
 

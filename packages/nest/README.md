@@ -278,4 +278,8 @@ findUser(sub: string) {
 SDK는 실패하면 `AccountError`를 던지므로 `code`로 경우를 나눈다. 세션 endpoint는 이 에러를 HTTP 상태로 바꿔 응답한다. 예를 들어 `invalid_grant`는
 401, IdP 장애는 502다.
 
+## 테스트
+
+[`@gsainfoteam/account-testing`](../testing)의 가짜 IdP로 진짜 IdP 없이 `/auth/login`부터 guard까지 e2e 테스트를 돌린다.
+
 전체 예시는 [`examples/nest`](../../examples/nest)에 있다.
