@@ -145,6 +145,13 @@ export function createSessionManager<
   const accessKey = deriveKey(options.secret, 'access');
   const ticketKey = deriveKey(options.secret, 'ticket');
 
+  // 첫 삭제가 읽은 뒤 refresh가 저장한 행(READ COMMITTED, Redis SMEMBERS 이후)은 두 번째 삭제만 지울 수 있다.
+  const deleteTwice = async (remove: () => Promise<void>): Promise<void> => {
+    await remove();
+    await remove();
+  };
+  const endSession = (sessionId: string) => deleteTwice(() => store.deleteSession(sessionId));
+
   const issue = async (
     subject: string,
     sessionId: string,
@@ -222,7 +229,9 @@ export function createSessionManager<
       }
 
       const claims = z.parse(claimsSchema, resolved.claims ?? {});
-      if (onLogin === 'replace') await store.deleteSubject(resolved.subject);
+      if (onLogin === 'replace') {
+        await deleteTwice(() => store.deleteSubject(resolved.subject));
+      }
 
       const auth = { auth_time: idTokenClaims.auth_time, amr: idTokenClaims.amr };
       return { tokens: await issue(resolved.subject, randomUUID(), claims, auth) };
@@ -237,7 +246,7 @@ export function createSessionManager<
       if (!record || record.expiresAt <= now) return null;
 
       if (record.usedAt && now.getTime() - record.usedAt.getTime() > REUSE_GRACE_MS) {
-        await store.deleteSession(record.sessionId);
+        await endSession(record.sessionId);
         return null;
       }
 
@@ -248,7 +257,11 @@ export function createSessionManager<
       await store.markUsed(tokenHash, now);
       await store.deleteUsed(record.sessionId, new Date(now.getTime() - REUSE_GRACE_MS));
 
-      return issue(record.subject, record.sessionId, claims.data, auth.data);
+      const tokens = await issue(record.subject, record.sessionId, claims.data, auth.data);
+      if (await store.find(tokenHash)) return tokens;
+
+      await endSession(record.sessionId);
+      return null;
     },
 
     async logout({ accessToken, refreshToken }) {
@@ -256,7 +269,7 @@ export function createSessionManager<
       const fromRefresh = refreshToken ? await store.find(hash(refreshToken)) : null;
       const sessionId = fromAccess?.sid ?? fromRefresh?.sessionId;
 
-      if (sessionId) await store.deleteSession(sessionId);
+      if (sessionId) await endSession(sessionId);
     },
 
     async verify(accessToken) {

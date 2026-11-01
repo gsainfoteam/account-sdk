@@ -5,6 +5,7 @@ import { createFakeIdp } from '@gsainfoteam/account-testing';
 import { Controller, Get, Module, UseGuards, type INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
+import RedisMock from 'ioredis-mock';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as z from 'zod/mini';
 
@@ -12,9 +13,15 @@ import {
   CurrentSession,
   defineAccount,
   memorySessionStore,
+  prismaSessionStore,
+  redisSessionStore,
   SessionRejected,
+  type PrismaSessionDelegate,
+  type RedisSessionClient,
   type SessionModuleOptions,
   type SessionOf,
+  type SessionRecord,
+  type SessionStore,
 } from '../src';
 
 const idp = await createFakeIdp();
@@ -154,6 +161,133 @@ describe('cookie transport (web)', () => {
 
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toMatchObject({ error: 'invalid_grant' });
+  });
+});
+
+const hooks: { beforeSave?: () => Promise<unknown>; midDelete?: () => Promise<unknown> } = {};
+const fire = async (name: keyof typeof hooks) => {
+  const run = hooks[name];
+  delete hooks[name];
+  await run?.();
+};
+
+function fakePrisma(): PrismaSessionDelegate {
+  const rows = new Map<string, SessionRecord>();
+  return {
+    async create({ data }) {
+      rows.set(data.tokenHash, { ...data });
+    },
+    async findUnique({ where }) {
+      const row = rows.get(where.tokenHash);
+      return row ? { ...row } : null;
+    },
+    async updateMany({ where, data }) {
+      const row = rows.get(where.tokenHash);
+      if (!row || row.usedAt) return { count: 0 };
+      row.usedAt = data.usedAt;
+      return { count: 1 };
+    },
+    async deleteMany({ where }) {
+      const hit = [...rows.values()].filter((row) =>
+        'subject' in where
+          ? row.subject === where.subject
+          : row.sessionId === where.sessionId &&
+            (!where.usedAt || (!!row.usedAt && row.usedAt < where.usedAt.lt)),
+      );
+      await fire('midDelete');
+      for (const row of hit) rows.delete(row.tokenHash);
+    },
+  };
+}
+
+const raceStores: [string, () => SessionStore][] = [
+  [
+    'memory',
+    () => {
+      const store = memorySessionStore();
+      return {
+        ...store,
+        async deleteSession(sessionId) {
+          await fire('midDelete');
+          await store.deleteSession(sessionId);
+        },
+      };
+    },
+  ],
+  [
+    'redis',
+    () => {
+      const redis: RedisSessionClient = new RedisMock();
+      const smembers = redis.smembers.bind(redis);
+      redis.smembers = async (key) => {
+        const members = await smembers(key);
+        await fire('midDelete');
+        return members;
+      };
+      return redisSessionStore(redis);
+    },
+  ],
+  ['prisma', () => prismaSessionStore(fakePrisma())],
+];
+
+describe.each(raceStores)('a logout racing a refresh (%s store)', (_, create) => {
+  let store: SessionStore;
+  const saved: string[] = [];
+
+  beforeEach(async () => {
+    store = create();
+    saved.length = 0;
+    await start({
+      store: {
+        ...store,
+        async save(record) {
+          await fire('beforeSave');
+          saved.push(record.tokenHash);
+          await store.save(record);
+        },
+      },
+    });
+  });
+
+  const login = async () => {
+    const response = await post('/auth/login', await code());
+    const { access_token } = (await response.json()) as { access_token: string };
+    const { sid } = (await (await me(access_token)).json()) as { sid: string };
+    return { cookie: cookieOf(response), access_token, sid };
+  };
+
+  const expectSessionGone = async (sid: string) => {
+    for (const tokenHash of saved) await expect(store.find(tokenHash)).resolves.toBeNull();
+    if (store.isActive) await expect(store.isActive(sid)).resolves.toBe(false);
+  };
+
+  it('fails a refresh when the logout lands between its read and its save', async () => {
+    const { cookie, access_token, sid } = await login();
+
+    hooks.beforeSave = () =>
+      post('/auth/logout', undefined, { authorization: `Bearer ${access_token}` });
+    expect((await post('/auth/refresh', undefined, { cookie })).status).toBe(401);
+
+    expect(hooks.beforeSave).toBeUndefined();
+    await expectSessionGone(sid);
+  });
+
+  it('removes the token a refresh saves while the logout is deleting', async () => {
+    const { cookie, access_token, sid } = await login();
+
+    let refreshed: Response | undefined;
+    hooks.midDelete = async () => {
+      refreshed = await post('/auth/refresh', undefined, { cookie });
+    };
+    await post('/auth/logout', undefined, { authorization: `Bearer ${access_token}` });
+
+    expect(refreshed).toBeDefined();
+    if (refreshed!.status === 200) {
+      expect(
+        (await post('/auth/refresh', undefined, { cookie: cookieOf(refreshed!) })).status,
+      ).toBe(401);
+    }
+    await expectSessionGone(sid);
   });
 });
 
