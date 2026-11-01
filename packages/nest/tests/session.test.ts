@@ -148,6 +148,33 @@ describe('cookie transport (web)', () => {
     expect((await post('/auth/refresh', undefined, { cookie: cookieOf(login) })).status).toBe(401);
   });
 
+  it('does not revive a session that logs out while a refresh is in flight', async () => {
+    const memory = memorySessionStore();
+    let beforeSave: (() => Promise<unknown>) | undefined;
+    const saved: string[] = [];
+    await start({
+      store: {
+        ...memory,
+        async save(record) {
+          const hook = beforeSave;
+          beforeSave = undefined;
+          await hook?.();
+          saved.push(record.tokenHash);
+          await memory.save(record);
+        },
+      },
+    });
+    const login = await post('/auth/login', await code());
+    const { access_token } = (await login.json()) as { access_token: string };
+    const { sid } = (await (await me(access_token)).json()) as { sid: string };
+
+    beforeSave = () => post('/auth/logout', undefined, { authorization: `Bearer ${access_token}` });
+    expect((await post('/auth/refresh', undefined, { cookie: cookieOf(login) })).status).toBe(401);
+
+    await expect(memory.find(saved.at(-1)!)).resolves.toBeNull();
+    await expect(memory.isActive!(sid)).resolves.toBe(false);
+  });
+
   it('answers a used or forged code with 401', async () => {
     await start();
     const response = await post('/auth/login', { ...(await code()), code: 'bad-code' });

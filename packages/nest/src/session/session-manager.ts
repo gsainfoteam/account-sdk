@@ -245,10 +245,18 @@ export function createSessionManager<
       const auth = AuthContextSchema.safeParse(record.claims);
       if (!claims.success || !auth.success) return null;
 
+      // false는 다른 탭이 유예 시간 안에 먼저 쓴 경우라 그대로 발급한다. 재사용 판단은 위의 usedAt이 한다.
       await store.markUsed(tokenHash, now);
       await store.deleteUsed(record.sessionId, new Date(now.getTime() - REUSE_GRACE_MS));
 
-      return issue(record.subject, record.sessionId, claims.data, auth.data);
+      const tokens = await issue(record.subject, record.sessionId, claims.data, auth.data);
+      // find와 save 사이에 logout이 세션을 지웠다면 새 행만 살아남는다. 옛 행이 사라졌는지로 이를 알아챈다.
+      if (await store.find(tokenHash)) return tokens;
+
+      // deleteSession이 원자적이지 않은 저장소(Redis)에서 새 행이 남더라도, 쓰는 순간 재사용으로 걸리게 한다.
+      await store.markUsed(hash(tokens.refreshToken), new Date(0));
+      await store.deleteSession(record.sessionId);
+      return null;
     },
 
     async logout({ accessToken, refreshToken }) {
