@@ -88,7 +88,7 @@ Cloudflare Pages나 Vercel처럼 GitHub Actions 밖에서 빌드하면 `GITHUB_T
 
 ### IdP client 등록
 
-서비스마다 account-fe의 client 설정 화면에서 한 번 한다.
+서비스마다 [account.gistory.me](https://account.gistory.me)에 로그인해서 client 설정 화면에서 한 번 한다.
 
 1. client를 등록한다. redirect URI로 웹 callback(`https://<서비스>/auth/callback`)과 앱 scheme(`pot-g://callback` 같은 형태)을 넣는다.
 2. 필수 scope와 선택 scope를 고른다. 사용자는 선택 scope만 거부할 수 있다. 백엔드의 `requiredScopes`에는 필수 scope만 넣는다.
@@ -175,7 +175,7 @@ Flutter 패키지는 `packages/flutter`에서 `flutter analyze`와 `flutter test
 
 [`examples/web`](examples/web)(Vite, React, TanStack Router)과 [`examples/nest`](examples/nest)(CommonJS로 빌드한 Nest 백엔드)를 함께 띄우면 로그인 흐름 전체를 확인할 수 있다.
 
-1. 스테이징 IdP에 client를 등록하고, redirect URI로 `http://localhost:5173/auth/callback`을 넣는다. `examples/nest`가 `requiredScopes: ['name']`으로 선언되어 있으므로 `name`은 필수 scope로 등록한다.
+1. 스테이징 IdP([stg.account.gistory.me](https://stg.account.gistory.me))에 client를 등록하고, redirect URI로 `http://localhost:5173/auth/callback`을 넣는다. `examples/nest`가 `requiredScopes: ['name']`으로 선언되어 있으므로 `name`은 필수 scope로 등록한다.
 2. `.env.example`을 `.env`로 복사하고 client id와 secret을 채운다. mise가 `.env`를 읽어 각 task에 넣어 준다.
 3. `mise run example:api`와 `mise run example:web`을 각각 띄우고 http://localhost:5173 을 연다.
 
