@@ -6,4 +6,6 @@ export default defineConfig({
   platform: 'neutral',
   dts: true,
   publint: true,
+  // GitHub Packages drops peerDependenciesMeta, so drizzle-orm can't be an optional peer; keep it out of the bundle instead.
+  deps: { neverBundle: [/^drizzle-orm/] },
 });
