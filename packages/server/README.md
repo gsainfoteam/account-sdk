@@ -7,8 +7,6 @@
 
 ## 설치
 
-GitHub Packages에서 배포한다. 먼저 [설치 인증](../../README.md#설치-인증)을 설정한다.
-
 ```bash
 pnpm add @gsainfoteam/account-server zod
 ```

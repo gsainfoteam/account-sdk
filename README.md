@@ -7,40 +7,21 @@
 ## 시작 순서
 
 1. IdP에 서비스를 client로 등록한다. [IdP client 등록](#idp-client-등록)
-2. npm 패키지를 받을 수 있도록 인증을 설정한다. [설치 인증](#설치-인증)
-3. 백엔드에 [`@gsainfoteam/account-nest`](packages/nest)를 붙인다. 로그인, 갱신, 로그아웃 endpoint가 생긴다.
-4. 프론트에 [`@gsainfoteam/account-react`](packages/react)나 [`gsainfoteam_account`](packages/flutter)를 붙이고, 3의 백엔드 주소를 넘긴다.
+2. 백엔드에 [`@gsainfoteam/account-nest`](packages/nest)를 붙인다. 로그인, 갱신, 로그아웃 endpoint가 생긴다.
+3. 프론트에 [`@gsainfoteam/account-react`](packages/react)나 [`gsainfoteam_account`](packages/flutter)를 붙이고, 2의 백엔드 주소를 넘긴다.
 
 ## 패키지
 
-| 패키지                                               | 용도                                                          | 배포            |
-| ---------------------------------------------------- | ------------------------------------------------------------- | --------------- |
-| [`@gsainfoteam/account-react`](packages/react)       | React 앱. web을 포함한다                                      | GitHub Packages |
-| [`@gsainfoteam/account-web`](packages/web)           | React를 쓰지 않는 웹 앱                                       | GitHub Packages |
-| [`gsainfoteam_account`](packages/flutter)            | Flutter 앱                                                    | pub.dev         |
-| [`@gsainfoteam/account-nest`](packages/nest)         | NestJS 백엔드. server를 포함한다                              | GitHub Packages |
-| [`@gsainfoteam/account-server`](packages/server)     | NestJS를 쓰지 않는 Node, Bun 백엔드. 세션은 직접 구현한다     | GitHub Packages |
-| [`@gsainfoteam/account-core`](packages/core)         | 위 패키지들의 공용 코어. 직접 설치하지 않는다                 | GitHub Packages |
-| [`@gsainfoteam/account-contract`](packages/contract) | IdP와 SDK가 함께 쓰는 값(scope, 거절 사유). account-be도 쓴다 | GitHub Packages |
-| [`@gsainfoteam/account-testing`](packages/testing)   | 서비스 백엔드 테스트용 가짜 IdP                               | GitHub Packages |
-
-### 설치 인증
-
-npm 패키지는 GitHub Packages에서 받는다. GitHub Packages는 public 패키지도 인증 없이는 설치할 수 없으므로, 서비스 프로젝트 루트에 `.npmrc`를 둔다.
-
-```ini
-@gsainfoteam:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
-```
-
-첫 줄은 `@gsainfoteam` 패키지를 GitHub Packages에서 받게 하고, 둘째 줄은 그때 쓸 토큰을 정한다. `NODE_AUTH_TOKEN`에는 `read:packages` 권한이 있는 토큰을 넣는다.
-
-```bash
-gh auth refresh -s read:packages
-export NODE_AUTH_TOKEN=$(gh auth token)
-```
-
-GitHub Actions에서는 `secrets.GITHUB_TOKEN`을 쓰고 `permissions`에 `packages: read`를 넣는다.
+| 패키지                                               | 용도                                                          | 배포    |
+| ---------------------------------------------------- | ------------------------------------------------------------- | ------- |
+| [`@gsainfoteam/account-react`](packages/react)       | React 앱. web을 포함한다                                      | npm     |
+| [`@gsainfoteam/account-web`](packages/web)           | React를 쓰지 않는 웹 앱                                       | npm     |
+| [`gsainfoteam_account`](packages/flutter)            | Flutter 앱                                                    | pub.dev |
+| [`@gsainfoteam/account-nest`](packages/nest)         | NestJS 백엔드. server를 포함한다                              | npm     |
+| [`@gsainfoteam/account-server`](packages/server)     | NestJS를 쓰지 않는 Node, Bun 백엔드. 세션은 직접 구현한다     | npm     |
+| [`@gsainfoteam/account-core`](packages/core)         | 위 패키지들의 공용 코어. 직접 설치하지 않는다                 | npm     |
+| [`@gsainfoteam/account-contract`](packages/contract) | IdP와 SDK가 함께 쓰는 값(scope, 거절 사유). account-be도 쓴다 | npm     |
+| [`@gsainfoteam/account-testing`](packages/testing)   | 서비스 백엔드 테스트용 가짜 IdP                               | npm     |
 
 ### IdP client 등록
 
@@ -144,4 +125,4 @@ pnpm changeset           # 변경 기록
 pnpm version:packages    # 버전 반영. Flutter pubspec 도 같은 버전으로 맞춘다
 ```
 
-`v*` 태그를 push 하면 GitHub Actions가 npm 패키지를 GitHub Packages에, Flutter 패키지를 pub.dev에 배포한다.
+`v*` 태그를 push 하면 GitHub Actions가 npm 패키지를 npm에, Flutter 패키지를 pub.dev에 배포한다.
