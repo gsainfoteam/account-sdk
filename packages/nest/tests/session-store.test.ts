@@ -15,7 +15,6 @@ import { drizzleSessionStore } from '../src/drizzle';
 
 const redisClient: RedisSessionClient = new RedisMock();
 
-// PGlite는 프로세스 안에서 도는 진짜 PostgreSQL이라 Docker 없이 SQL 그대로 검증한다.
 const pg = drizzle(new PGlite());
 await pg.execute(sql`
   create table account_session (

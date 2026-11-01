@@ -11,7 +11,6 @@ import {
 
 import type { SessionRecord, SessionStore } from './session-store';
 
-/** 서비스의 Drizzle 스키마에 이 테이블을 다시 export해야 drizzle-kit이 마이그레이션을 만든다. */
 export const accountSession = pgTable(
   'account_session',
   {
@@ -30,7 +29,6 @@ export const accountSession = pgTable(
 );
 
 export interface DrizzleSessionStoreOptions {
-  /** 켜면 guard가 요청마다 DB를 한 번 읽어서, 로그아웃한 세션의 access token을 만료 전에도 막는다. */
   checkActive?: boolean;
 }
 
@@ -52,7 +50,6 @@ export function drizzleSessionStore<Schema extends Record<string, unknown>>(
     },
 
     async markUsed(tokenHash, at) {
-      // 조건부 UPDATE 한 문장이라 동시에 온 refresh 중 하나만 행을 돌려받는다.
       const marked = await db
         .update(accountSession)
         .set({ usedAt: at })
