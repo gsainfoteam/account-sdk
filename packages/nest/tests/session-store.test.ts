@@ -1,3 +1,6 @@
+import { PGlite } from '@electric-sql/pglite';
+import { sql } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/pglite';
 import RedisMock from 'ioredis-mock';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -8,12 +11,33 @@ import {
   type SessionRecord,
   type SessionStore,
 } from '../src';
+import { drizzleSessionStore } from '../src/drizzle';
 
 const redisClient: RedisSessionClient = new RedisMock();
 
-const stores: [string, () => SessionStore][] = [
+// PGlite는 프로세스 안에서 도는 진짜 PostgreSQL이라 Docker 없이 SQL 그대로 검증한다.
+const pg = drizzle(new PGlite());
+await pg.execute(sql`
+  create table account_session (
+    token_hash text primary key,
+    session_id text not null,
+    subject text not null,
+    claims jsonb not null,
+    expires_at timestamptz not null,
+    used_at timestamptz
+  )
+`);
+
+const stores: [string, () => SessionStore | Promise<SessionStore>][] = [
   ['memory', memorySessionStore],
   ['redis', () => redisSessionStore(redisClient, { prefix: `t${Math.random()}:` })],
+  [
+    'drizzle',
+    async () => {
+      await pg.execute(sql`truncate account_session`);
+      return drizzleSessionStore(pg, { checkActive: true });
+    },
+  ],
 ];
 
 const HOUR = 3_600_000;
@@ -32,7 +56,7 @@ afterEach(() => vi.useRealTimers());
 
 describe.each(stores)('%s session store', (_, create) => {
   it('finds what it saved and marks a token used only once', async () => {
-    const store = create();
+    const store = await create();
     await store.save(record());
 
     await expect(store.find('h1')).resolves.toEqual({ ...record(), expiresAt: expect.any(Date) });
@@ -46,7 +70,7 @@ describe.each(stores)('%s session store', (_, create) => {
   });
 
   it('deletes used tokens of a session, a whole session and a subject', async () => {
-    const store = create();
+    const store = await create();
     await store.save(record());
     await store.save(record({ tokenHash: 'h2' }));
     await store.save(record({ tokenHash: 'h3', sessionId: 's2' }));
@@ -79,5 +103,11 @@ describe('redis session store', () => {
     const ttls = await Promise.all((await redis.keys('ttl:*')).map((key) => redis.pttl(key)));
     expect(ttls.length).toBe(3);
     for (const ttl of ttls) expect(ttl).toBeGreaterThan(0);
+  });
+});
+
+describe('drizzle session store', () => {
+  it('skips the per-request check unless asked', () => {
+    expect(drizzleSessionStore(pg).isActive).toBeUndefined();
   });
 });
