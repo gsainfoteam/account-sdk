@@ -1,10 +1,13 @@
 import 'reflect-metadata';
 
+import { PGlite } from '@electric-sql/pglite';
 import { clearDiscoveryCache } from '@gsainfoteam/account-core';
 import { createFakeIdp } from '@gsainfoteam/account-testing';
 import { Controller, Get, Module, UseGuards, type INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
+import { sql } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/pglite';
 import RedisMock from 'ioredis-mock';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as z from 'zod/mini';
@@ -23,6 +26,7 @@ import {
   type SessionRecord,
   type SessionStore,
 } from '../src';
+import { drizzleSessionStore } from '../src/drizzle';
 
 const idp = await createFakeIdp();
 const code = async () =>
@@ -200,6 +204,18 @@ function fakePrisma(): PrismaSessionDelegate {
   };
 }
 
+const pg = drizzle(new PGlite());
+await pg.execute(sql`
+  create table account_session (
+    token_hash text primary key,
+    session_id text not null,
+    subject text not null,
+    claims jsonb not null,
+    expires_at timestamptz not null,
+    used_at timestamptz
+  )
+`);
+
 const raceStores: [string, () => SessionStore][] = [
   [
     'memory',
@@ -228,6 +244,19 @@ const raceStores: [string, () => SessionStore][] = [
     },
   ],
   ['prisma', () => prismaSessionStore(fakePrisma())],
+  [
+    'drizzle',
+    () => {
+      const store = drizzleSessionStore(pg, { checkActive: true });
+      return {
+        ...store,
+        async deleteSession(sessionId) {
+          await fire('midDelete');
+          await store.deleteSession(sessionId);
+        },
+      };
+    },
+  ],
 ];
 
 describe.each(raceStores)('a logout racing a refresh (%s store)', (_, create) => {
