@@ -143,13 +143,14 @@ export function createSessionManager<
   const accessTtl = options.accessTtl ?? DEFAULT_ACCESS_TTL;
   const refreshTtl = options.refreshTtl ?? DEFAULT_REFRESH_TTL;
   const accessKey = deriveKey(options.secret, 'access');
+  const ticketKey = deriveKey(options.secret, 'ticket');
 
+  // 첫 삭제가 읽은 뒤 refresh가 저장한 행(READ COMMITTED, Redis SMEMBERS 이후)은 두 번째 삭제만 지울 수 있다.
   const deleteTwice = async (remove: () => Promise<void>): Promise<void> => {
     await remove();
     await remove();
   };
   const endSession = (sessionId: string) => deleteTwice(() => store.deleteSession(sessionId));
-  const ticketKey = deriveKey(options.secret, 'ticket');
 
   const issue = async (
     subject: string,
