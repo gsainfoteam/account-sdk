@@ -26,6 +26,10 @@ export interface SessionStore {
   markUsed(tokenHash: string, at: Date): Promise<boolean>;
   /** 토큰을 교체할 때마다 불러서, 세션마다 이미 쓰인 토큰의 행이 쌓이지 않게 한다. */
   deleteUsed(sessionId: string, before: Date): Promise<void>;
+  /**
+   * `deleteSession`과 `deleteSubject`는 연달아 두 번 불린다. 첫 호출이 읽은 뒤 refresh가 저장한 행을 두 번째 호출이 찾도록
+   * 행을 찾는 색인은 통째로 지우지 않고, 지울 행이 없어도 오류 없이 끝나야 한다.
+   */
   deleteSession(sessionId: string): Promise<void>;
   deleteSubject(subject: string): Promise<void>;
   /**
@@ -171,6 +175,7 @@ export function redisSessionStore(
     await redis.srem(sessionKey(sessionId), ...hashes);
   };
 
+  // 집합을 통째로 지우면 그 사이 refresh가 넣은 토큰을 두 번째 호출이 찾지 못한다.
   const deleteSession = async (sessionId: string): Promise<void> => {
     await deleteTokens(sessionId, await redis.smembers(sessionKey(sessionId)));
   };
@@ -233,6 +238,7 @@ export function redisSessionStore(
       await Promise.all(
         sessionIds.map(async (sessionId) => {
           await deleteSession(sessionId);
+          // 토큰이 남은 세션은 두 번째 호출이 찾아야 하므로 끝난 세션만 색인에서 뺀다.
           if (!(await redis.exists(sessionKey(sessionId)))) {
             await redis.srem(subjectKey(subject), sessionId);
           }
