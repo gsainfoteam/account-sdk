@@ -230,7 +230,14 @@ export function redisSessionStore(
 
     async deleteSubject(subject) {
       const sessionIds = await redis.smembers(subjectKey(subject));
-      await Promise.all(sessionIds.map(deleteSession));
+      await Promise.all(
+        sessionIds.map(async (sessionId) => {
+          await deleteSession(sessionId);
+          if (!(await redis.exists(sessionKey(sessionId)))) {
+            await redis.srem(subjectKey(subject), sessionId);
+          }
+        }),
+      );
     },
 
     async isActive(sessionId) {

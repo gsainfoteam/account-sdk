@@ -80,4 +80,14 @@ describe('redis session store', () => {
     expect(ttls.length).toBe(3);
     for (const ttl of ttls) expect(ttl).toBeGreaterThan(0);
   });
+
+  it('drops ended sessions from the subject index', async () => {
+    const redis = new RedisMock();
+    const store = redisSessionStore(redis, { prefix: 'subject:' });
+    await store.save(record());
+    await store.save(record({ tokenHash: 'h2', sessionId: 's2' }));
+
+    await store.deleteSubject('u1');
+    await expect(redis.smembers('subject:subject:u1')).resolves.toEqual([]);
+  });
 });
