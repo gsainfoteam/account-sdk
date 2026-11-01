@@ -172,11 +172,7 @@ export function redisSessionStore(
   };
 
   const deleteSession = async (sessionId: string): Promise<void> => {
-    const hashes = await redis.smembers(sessionKey(sessionId));
-    await redis.del(
-      sessionKey(sessionId),
-      ...hashes.flatMap((hash) => [tokenKey(hash), usedKey(hash)]),
-    );
+    await deleteTokens(sessionId, await redis.smembers(sessionKey(sessionId)));
   };
 
   return {
@@ -235,7 +231,6 @@ export function redisSessionStore(
     async deleteSubject(subject) {
       const sessionIds = await redis.smembers(subjectKey(subject));
       await Promise.all(sessionIds.map(deleteSession));
-      await redis.del(subjectKey(subject));
     },
 
     async isActive(sessionId) {

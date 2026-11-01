@@ -174,6 +174,8 @@ Redis(ioredis)를 쓰면 `redisSessionStore(redis)`를 넘긴다. 키마다 refr
 
 다른 저장소라면 `SessionStore`를 구현한다. `markUsed`는 원자적이어야 한다. 동시에 온 refresh 요청 중 하나만 성공해야 재사용을 감지할 수 있기
 때문이다. `isActive(sessionId)`는 선택이다. 구현하면 guard가 요청마다 이 메서드를 불러서, 로그아웃한 세션의 access token을 만료 전에도 막는다.
+`deleteSession`과 `deleteSubject`는 연달아 두 번 불린다. 첫 호출이 행을 읽은 뒤에 refresh가 저장한 행을 두 번째 호출이 지울 수 있도록,
+지우지 않은 행을 찾는 데 쓰는 색인(Redis의 집합 같은 것)은 통째로 지우지 않는다.
 
 Drizzle(PostgreSQL)이면 다음과 같이 구현한다. node-postgres와 postgres.js 드라이버에서 모두 동작한다. 만료된 행은 Prisma처럼 주기적으로 지운다.
 

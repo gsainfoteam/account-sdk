@@ -143,6 +143,12 @@ export function createSessionManager<
   const accessTtl = options.accessTtl ?? DEFAULT_ACCESS_TTL;
   const refreshTtl = options.refreshTtl ?? DEFAULT_REFRESH_TTL;
   const accessKey = deriveKey(options.secret, 'access');
+
+  const deleteTwice = async (remove: () => Promise<void>): Promise<void> => {
+    await remove();
+    await remove();
+  };
+  const endSession = (sessionId: string) => deleteTwice(() => store.deleteSession(sessionId));
   const ticketKey = deriveKey(options.secret, 'ticket');
 
   const issue = async (
@@ -222,7 +228,9 @@ export function createSessionManager<
       }
 
       const claims = z.parse(claimsSchema, resolved.claims ?? {});
-      if (onLogin === 'replace') await store.deleteSubject(resolved.subject);
+      if (onLogin === 'replace') {
+        await deleteTwice(() => store.deleteSubject(resolved.subject));
+      }
 
       const auth = { auth_time: idTokenClaims.auth_time, amr: idTokenClaims.amr };
       return { tokens: await issue(resolved.subject, randomUUID(), claims, auth) };
@@ -237,7 +245,7 @@ export function createSessionManager<
       if (!record || record.expiresAt <= now) return null;
 
       if (record.usedAt && now.getTime() - record.usedAt.getTime() > REUSE_GRACE_MS) {
-        await store.deleteSession(record.sessionId);
+        await endSession(record.sessionId);
         return null;
       }
 
@@ -245,17 +253,13 @@ export function createSessionManager<
       const auth = AuthContextSchema.safeParse(record.claims);
       if (!claims.success || !auth.success) return null;
 
-      // false는 다른 탭이 유예 시간 안에 먼저 쓴 경우라 그대로 발급한다. 재사용 판단은 위의 usedAt이 한다.
       await store.markUsed(tokenHash, now);
       await store.deleteUsed(record.sessionId, new Date(now.getTime() - REUSE_GRACE_MS));
 
       const tokens = await issue(record.subject, record.sessionId, claims.data, auth.data);
-      // find와 save 사이에 logout이 세션을 지웠다면 새 행만 살아남는다. 옛 행이 사라졌는지로 이를 알아챈다.
       if (await store.find(tokenHash)) return tokens;
 
-      // deleteSession이 원자적이지 않은 저장소(Redis)에서 새 행이 남더라도, 쓰는 순간 재사용으로 걸리게 한다.
-      await store.markUsed(hash(tokens.refreshToken), new Date(0));
-      await store.deleteSession(record.sessionId);
+      await endSession(record.sessionId);
       return null;
     },
 
@@ -264,7 +268,7 @@ export function createSessionManager<
       const fromRefresh = refreshToken ? await store.find(hash(refreshToken)) : null;
       const sessionId = fromAccess?.sid ?? fromRefresh?.sessionId;
 
-      if (sessionId) await store.deleteSession(sessionId);
+      if (sessionId) await endSession(sessionId);
     },
 
     async verify(accessToken) {
