@@ -1,5 +1,17 @@
 # @gsainfoteam/account-nest
 
+## 0.5.0
+
+### Minor Changes
+
+- 273dd28: `@gsainfoteam/account-nest/drizzle`에서 Drizzle(PostgreSQL)용 `accountSession` 테이블과 `drizzleSessionStore(db)`를 제공한다. README에 있던 구현을 패키지로 옮긴 것이다. `drizzle-orm`은 선택 peer dependency라서 Prisma나 Redis를 쓰는 서비스는 설치하지 않아도 된다. `{ checkActive: true }`를 넘기면 `isActive`가 켜져서 로그아웃한 세션의 access token을 바로 막는다.
+
+### Patch Changes
+
+- b3a2889: A refresh that races a logout no longer leaves a live refresh token behind. If the session is deleted between reading the old token and saving the new one, the refresh now fails and the new token is removed. Logout, reuse detection and `onLogin: 'replace'` now call `deleteSession`/`deleteSubject` twice, so a row saved while the first delete runs (SQL under READ COMMITTED, or the Redis store) is removed as well. A custom `SessionStore` must keep whatever index it uses to find a session's rows, so the second call can still find them.
+- @gsainfoteam/account-core@0.5.0
+  - @gsainfoteam/account-server@0.5.0
+
 ## 0.4.0
 
 ### Patch Changes
