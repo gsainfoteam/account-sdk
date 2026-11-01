@@ -38,7 +38,8 @@ export async function readTokens(response: Response, path: string): Promise<Sess
   const [, body] = await attemptAsync<unknown>(() => response.json());
 
   if (!response.ok) {
-    throw new AccountError('session_rejected', {
+    // `network_error`는 응답을 받지 못한 경우만 뜻하므로 응답한 5xx와 구분한다.
+    throw new AccountError(response.status >= 500 ? 'server_error' : 'unknown', {
       description: `POST ${path}`,
       status: response.status,
       details: body,

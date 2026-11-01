@@ -43,7 +43,8 @@ export function apiSession(
         path: login,
         body: { ...extra, ...protocol, transport: 'cookie' } satisfies LoginRequestBody,
       });
-      if (response.ok) return { tokens: await readTokens(response, login) };
+      // 400과 IdP 실패를 옮긴 502까지 거절로 보면 호출자가 retryLogin 화면을 띄운다.
+      if (response.status !== 403) return { tokens: await readTokens(response, login) };
 
       const [, raw] = await attemptAsync<unknown>(() => response.json());
       const rejection = RejectionSchema.safeParse(raw);
