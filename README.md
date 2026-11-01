@@ -42,9 +42,9 @@ export NODE_AUTH_TOKEN=$(gh auth token)
 
 #### GitHub Actions
 
-`secrets.GITHUB_TOKEN`을 `NODE_AUTH_TOKEN`으로 넘기고, job의 `permissions`에 `packages: read`를 넣는다. 패키지가 public이므로 다른 저장소의 `GITHUB_TOKEN`으로도 받을 수 있고, 패키지 쪽 접근 설정은 바꾸지 않아도 된다. 토큰을 `echo`로 `.npmrc`에 써 넣는 step은 만들지 않는다.
+`secrets.GITHUB_TOKEN`을 `NODE_AUTH_TOKEN`으로 넘기고, job의 `permissions`에 `packages: read`를 넣는다. 패키지가 public이므로 다른 저장소의 `GITHUB_TOKEN`으로도 패키지를 받을 수 있고, 패키지의 접근 설정은 바꾸지 않아도 된다. 토큰을 `echo`로 `.npmrc`에 써 넣는 step은 만들지 않는다.
 
-npm 프로젝트는 `actions/setup-node`가 runner에 `.npmrc`를 만들게 한다.
+npm 프로젝트에서는 `actions/setup-node`가 runner에 `.npmrc`를 만들도록 설정한다.
 
 ```yaml
 permissions:
@@ -66,7 +66,7 @@ Bun은 프로젝트 루트의 `.npmrc`를 읽으므로, 위 `.npmrc`를 커밋�
 
 #### Docker 빌드
 
-이미지 안에서 설치할 때는 토큰을 build secret으로 넘긴다. 토큰은 그 `RUN` 한 줄에서만 환경 변수로 보이므로 이미지 layer에 남지 않는다.
+이미지 안에서 설치할 때는 토큰을 build secret으로 넘긴다. 토큰은 secret을 mount한 `RUN` 명령 안에서만 환경 변수로 노출되므로 이미지 layer에 남지 않는다.
 
 ```dockerfile
 # syntax=docker/dockerfile:1
@@ -82,9 +82,9 @@ RUN --mount=type=secret,id=NODE_AUTH_TOKEN,env=NODE_AUTH_TOKEN npm ci
     NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-#### GitHub Actions 밖의 빌드
+#### GitHub Actions 외부 빌드
 
-Cloudflare Pages나 Vercel처럼 GitHub Actions 밖에서 빌드하면 `GITHUB_TOKEN`이 없다. `read:packages` 권한의 classic PAT를 `NODE_AUTH_TOKEN` 환경 변수로 넣는다. GitHub Packages의 npm registry는 fine-grained PAT를 받지 않는다.
+Cloudflare Pages나 Vercel처럼 GitHub Actions 밖에서 빌드하면 `GITHUB_TOKEN`이 없다. `read:packages` 권한이 있는 classic PAT를 `NODE_AUTH_TOKEN` 환경 변수로 넣는다. GitHub Packages의 npm registry는 fine-grained PAT를 받지 않는다.
 
 ### IdP client 등록
 
