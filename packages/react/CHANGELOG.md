@@ -1,5 +1,12 @@
 # @gsainfoteam/account-react
 
+## 0.4.0
+
+### Patch Changes
+
+- Updated dependencies [9d0c404]
+  - @gsainfoteam/account-web@0.4.0
+
 ## 0.3.0
 
 ### Patch Changes
