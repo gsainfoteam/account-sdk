@@ -1,5 +1,11 @@
 # @gsainfoteam/account-core
 
+## 0.4.0
+
+### Patch Changes
+
+- 2b79fe7: Export the session wire format shared by account-web and account-nest (`LoginRequestBody`, `LoginCodeBodySchema`, `LoginTicketBodySchema`, `SessionTokensResponseSchema`, `SessionTransport`, `SESSION_REJECTED`), so the two sides cannot drift apart. Behavior is unchanged.
+
 ## 0.3.0
 
 ### Minor Changes
