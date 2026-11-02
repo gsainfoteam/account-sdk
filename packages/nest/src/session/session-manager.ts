@@ -255,7 +255,7 @@ export function createSessionManager<
       if (!claims.success || !auth.success) return null;
 
       await store.markUsed(tokenHash, now);
-      await store.deleteUsed(record.sessionId, new Date(now.getTime() - REUSE_GRACE_MS));
+      await store.deleteUsed(record.sessionId, new Date(now.getTime() - refreshTtl * 1000));
 
       const tokens = await issue(record.subject, record.sessionId, claims.data, auth.data);
       if (await store.find(tokenHash)) return tokens;
