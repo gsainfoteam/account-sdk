@@ -74,22 +74,20 @@ function customSession(overrides: Partial<Session> = {}): Session {
 }
 
 describe('a backend with its own session format', () => {
-  it('accepts a class instance as the session', () => {
+  it('restores the session through the methods of a class instance', async () => {
     class ClassSession implements Session {
+      private readonly token = 'restored-token';
       start = customSession().start;
       async refresh() {
-        return null;
+        return { accessToken: this.token };
       }
       async end() {}
     }
+    const { client } = setup({}, { api: undefined, session: new ClassSession() });
 
-    expect(() =>
-      createAccountClient({
-        issuer: 'production',
-        clientId: 'ziggle',
-        session: new ClassSession(),
-      }),
-    ).not.toThrow();
+    await client.ready();
+
+    expect(client.getAccessToken()).toBe('restored-token');
   });
 
   it('logs in, refreshes and logs out through the given session instead of the protocol', async () => {
