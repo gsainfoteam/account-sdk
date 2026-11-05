@@ -81,7 +81,7 @@ async login(@Req() req: Request, @Body() body: LoginBody, @Res({ passthrough: tr
 }
 ```
 
-갱신, 로그아웃, 앱용 `transport: 'body'`, 거절과 ticket 규칙은 [세션 프로토콜](../../README.md#세션-프로토콜)에 있고, 메모리 저장소로 구현한 전체 예시는
+갱신, 로그아웃, 앱용 `transport: 'body'`, 거절과 ticket 규칙은 [세션 프로토콜](../../README.md#세션-프로토콜)에 있고, 메모리 저장소로 구현한 예시(ticket 흐름 제외)는
 [`examples/nest`](../../examples/nest)에 있다.
 
 ## scope와 필드 타입
