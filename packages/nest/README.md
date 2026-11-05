@@ -87,7 +87,8 @@ async login(@Req() req: Request, @Body() body: LoginBody, @Res({ passthrough: tr
 ## scope와 필드 타입
 
 `requiredScopes`에 넣은 scope의 필드는 `loginWithCode`가 돌려주는 사용자에서 필수 타입이 된다. 예를 들어 `email`을 넣으면 `user.email`은 `string`이다.
-id_token에 그 필드가 빠져 있으면 SDK가 `missing_claims`로 실패하므로, `undefined`가 서비스 코드까지 전달되지 않는다.
+id_token에 그 필드가 빠져 있으면 SDK가 `missing_claims`로 실패하므로, `undefined`가 서비스 코드까지 전달되지 않는다. 다만 `profile`과 `picture`는 사용자가
+비워 둘 수 있어서 필수 scope여도 `undefined`일 수 있다.
 
 `requiredScopes`에는 client에 **필수로** 등록한 scope만 넣는다. 사용자가 거부할 수 있는 선택 scope를 넣으면, 그 scope를 거부한 사용자는 로그인하지 못한다.
 

@@ -109,7 +109,7 @@ const { status, error, login, logout, retryLogin, fetch } = useAccount();
 if (status === 'unauthenticated') return <button onClick={() => login()}>로그인</button>;
 ```
 
-`status`는 `loading`, `authenticated`, `unauthenticated` 중 하나다. 로그인이 실패하면 `error`에 `AccountError`가 들어가며, 자주 보는 `error.code`는 다음과 같다.
+`status`는 `loading`, `authenticated`, `unauthenticated` 중 하나다. IdP에서 돌아온 로그인이나 세션 복구가 실패하면 `error`에 `AccountError`가 들어간다. `login()` 호출 자체가 실패하면(예: IdP에 연결하지 못함) 그 Promise가 reject 되므로 버튼에서도 에러를 처리한다. 자주 보는 `error.code`는 다음과 같다.
 
 | `error.code`            | 뜻                                                                            |
 | ----------------------- | ----------------------------------------------------------------------------- |
@@ -119,15 +119,15 @@ if (status === 'unauthenticated') return <button onClick={() => login()}>로그�
 | `server_error`          | 서비스 백엔드가 5xx로 응답했거나, 성공 응답에 `access_token`이 없었다         |
 | `network_error`         | IdP나 서비스 백엔드에 연결하지 못했다                                         |
 
-`session_rejected`는 약관 동의처럼 로그인 전에 추가 입력이 필요할 때 쓴다. 사용자에게 입력을 받은 뒤 `retryLogin(body)`로 보내면 IdP를 다시 거치지 않고
-로그인을 마친다. 백엔드 쪽은 [세션 프로토콜](../../README.md#세션-프로토콜)의 거절과 ticket 규칙을 참고한다.
+`session_rejected`는 약관 동의처럼 로그인 전에 추가 입력이 필요할 때 쓴다. `canRetryLogin`이 `true`이면(거절 응답에 ticket이 있으면) 사용자에게 입력을 받은 뒤
+`retryLogin(body)`로 보내 IdP를 다시 거치지 않고 로그인을 마친다. 백엔드 쪽은 [세션 프로토콜](../../README.md#세션-프로토콜)의 거절과 ticket 규칙을 참고한다.
 
 ### 5. API 요청
 
-`fetch`는 access token을 붙여 요청하고, 401을 받으면 토큰을 한 번 갱신한 뒤 다시 보낸다. 여러 요청이 동시에 401을 받아도 갱신은 한 번만 한다.
+`fetch`는 access token을 붙여 요청하고, 401을 받으면 토큰을 한 번 갱신한 뒤 다시 보낸다. 여러 요청이 동시에 401을 받으면 먼저 성공한 갱신의 토큰을 함께 쓴다.
 access token은 메모리에만 두고, refresh token은 서비스 백엔드가 httpOnly 쿠키로 관리한다. 페이지를 새로 고치면 refresh로 세션을 복구한다.
 
-`fetch`는 전역 `fetch`와 사용법이 같다. 상대 경로는 `api` 기준이 아니라 현재 페이지 기준이므로 백엔드 주소를 붙여 쓴다.
+`fetch`는 전역 `fetch`와 사용법이 같다. 주소와 상관없이 access token을 붙이므로 서비스 백엔드에 보내는 요청에만 쓴다. 상대 경로는 `api` 기준이 아니라 현재 페이지 기준이므로 백엔드 주소를 붙여 쓴다.
 
 ```ts
 const response = await account.fetch(`${API_URL}/me`); // 컴포넌트 안에서는 useAccount().fetch

@@ -2,7 +2,7 @@
 
 인포팀 계정(IdP, account.gistory.me)으로 로그인하는 기능을 서비스에 붙이는 SDK.
 
-서비스는 IdP 환경과 client id만 넘긴다. IdP 로그인, 로그인 유지, 토큰 갱신, 로그아웃은 SDK가 처리한다.
+프론트 SDK는 IdP 로그인과 세션 유지(토큰 갱신, 로그아웃)를 처리하고, 백엔드 SDK는 IdP로 사용자를 확인한다. 서비스 세션은 서비스 백엔드가 [세션 프로토콜](#세션-프로토콜)대로 직접 구현한다.
 
 ## 시작 순서
 
@@ -145,19 +145,19 @@ IdP 토큰을 서비스 API에 그대로 쓰지 않는 이유는 다음과 같�
 | `/auth/logout`  | 웹은 없음(쿠키), 앱은 `{ refresh_token, transport }`. `Authorization: Bearer <access_token>`이 붙을 수 있다 | `2xx`                                                                    |
 
 - **login:** code로 온 요청이면 백엔드는 받은 값으로 `loginWithCode`를 호출한다. code를 IdP와 교환하고, id_token의 `aud`와 `nonce`를 확인한 뒤 사용자를 돌려준다. 그 사용자로 서비스 세션을 만든다. ticket으로 온 요청에는 code가 없으므로 `loginWithCode`를 부르지 않는다. ticket과 추가 입력을 검증하고 ticket의 사용자로 세션을 만든다(아래 "거절과 ticket").
-- **transport:** 웹은 `'cookie'`를 보낸다. 백엔드는 refresh token을 httpOnly, `Secure`, `SameSite=Strict` 쿠키(이름 `refresh_token`, path는 refresh와 logout endpoint를 모두 포함하는 경로, 예: `/auth`)로 내려주고 body에는 넣지 않는다. 쿠키를 지울 때도 같은 path와 속성을 쓴다. 앱은 `'body'`를 보내고, 백엔드는 refresh token을 body에 넣는다.
+- **transport:** 웹은 `'cookie'`를 보낸다. 백엔드는 refresh token을 httpOnly, `Secure`, `SameSite=Strict` 쿠키(이름 `refresh_token`, path는 refresh와 logout endpoint를 모두 포함하는 경로, 예: `/auth`)로 내려주고 body에는 넣지 않는다. 쿠키를 지울 때도 같은 path와 속성을 쓴다. 앱은 `'body'`를 보내고, 백엔드는 refresh token을 body에 넣는다. login 응답에는 반드시 넣는다. 없으면 앱은 다음 refresh에서 세션을 잃는다.
 - **거절과 ticket:** 약관 동의처럼 로그인 전에 사용자 입력이 더 필요하면 `403 { error: 'session_rejected', ticket, details }`로 거절한다. code는 한 번만 교환할 수 있으므로, `ticket`에는 백엔드가 이미 확인한 사용자를 담는다(짧은 수명. 서명이나 MAC, 또는 인증된 암호화(AEAD)로 무결성과 출처를 반드시 확인한다). 클라이언트는 `{ ticket, ...추가 입력 }`으로 login을 다시 호출한다. 세션을 발급할 때 ticket을 원자적으로 소비해서(사용한 ticket을 기록) 다시 쓰지 못하게 한다. 다시 403으로 거절할 때는 ticket을 소비하지 않고 응답에 ticket을 다시 담는다. 클라이언트는 마지막 거절 응답의 ticket으로 재시도한다. 403이 아닌 실패(400, 401, 5xx)는 거절이 아니라 오류로 처리된다.
 - **CORS:** 프론트와 백엔드의 origin이 다르면 프론트 origin을 허용하고 `credentials: true`로 설정한다. `SameSite=Strict` 쿠키는 같은 site(예: `ziggle.gistory.me`와 `api.ziggle.gistory.me`)에서만 오가므로, 프론트와 백엔드는 같은 등록 도메인 아래에 둔다.
 - **CSRF:** 쿠키를 쓰는 세 endpoint는 `Origin` 헤더가 있으면 프론트 origin과 같은지 확인한다. 같은 site의 다른 서브도메인이 보낸 form 요청을 막는다. 앱은 `Origin`을 보내지 않는다.
 
-[`examples/nest`](examples/nest)에 이 프로토콜을 메모리 저장소로 구현한 예제가 있다. 로그인을 거절하지 않으므로 ticket 흐름은 들어 있지 않다.
+[`examples/nest`](examples/nest)에 이 프로토콜을 메모리 저장소로 줄여 구현한 예제가 있다. refresh token 만료, 재사용된 refresh token의 세션 폐기, 여러 탭을 위한 유예 시간, ticket 흐름은 빠져 있으므로 실제 서비스에서는 직접 구현한다.
 
 ### 로그아웃
 
 로그인 상태는 두 겹이다. 서비스 세션과, account-fe에 남아 있는 IdP 로그인 세션이다.
 
-- **`logout()`:** 서비스 세션만 끝낸다. 다음 로그인에서는 IdP 로그인 화면을 다시 띄워서, 같은 브라우저에서 다른 계정으로 바꿀 수 있게 한다.
-- **`logout({ idp: true })`:** IdP 로그인 세션까지 끝낸다. 공용 PC처럼 계정을 남기면 안 되는 경우에 쓴다. 이 경우 같은 IdP를 쓰는 다른 서비스에서도 다시 로그인해야 한다.
+- **`logout()`:** 서비스 세션만 끝낸다. 로그인 상태를 바로 지우고 백엔드에 로그아웃을 요청하며, 이 요청이 실패해도 에러를 던지지 않는다. 다음 로그인에서는 IdP 로그인 화면을 다시 띄워서, 같은 브라우저에서 다른 계정으로 바꿀 수 있게 한다.
+- **`logout({ idp: true })`:** IdP 로그인 세션까지 끝낸다. 공용 PC처럼 계정을 남기면 안 되는 경우에 쓴다. 이미 로그인한 다른 서비스의 세션은 그대로 남고, 그 뒤에 새로 로그인하는 서비스는 IdP 로그인을 다시 거친다. IdP가 로그아웃 endpoint를 제공하지 않으면 서비스 세션만 끝낸다.
 
 ## 개발
 
@@ -176,7 +176,7 @@ pnpm test           # 단위 테스트. IdP 에 요청하지 않는다
 pnpm format         # prettier 검사
 pnpm examples:build # examples 빌드
 
-mise run check      # 위 검사를 CI 와 같은 순서로 실행
+mise run check      # typecheck, lint, build, test 를 차례로 실행
 mise run test:live  # 운영과 스테이징 IdP 에 실제로 요청하는 테스트
 pnpm contract:dart  # packages/contract 에서 Dart enum 다시 생성
 ```
@@ -201,7 +201,7 @@ Flutter 패키지는 `packages/flutter`에서 `flutter analyze`와 `flutter test
 
 ### 배포
 
-[changesets](https://github.com/changesets/changesets)로 버전을 올린다. 모든 패키지가 같은 버전을 쓴다.
+[changesets](https://github.com/changesets/changesets)로 버전을 올린다. `account-contract`를 뺀 모든 패키지가 같은 버전을 쓴다.
 
 ```bash
 pnpm changeset           # 변경 기록
