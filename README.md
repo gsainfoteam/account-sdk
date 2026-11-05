@@ -144,7 +144,7 @@ IdP 토큰을 서비스 API에 그대로 쓰지 않는 이유는 다음과 같�
 | `/auth/refresh` | 웹은 없음(쿠키), 앱은 `{ refresh_token, transport }`                                                        | `200 { access_token, expires_in?, refresh_token? }`, 세션이 없으면 `401` |
 | `/auth/logout`  | 웹은 없음(쿠키), 앱은 `{ refresh_token, transport }`. `Authorization: Bearer <access_token>`이 붙을 수 있다 | `2xx`                                                                    |
 
-- **login:** 백엔드는 받은 값으로 `loginWithCode`를 호출한다. code를 IdP와 교환하고, id_token의 `aud`와 `nonce`를 확인한 뒤 사용자를 돌려준다. 그 사용자로 서비스 세션을 만든다.
+- **login:** code로 온 요청이면 백엔드는 받은 값으로 `loginWithCode`를 호출한다. code를 IdP와 교환하고, id_token의 `aud`와 `nonce`를 확인한 뒤 사용자를 돌려준다. 그 사용자로 서비스 세션을 만든다. ticket으로 온 요청에는 code가 없으므로 `loginWithCode`를 부르지 않는다. ticket과 추가 입력을 검증하고 ticket의 사용자로 세션을 만든다(아래 "거절과 ticket").
 - **transport:** 웹은 `'cookie'`를 보낸다. 백엔드는 refresh token을 httpOnly, `Secure`, `SameSite=Strict` 쿠키(이름 `refresh_token`, path는 refresh와 logout endpoint를 모두 포함하는 경로, 예: `/auth`)로 내려주고 body에는 넣지 않는다. 쿠키를 지울 때도 같은 path와 속성을 쓴다. 앱은 `'body'`를 보내고, 백엔드는 refresh token을 body에 넣는다.
 - **거절과 ticket:** 약관 동의처럼 로그인 전에 사용자 입력이 더 필요하면 `403 { error: 'session_rejected', ticket, details }`로 거절한다. code는 한 번만 교환할 수 있으므로, `ticket`에는 백엔드가 이미 확인한 사용자를 담는다(짧은 수명. 서명이나 MAC, 또는 인증된 암호화(AEAD)로 무결성과 출처를 반드시 확인한다). 클라이언트는 `{ ticket, ...추가 입력 }`으로 login을 다시 호출한다. 세션을 발급할 때 ticket을 원자적으로 소비해서(사용한 ticket을 기록) 다시 쓰지 못하게 한다. 다시 거절한 경우에는 ticket을 소비하지 않아도 된다. 403이 아닌 실패(400, 401, 5xx)는 거절이 아니라 오류로 처리된다.
 - **CORS:** 프론트와 백엔드의 origin이 다르면 프론트 origin을 허용하고 `credentials: true`로 설정한다. `SameSite=Strict` 쿠키는 같은 site(예: `ziggle.gistory.me`와 `api.ziggle.gistory.me`)에서만 오가므로, 프론트와 백엔드는 같은 등록 도메인 아래에 둔다.

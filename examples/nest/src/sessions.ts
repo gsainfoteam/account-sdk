@@ -37,15 +37,19 @@ export class Sessions {
   }
 
   subjectOf(accessToken: string): string | null {
+    return this.live(accessToken)?.sub ?? null;
+  }
+
+  private live(accessToken: string): AccessToken | undefined {
     const token = this.accessTokens.get(accessToken);
-    return token && token.expiresAt > Date.now() ? token.sub : null;
+    return token && token.expiresAt > Date.now() ? token : undefined;
   }
 
   // a re-login in the same browser can leave the two tokens in different sessions; both are ended
   end(refreshToken: string | undefined, accessToken: string | undefined): void {
     const sids = new Set([
       this.refreshTokens.get(refreshToken ?? '')?.sid,
-      this.accessTokens.get(accessToken ?? '')?.sid,
+      this.live(accessToken ?? '')?.sid,
     ]);
 
     for (const tokens of [this.accessTokens, this.refreshTokens]) {
