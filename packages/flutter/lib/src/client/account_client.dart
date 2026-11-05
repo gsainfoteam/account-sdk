@@ -91,6 +91,7 @@ class AccountClient {
   /// 사용자가 계정을 바꿀 수 있게 한다. [AccountScope.offlineAccess]가 있으면 `prompt=consent`를
   /// 붙인다. account-fe가 이 scope에는 `prompt=consent`를 요구한다.
   Future<void> login() async {
+    _ticket = null;
     final metadata = await discover(issuer, client: _http);
     final requested = scopes ?? await _registeredScopes(metadata);
     _checkScopes(metadata, requested);

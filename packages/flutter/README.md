@@ -53,7 +53,7 @@ try {
 | --------------------------------- | -------------------------------------------------------------------------------- |
 | `AccountCancelledException`       | 사용자가 브라우저를 닫았다                                                       |
 | `AccountDeniedException`          | IdP가 거절했다. 사용자가 취소했거나 필수 정보를 인증하지 않았다(`reason`)        |
-| `AccountSessionRejectedException` | 서비스 백엔드가 로그인을 거절했다. 403이면 `retryLogin(body)`로 이어 갈 수 있다 |
+| `AccountSessionRejectedException` | 서비스 백엔드가 로그인을 거절했다. 403이면서 ticket이 있으면(`canRetryLogin`) `retryLogin(body)`로 이어 갈 수 있다 |
 | `AccountNetworkException`         | IdP나 서비스 백엔드에 연결하지 못했다                                            |
 
 ### API 요청

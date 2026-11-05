@@ -173,6 +173,22 @@ void main() {
     await expectLater(client.login(), throwsA(isA<AccountCancelledException>()));
   });
 
+  test('forgets the ticket of a rejected login when a new login fails', () async {
+    var attempts = 0;
+    final servers = Servers(
+      login: (_) => attempts++ == 0
+          ? json({'error': 'session_rejected', 'ticket': 't-1', 'details': null}, 403)
+          : json({'error': 'server_error'}, 502),
+    );
+    final (:client, servers: _, authorizations: _) = setup(success, servers: servers);
+
+    await expectLater(client.login(), throwsA(isA<AccountSessionRejectedException>()));
+    expect(client.canRetryLogin, isTrue);
+
+    await expectLater(client.login(), throwsA(isA<AccountSessionRejectedException>()));
+    expect(client.canRetryLogin, isFalse);
+  });
+
   test('retries a rejected login with the ticket and the extra body', () async {
     final servers = Servers(
       login: (body) => body['ticket'] == 't-1'
