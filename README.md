@@ -145,7 +145,7 @@ IdP 토큰을 서비스 API에 그대로 쓰지 않는 이유는 다음과 같�
 | `/auth/logout`  | 웹은 없음(쿠키), 앱은 `{ refresh_token, transport }`. `Authorization: Bearer <access_token>`이 붙을 수 있다 | `2xx`                                                                    |
 
 - **login:** code로 온 요청이면 백엔드는 받은 값으로 `loginWithCode`를 호출한다. code를 IdP와 교환하고, id_token의 `aud`와 `nonce`를 확인한 뒤 사용자를 돌려준다. 그 사용자로 서비스 세션을 만든다. ticket으로 온 요청에는 code가 없으므로 `loginWithCode`를 부르지 않는다. ticket과 추가 입력을 검증하고 ticket의 사용자로 세션을 만든다(아래 "거절과 ticket").
-- **transport:** 웹은 `'cookie'`를 보낸다. 백엔드는 refresh token을 httpOnly, `Secure`, `SameSite=Strict` 쿠키(이름 `refresh_token`, path는 refresh와 logout endpoint를 모두 포함하는 경로, 예: `/auth`)로 내려주고 body에는 넣지 않는다. 쿠키를 지울 때도 같은 path와 속성을 쓴다. 앱은 `'body'`를 보내고, 백엔드는 refresh token을 body에 넣는다. login 응답에는 반드시 넣는다. 없으면 앱은 다음 refresh에서 세션을 잃는다.
+- **transport:** 웹은 `'cookie'`를 보낸다. 백엔드는 refresh token을 httpOnly, `Secure`, `SameSite=Strict` 쿠키(이름 `refresh_token`, path는 refresh와 logout endpoint를 모두 포함하는 경로, 예: `/auth`)로 내려주고 body에는 넣지 않는다. 쿠키를 지울 때도 같은 path와 속성을 쓴다. 앱은 `'body'`를 보내고, 백엔드는 refresh token을 body에 넣는다. login 응답에는 반드시 넣고, refresh에서 토큰을 바꿨다면 refresh 응답에도 새 토큰을 넣는다. refresh 응답에 없으면 앱은 이전 refresh token을 계속 쓴다.
 - **거절과 ticket:** 약관 동의처럼 로그인 전에 사용자 입력이 더 필요하면 `403 { error: 'session_rejected', ticket, details }`로 거절한다. code는 한 번만 교환할 수 있으므로, `ticket`에는 백엔드가 이미 확인한 사용자를 담는다(짧은 수명. 서명이나 MAC, 또는 인증된 암호화(AEAD)로 무결성과 출처를 반드시 확인한다). 클라이언트는 `{ ticket, ...추가 입력 }`으로 login을 다시 호출한다. 세션을 발급할 때 ticket을 원자적으로 소비해서(사용한 ticket을 기록) 다시 쓰지 못하게 한다. 다시 403으로 거절할 때는 ticket을 소비하지 않고 응답에 ticket을 다시 담는다. 클라이언트는 마지막 거절 응답의 ticket으로 재시도한다. 403이 아닌 실패(400, 401, 5xx)는 거절이 아니라 오류로 처리된다.
 - **CORS:** 프론트와 백엔드의 origin이 다르면 프론트 origin을 허용하고 `credentials: true`로 설정한다. `SameSite=Strict` 쿠키는 같은 site(예: `ziggle.gistory.me`와 `api.ziggle.gistory.me`)에서만 오가므로, 프론트와 백엔드는 같은 등록 도메인 아래에 둔다.
 - **CSRF:** 쿠키를 쓰는 세 endpoint는 `Origin` 헤더가 있으면 프론트 origin과 같은지 확인한다. 같은 site의 다른 서브도메인이 보낸 form 요청을 막는다. 앱은 `Origin`을 보내지 않는다.
@@ -156,7 +156,7 @@ IdP 토큰을 서비스 API에 그대로 쓰지 않는 이유는 다음과 같�
 
 로그인 상태는 두 겹이다. 서비스 세션과, account-fe에 남아 있는 IdP 로그인 세션이다.
 
-- **`logout()`:** 서비스 세션만 끝낸다. 로그인 상태를 바로 지우고 백엔드에 로그아웃을 요청하며, 이 요청이 실패해도 에러를 던지지 않는다. 다음 로그인에서는 IdP 로그인 화면을 다시 띄워서, 같은 브라우저에서 다른 계정으로 바꿀 수 있게 한다.
+- **`logout()`:** 서비스 세션만 끝낸다. 로그인 상태를 바로 지우고 백엔드에 로그아웃을 요청하며, 이 요청이 실패해도 에러를 던지지 않는다. 이때 서버 세션과 refresh 쿠키가 남아서, 페이지를 다시 열면 세션이 복구될 수 있다. 다음 로그인에서는 IdP 로그인 화면을 다시 띄워서, 같은 브라우저에서 다른 계정으로 바꿀 수 있게 한다.
 - **`logout({ idp: true })`:** IdP 로그인 세션까지 끝낸다. 공용 PC처럼 계정을 남기면 안 되는 경우에 쓴다. 이미 로그인한 다른 서비스의 세션은 그대로 남고, 그 뒤에 새로 로그인하는 서비스는 IdP 로그인을 다시 거친다. IdP가 로그아웃 endpoint를 제공하지 않으면 서비스 세션만 끝낸다.
 
 ## 개발
