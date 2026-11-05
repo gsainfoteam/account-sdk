@@ -1,4 +1,4 @@
-import { type AccountClient, type AccountState } from '@gsainfoteam/account-web';
+import { type AccountClient, type AccountState } from '@infoteam/account-web';
 import { useStore } from 'zustand';
 
 import { useAccountClient } from '../context/account-context';

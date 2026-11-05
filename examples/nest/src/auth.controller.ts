@@ -1,4 +1,4 @@
-import { AccountError } from '@gsainfoteam/account-nest';
+import { AccountError } from '@infoteam/account-nest';
 import {
   BadGatewayException,
   BadRequestException,

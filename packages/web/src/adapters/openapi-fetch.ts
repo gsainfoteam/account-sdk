@@ -1,9 +1,4 @@
-import {
-  AUTHORIZATION_HEADER,
-  bearer,
-  isUnauthorized,
-  readBearer,
-} from '@gsainfoteam/account-core';
+import { AUTHORIZATION_HEADER, bearer, isUnauthorized, readBearer } from '@infoteam/account-core';
 import { type Middleware } from 'openapi-fetch';
 
 import { type AccountClient } from '../client/create-account-client';

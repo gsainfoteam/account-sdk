@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 
-import { type AccountClient } from '@gsainfoteam/account-web';
+import { type AccountClient } from '@infoteam/account-web';
 
 export const AccountContext = createContext<AccountClient | null>(null);
 

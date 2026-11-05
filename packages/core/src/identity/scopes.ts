@@ -4,7 +4,7 @@ import {
   OPENID_SCOPE,
   SCOPES,
   TOKEN_SCOPES,
-} from '@gsainfoteam/account-contract';
+} from '@infoteam/account-contract';
 import { isString } from 'es-toolkit';
 import * as z from 'zod/mini';
 

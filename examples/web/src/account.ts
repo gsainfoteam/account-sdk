@@ -1,4 +1,4 @@
-import { createAccountClient } from '@gsainfoteam/account-react';
+import { createAccountClient } from '@infoteam/account-react';
 
 export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
 

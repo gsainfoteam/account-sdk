@@ -1,5 +1,5 @@
 {
-  "name": "@gsainfoteam/account-server",
+  "name": "@infoteam/account-server",
   "version": "0.5.1",
   "description": "Backend client for the Infoteam account IdP: code exchange with id_token login and user lookup with client credentials",
   "license": "MIT",
@@ -10,7 +10,7 @@
     "directory": "packages/server"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "files": [
     "dist"
@@ -38,7 +38,7 @@
     "node": ">=20.19"
   },
   "dependencies": {
-    "@gsainfoteam/account-core": "workspace:^",
+    "@infoteam/account-core": "workspace:^",
     "es-toolkit": "^1.52.0"
   },
   "peerDependencies": {

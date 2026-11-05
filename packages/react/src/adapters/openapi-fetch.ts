@@ -1,1 +1,1 @@
-export * from '@gsainfoteam/account-web/openapi-fetch';
+export * from '@infoteam/account-web/openapi-fetch';

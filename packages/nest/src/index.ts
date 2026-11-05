@@ -8,7 +8,7 @@ export {
   type AccountScopes,
   type DefinedAccount,
 } from './define-account';
-export * from '@gsainfoteam/account-server';
+export * from '@infoteam/account-server';
 
 /** scope에 맞춘 필드 타입이 필요하면 {@link defineAccount}를 쓴다. */
 export const { AccountModule, AccountService } = defineAccount();

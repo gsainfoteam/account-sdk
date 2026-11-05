@@ -1,22 +1,20 @@
-# @gsainfoteam/account-server
+# @infoteam/account-server
 
-서비스 백엔드용 인포팀 계정(IdP) 클라이언트. 특정 프레임워크에 의존하지 않고 `fetch`만 쓴다. NestJS라면 [`@gsainfoteam/account-nest`](../nest)를 쓴다.
+서비스 백엔드용 인포팀 계정(IdP) 클라이언트. 특정 프레임워크에 의존하지 않고 `fetch`만 쓴다. NestJS라면 [`@infoteam/account-nest`](../nest)를 쓴다.
 
 이 패키지는 IdP로 사용자를 확인하는 데까지만 맡는다. [서비스 세션](../../README.md#서비스-세션)(토큰 발급, 갱신, 로그아웃)은 서비스가
 [세션 프로토콜](../../README.md#세션-프로토콜)에 맞춰 직접 구현한다.
 
 ## 설치
 
-GitHub Packages에서 배포한다. 먼저 [설치 인증](../../README.md#설치-인증)을 설정한다.
-
 ```bash
-pnpm add @gsainfoteam/account-server zod
+pnpm add @infoteam/account-server zod
 ```
 
 ## 사용
 
 ```ts
-import { createAccountServer } from '@gsainfoteam/account-server';
+import { createAccountServer } from '@infoteam/account-server';
 
 const account = createAccountServer({
   issuer: 'production',

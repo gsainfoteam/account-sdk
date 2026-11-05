@@ -223,7 +223,7 @@ importers:
 
   examples/nest:
     dependencies:
-      '@gsainfoteam/account-nest':
+      '@infoteam/account-nest':
         specifier: workspace:^
         version: link:../../packages/nest
       '@nestjs/common':
@@ -254,7 +254,7 @@ importers:
 
   examples/web:
     dependencies:
-      '@gsainfoteam/account-react':
+      '@infoteam/account-react':
         specifier: workspace:^
         version: link:../../packages/react
       '@tanstack/react-router':
@@ -294,7 +294,7 @@ importers:
 
   packages/core:
     dependencies:
-      '@gsainfoteam/account-contract':
+      '@infoteam/account-contract':
         specifier: workspace:^
         version: link:../contract
       es-toolkit:
@@ -327,17 +327,17 @@ importers:
 
   packages/nest:
     dependencies:
-      '@gsainfoteam/account-core':
+      '@infoteam/account-core':
         specifier: workspace:^
         version: link:../core
-      '@gsainfoteam/account-server':
+      '@infoteam/account-server':
         specifier: workspace:^
         version: link:../server
     devDependencies:
-      '@gsainfoteam/account-contract':
+      '@infoteam/account-contract':
         specifier: workspace:^
         version: link:../contract
-      '@gsainfoteam/account-testing':
+      '@infoteam/account-testing':
         specifier: workspace:^
         version: link:../testing
       '@nestjs/common':
@@ -379,7 +379,7 @@ importers:
 
   packages/react:
     dependencies:
-      '@gsainfoteam/account-web':
+      '@infoteam/account-web':
         specifier: workspace:^
         version: link:../web
       axios:
@@ -392,7 +392,7 @@ importers:
         specifier: ^5.0.15
         version: 5.0.15(@types/react@19.3.0)(react@19.3.0)(use-sync-external-store@1.7.0(react@19.3.0))
     devDependencies:
-      '@gsainfoteam/account-core':
+      '@infoteam/account-core':
         specifier: workspace:^
         version: link:../core
       '@testing-library/react':
@@ -425,7 +425,7 @@ importers:
 
   packages/server:
     dependencies:
-      '@gsainfoteam/account-core':
+      '@infoteam/account-core':
         specifier: workspace:^
         version: link:../core
       es-toolkit:
@@ -453,7 +453,7 @@ importers:
       '@faker-js/faker':
         specifier: ^9.9.0
         version: 9.9.0
-      '@gsainfoteam/account-contract':
+      '@infoteam/account-contract':
         specifier: workspace:^
         version: link:../contract
       jose:
@@ -475,7 +475,7 @@ importers:
 
   packages/web:
     dependencies:
-      '@gsainfoteam/account-core':
+      '@infoteam/account-core':
         specifier: workspace:^
         version: link:../core
       es-toolkit:

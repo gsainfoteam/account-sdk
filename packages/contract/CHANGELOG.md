@@ -1,4 +1,4 @@
-# @gsainfoteam/account-contract
+# @infoteam/account-contract
 
 ## 0.2.0
 

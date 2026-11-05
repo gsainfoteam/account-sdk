@@ -5,7 +5,7 @@ import {
   SESSION_REJECTED,
   type Fetch,
   type LoginRequestBody,
-} from '@gsainfoteam/account-core';
+} from '@infoteam/account-core';
 import { attemptAsync, isPlainObject } from 'es-toolkit';
 import * as z from 'zod/mini';
 

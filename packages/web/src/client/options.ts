@@ -1,4 +1,4 @@
-import { ClientScopeSchema, type Fetch, type IssuerInput } from '@gsainfoteam/account-core';
+import { ClientScopeSchema, type Fetch, type IssuerInput } from '@infoteam/account-core';
 import { isFunction, isString } from 'es-toolkit';
 import * as z from 'zod/mini';
 

@@ -1,4 +1,4 @@
-# @gsainfoteam/account-testing
+# @infoteam/account-testing
 
 ## 0.5.1
 

@@ -1,4 +1,4 @@
-# @gsainfoteam/account-contract
+# @infoteam/account-contract
 
 인포팀 계정 IdP(account-be, account-fe)와 SDK가 함께 쓰는 값. IdP가 받는 scope와 account-fe의 거절 사유를 담는다.
 
@@ -8,7 +8,7 @@
 CommonJS로 빌드하는 account-be에서도 쓸 수 있도록 ESM과 CommonJS를 함께 배포한다.
 
 ```ts
-import { CLIENT_SCOPES, type Scope } from '@gsainfoteam/account-contract';
+import { CLIENT_SCOPES, type Scope } from '@infoteam/account-contract';
 ```
 
 ## scope 변경 절차

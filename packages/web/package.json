@@ -1,5 +1,5 @@
 {
-  "name": "@gsainfoteam/account-web",
+  "name": "@infoteam/account-web",
   "version": "0.5.1",
   "description": "Browser client for the Infoteam account IdP: sign-in redirect, callback handling and service sessions",
   "license": "MIT",
@@ -10,7 +10,7 @@
     "directory": "packages/web"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "files": [
     "dist"
@@ -29,7 +29,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@gsainfoteam/account-core": "workspace:^",
+    "@infoteam/account-core": "workspace:^",
     "es-toolkit": "^1.52.0",
     "zustand": "^5.0.15"
   },

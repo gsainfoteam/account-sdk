@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
-import { type AccountClient } from '@gsainfoteam/account-web';
+import { type AccountClient } from '@infoteam/account-web';
 
 import { AccountContext } from '../context/account-context';
 

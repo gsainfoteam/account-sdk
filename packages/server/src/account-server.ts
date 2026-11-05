@@ -16,7 +16,7 @@ import {
   type TokenEndpointAuthMethod,
   type TokenResponse,
   type UserInfo,
-} from '@gsainfoteam/account-core';
+} from '@infoteam/account-core';
 import * as z from 'zod/mini';
 
 import { createClientTokenCache } from './client-token-cache';

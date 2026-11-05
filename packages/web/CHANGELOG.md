@@ -1,4 +1,4 @@
-# @gsainfoteam/account-web
+# @infoteam/account-web
 
 ## 0.5.1
 

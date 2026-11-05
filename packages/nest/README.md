@@ -1,14 +1,12 @@
-# @gsainfoteam/account-nest
+# @infoteam/account-nest
 
-NestJS 백엔드를 인포팀 계정(IdP)에 붙인다. 모듈이 [`@gsainfoteam/account-server`](../server)의 IdP 클라이언트를 주입해 주고, 앱이 시작될 때 IdP 등록을
+NestJS 백엔드를 인포팀 계정(IdP)에 붙인다. 모듈이 [`@infoteam/account-server`](../server)의 IdP 클라이언트를 주입해 주고, 앱이 시작될 때 IdP 등록을
 확인한다. 서비스 세션(로그인, 갱신, 로그아웃 endpoint와 guard)은 서비스가 [세션 프로토콜](../../README.md#세션-프로토콜)에 맞춰 직접 구현한다.
 
 ## 설치
 
-GitHub Packages에서 배포한다. 먼저 [설치 인증](../../README.md#설치-인증)을 설정한다.
-
 ```bash
-pnpm add @gsainfoteam/account-nest zod
+pnpm add @infoteam/account-nest zod
 ```
 
 ESM으로만 배포한다. CommonJS(`module: commonjs`)로 빌드하는 Nest 앱도 Node 20.19 이상이면 `require()`로 그대로 불러온다.
@@ -18,7 +16,7 @@ jest는 ESM을 `require()` 하지 못하므로, SDK와 그 의존성(jose, oauth
 ```js
 // jest 설정
 transform: { '^.+\\.(t|j)s$': ['ts-jest', { tsconfig: { allowJs: true } }] },
-transformIgnorePatterns: ['/node_modules/(?!\\.pnpm|@gsainfoteam|jose|oauth4webapi)'],
+transformIgnorePatterns: ['/node_modules/(?!\\.pnpm|@infoteam|jose|oauth4webapi)'],
 ```
 
 ## 모듈 설정
@@ -27,7 +25,7 @@ transformIgnorePatterns: ['/node_modules/(?!\\.pnpm|@gsainfoteam|jose|oauth4weba
 
 ```ts
 // account.ts
-import { defineAccount } from '@gsainfoteam/account-nest';
+import { defineAccount } from '@infoteam/account-nest';
 
 export const { AccountModule, AccountService } = defineAccount({
   requiredScopes: ['name', 'email'], // client 에 필수로 등록한 scope
@@ -104,7 +102,7 @@ findUser(sub: string) {
 }
 ```
 
-메서드 목록은 [`@gsainfoteam/account-server` README](../server/README.md)에 있다.
+메서드 목록은 [`@infoteam/account-server` README](../server/README.md)에 있다.
 
 ## 에러
 
@@ -121,4 +119,4 @@ SDK는 실패하면 `AccountError`를 던지므로 `code`로 HTTP 상태를 나�
 
 ## 테스트
 
-[`@gsainfoteam/account-testing`](../testing)의 가짜 IdP로 진짜 IdP 없이 로그인 endpoint까지 e2e 테스트를 돌린다. 사용법은 [그 README](../testing/README.md)에 있다.
+[`@infoteam/account-testing`](../testing)의 가짜 IdP로 진짜 IdP 없이 로그인 endpoint까지 e2e 테스트를 돌린다. 사용법은 [그 README](../testing/README.md)에 있다.

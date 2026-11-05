@@ -1,4 +1,4 @@
-import { STORAGE_NAMESPACE } from '@gsainfoteam/account-core';
+import { STORAGE_NAMESPACE } from '@infoteam/account-core';
 
 export const STORAGE_KEYS = {
   transactionPrefix: `${STORAGE_NAMESPACE}:tx:`,

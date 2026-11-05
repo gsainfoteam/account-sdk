@@ -1,6 +1,6 @@
-# @gsainfoteam/account-testing
+# @infoteam/account-testing
 
-[`@gsainfoteam/account-nest`](../nest)나 [`@gsainfoteam/account-server`](../server)를 붙인 서비스 백엔드를 실제 IdP 없이 테스트하는 가짜 IdP다.
+[`@infoteam/account-nest`](../nest)나 [`@infoteam/account-server`](../server)를 붙인 서비스 백엔드를 실제 IdP 없이 테스트하는 가짜 IdP다.
 
 ## 테스트 대상
 
@@ -25,10 +25,8 @@ code 교환과 id_token 검증(`loginWithCode`)은 SDK에서 테스트한다. �
 
 ## 설치
 
-GitHub Packages에서 배포한다. 먼저 [설치 인증](../../README.md#설치-인증)을 설정한다.
-
 ```bash
-pnpm add -D @gsainfoteam/account-testing
+pnpm add -D @infoteam/account-testing
 ```
 
 ESM으로만 배포한다.
@@ -42,7 +40,7 @@ ESM으로만 배포한다.
 바꾸면 된다. 서비스 코드는 바꾸지 않는다.
 
 ```ts
-import { createFakeIdp, fakeUser, type FakeIdp } from '@gsainfoteam/account-testing';
+import { createFakeIdp, fakeUser, type FakeIdp } from '@infoteam/account-testing';
 import { type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';

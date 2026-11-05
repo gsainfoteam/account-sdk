@@ -1,4 +1,4 @@
-# @gsainfoteam/account-react
+# @infoteam/account-react
 
 ## 0.5.1
 

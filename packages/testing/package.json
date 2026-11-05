@@ -1,5 +1,5 @@
 {
-  "name": "@gsainfoteam/account-testing",
+  "name": "@infoteam/account-testing",
   "version": "0.5.1",
   "description": "In-memory fake of the Infoteam account IdP for testing services that use the account SDK",
   "license": "MIT",
@@ -10,7 +10,7 @@
     "directory": "packages/testing"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "files": [
     "dist"
@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "@faker-js/faker": "^9.9.0",
-    "@gsainfoteam/account-contract": "workspace:^",
+    "@infoteam/account-contract": "workspace:^",
     "jose": "^6.2.12",
     "oauth4webapi": "^3.8.8"
   },

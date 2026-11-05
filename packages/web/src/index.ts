@@ -21,4 +21,4 @@ export {
   type Environment,
   type IssuerInput,
   type Prompt,
-} from '@gsainfoteam/account-core';
+} from '@infoteam/account-core';

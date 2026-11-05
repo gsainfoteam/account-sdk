@@ -1,4 +1,4 @@
-import { clearDiscoveryCache } from '@gsainfoteam/account-core';
+import { clearDiscoveryCache } from '@infoteam/account-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import production from '../../core/tests/fixtures/discovery.production.json' with { type: 'json' };

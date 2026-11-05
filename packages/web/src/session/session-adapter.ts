@@ -1,4 +1,4 @@
-import { SessionTokensResponseSchema, type AccountError } from '@gsainfoteam/account-core';
+import { SessionTokensResponseSchema, type AccountError } from '@infoteam/account-core';
 import * as z from 'zod/mini';
 
 export type LoginCredential =

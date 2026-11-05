@@ -7,11 +7,11 @@ on:
 
 jobs:
   npm:
-    name: Publish to GitHub Packages
+    name: Publish to npm
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -21,16 +21,9 @@ jobs:
         with:
           install_args: node pnpm
 
-      - uses: actions/setup-node@v4
-        with:
-          registry-url: https://npm.pkg.github.com
-          scope: '@gsainfoteam'
-
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm release
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   flutter:
     name: Publish to pub.dev

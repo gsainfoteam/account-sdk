@@ -1,4 +1,4 @@
-import { type TokenEndpointAuthMethod } from '@gsainfoteam/account-contract';
+import { type TokenEndpointAuthMethod } from '@infoteam/account-contract';
 import { attemptAsync } from 'es-toolkit';
 import * as z from 'zod/mini';
 
