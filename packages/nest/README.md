@@ -60,14 +60,19 @@ AccountModule.forRootAsync({
 ```ts
 @Post('auth/login')
 @HttpCode(200)
-async login(@Body() body: LoginBody, @Res({ passthrough: true }) res: Response) {
-  const { user } = await this.account.loginWithCode({
-    code: body.code,
-    codeVerifier: body.code_verifier,
-    redirectUri: body.redirect_uri,
-    nonce: body.nonce,
-    iss: body.iss,
-  });
+async login(@Req() req: Request, @Body() body: LoginBody, @Res({ passthrough: true }) res: Response) {
+  const origin = req.headers.origin;
+  if (origin !== undefined && origin !== WEB_ORIGIN) throw new BadRequestException('untrusted origin');
+
+  const { user } = await this.account
+    .loginWithCode({
+      code: body.code,
+      codeVerifier: body.code_verifier,
+      redirectUri: body.redirect_uri,
+      nonce: body.nonce,
+      iss: body.iss,
+    })
+    .catch(toHttpError); // 아래 에러 절 참고
   const local = await this.users.upsertByIdp(user); // user.email 은 string
   const { accessToken, refreshToken } = await this.sessions.issue(local.id);
 
@@ -102,8 +107,16 @@ findUser(sub: string) {
 
 ## 에러
 
-SDK는 실패하면 `AccountError`를 던지므로 `code`로 경우를 나눈다. 예를 들어 로그인 endpoint에서 `invalid_grant`(만료되거나 이미 쓴 code)는 401로,
-IdP 장애는 502로 응답한다. 403은 [거절](../../README.md#세션-프로토콜) 전용이므로 다른 실패에 쓰지 않는다.
+SDK는 실패하면 `AccountError`를 던지므로 `code`로 HTTP 상태를 나눈다. 403은 [거절](../../README.md#세션-프로토콜) 전용이므로 다른 실패에 쓰지 않는다.
+
+| `code`                                                                         | 상태 | 의미                                   |
+| ------------------------------------------------------------------------------ | ---- | -------------------------------------- |
+| `invalid_request`                                                              | 400  | 요청 형식이 틀렸다                     |
+| `network_error`, `server_error`, `discovery_failed`, `temporarily_unavailable` | 502  | IdP에 연결하지 못했거나 IdP가 실패했다 |
+| `invalid_client`, `unauthorized_client`, `invalid_scope`, `missing_claims`     | 500  | client 등록이나 서버 설정이 틀렸다     |
+| 그 밖의 code (`invalid_grant`, `invalid_id_token` 등)                          | 401  | 만료되거나 이미 쓴 code, 검증 실패     |
+
+[`examples/nest`의 `toHttpError`](../../examples/nest/src/auth.controller.ts)가 이 표를 구현한다.
 
 ## 테스트
 

@@ -121,7 +121,7 @@ IdP 로그인이 끝나면 서비스 백엔드가 자기 세션을 발급한다.
 
 - **세션:** 로그인 한 번을 가리킨다. 토큰을 갱신해도 유지되고, 로그아웃하면 끝난다.
 - **access token:** 서비스 백엔드가 발급한다. 형식은 백엔드가 정하고, 수명은 짧게(15분 정도) 둔다. API 요청마다 붙인다.
-- **refresh token:** access token이 만료되면 새로 받는 데 쓴다. 쓸 때마다 새 토큰으로 바꾸고, 이미 쓴 토큰이 다시 오면 그 세션을 끝내는 것을 권장한다.
+- **refresh token:** access token이 만료되면 새로 받는 데 쓴다. 쓸 때마다 새 토큰으로 바꾸고, 이미 쓴 토큰이 다시 오면 그 세션을 끝내는 것을 권장한다. 다만 web SDK는 같은 탭 안에서만 refresh를 한 번으로 묶으므로, 탭 여러 개가 거의 동시에 같은 쿠키로 refresh 할 수 있다. 짧은 유예 시간(예: 10초) 안에 같은 토큰이 다시 오면 이미 발급한 새 토큰 쌍을 돌려주고, 유예 시간이 지난 뒤의 재사용만 탈취로 처리한다.
   웹에서는 JavaScript가 읽을 수 없는 httpOnly 쿠키에, 앱에서는 보안 저장소에 둔다.
 
 IdP 토큰을 서비스 API에 그대로 쓰지 않는 이유는 다음과 같다.
@@ -145,8 +145,8 @@ IdP 토큰을 서비스 API에 그대로 쓰지 않는 이유는 다음과 같�
 | `/auth/logout`  | 웹은 없음(쿠키), 앱은 `{ refresh_token, transport }`. `Authorization: Bearer <access_token>`이 붙을 수 있다 | `2xx`                                                                    |
 
 - **login:** 백엔드는 받은 값으로 `loginWithCode`를 호출한다. code를 IdP와 교환하고, id_token의 `aud`와 `nonce`를 확인한 뒤 사용자를 돌려준다. 그 사용자로 서비스 세션을 만든다.
-- **transport:** 웹은 `'cookie'`를 보낸다. 백엔드는 refresh token을 httpOnly, `Secure`, `SameSite=Strict` 쿠키(이름 `refresh_token`, path는 갱신 endpoint가 있는 경로)로 내려주고 body에는 넣지 않는다. 앱은 `'body'`를 보내고, 백엔드는 refresh token을 body에 넣는다.
-- **거절과 ticket:** 약관 동의처럼 로그인 전에 사용자 입력이 더 필요하면 `403 { error: 'session_rejected', ticket, details }`로 거절한다. code는 한 번만 교환할 수 있으므로, `ticket`에는 백엔드가 이미 확인한 사용자를 담는다(짧은 수명, 서명이나 암호화 필수). 클라이언트는 `{ ticket, ...추가 입력 }`으로 login을 다시 호출한다. 403이 아닌 실패(400, 401, 5xx)는 거절이 아니라 오류로 처리된다.
+- **transport:** 웹은 `'cookie'`를 보낸다. 백엔드는 refresh token을 httpOnly, `Secure`, `SameSite=Strict` 쿠키(이름 `refresh_token`, path는 refresh와 logout endpoint를 모두 포함하는 경로, 예: `/auth`)로 내려주고 body에는 넣지 않는다. 쿠키를 지울 때도 같은 path와 속성을 쓴다. 앱은 `'body'`를 보내고, 백엔드는 refresh token을 body에 넣는다.
+- **거절과 ticket:** 약관 동의처럼 로그인 전에 사용자 입력이 더 필요하면 `403 { error: 'session_rejected', ticket, details }`로 거절한다. code는 한 번만 교환할 수 있으므로, `ticket`에는 백엔드가 이미 확인한 사용자를 담는다(짧은 수명, 서명이나 암호화 필수). 클라이언트는 `{ ticket, ...추가 입력 }`으로 login을 다시 호출한다. 세션을 발급할 때 ticket을 원자적으로 소비해서(사용한 ticket을 기록) 다시 쓰지 못하게 한다. 다시 거절한 경우에는 ticket을 소비하지 않아도 된다. 403이 아닌 실패(400, 401, 5xx)는 거절이 아니라 오류로 처리된다.
 - **CORS:** 프론트와 백엔드의 origin이 다르면 프론트 origin을 허용하고 `credentials: true`로 설정한다. `SameSite=Strict` 쿠키는 같은 site(예: `ziggle.gistory.me`와 `api.ziggle.gistory.me`)에서만 오가므로, 프론트와 백엔드는 같은 등록 도메인 아래에 둔다.
 - **CSRF:** 쿠키를 쓰는 세 endpoint는 `Origin` 헤더가 있으면 프론트 origin과 같은지 확인한다. 같은 site의 다른 서브도메인이 보낸 form 요청을 막는다. 앱은 `Origin`을 보내지 않는다.
 

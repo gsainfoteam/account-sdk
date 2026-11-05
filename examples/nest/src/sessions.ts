@@ -1,38 +1,56 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 
 import { Injectable } from '@nestjs/common';
 
 const ACCESS_TOKEN_TTL = 15 * 60;
 
-// shortcut: in-memory, never expires refresh tokens or prunes old access tokens, and logout only drops the tokens it is given;
-// a real service stores sessions in a database with expiry and revokes every token of the session on logout.
+interface AccessToken {
+  sid: string;
+  sub: string;
+  expiresAt: number;
+}
+
+// shortcut: in-memory, refresh tokens never expire, expired access tokens are not pruned, and a reused refresh token
+// is rejected without the grace window that concurrent tabs need; use a database with expiry in a real service.
 @Injectable()
 export class Sessions {
-  private readonly accessTokens = new Map<string, { sub: string; expiresAt: number }>();
-  private readonly refreshTokens = new Map<string, string>();
+  private readonly accessTokens = new Map<string, AccessToken>();
+  private readonly refreshTokens = new Map<string, { sid: string; sub: string }>();
 
-  issue(sub: string) {
+  issue(sub: string, sid: string = randomUUID()) {
     const accessToken = randomBytes(32).toString('base64url');
     const refreshToken = randomBytes(32).toString('base64url');
-    this.accessTokens.set(accessToken, { sub, expiresAt: Date.now() + ACCESS_TOKEN_TTL * 1000 });
-    this.refreshTokens.set(refreshToken, sub);
+    this.accessTokens.set(accessToken, {
+      sid,
+      sub,
+      expiresAt: Date.now() + ACCESS_TOKEN_TTL * 1000,
+    });
+    this.refreshTokens.set(refreshToken, { sid, sub });
     return { accessToken, refreshToken, expiresIn: ACCESS_TOKEN_TTL };
   }
 
   rotate(refreshToken: string) {
-    const sub = this.refreshTokens.get(refreshToken);
-    if (!sub) return null;
+    const session = this.refreshTokens.get(refreshToken);
+    if (!session) return null;
     this.refreshTokens.delete(refreshToken);
-    return this.issue(sub);
+    return this.issue(session.sub, session.sid);
   }
 
   subjectOf(accessToken: string): string | null {
-    const session = this.accessTokens.get(accessToken);
-    return session && session.expiresAt > Date.now() ? session.sub : null;
+    const token = this.accessTokens.get(accessToken);
+    return token && token.expiresAt > Date.now() ? token.sub : null;
   }
 
   end(refreshToken: string | undefined, accessToken: string | undefined): void {
-    if (refreshToken) this.refreshTokens.delete(refreshToken);
-    if (accessToken) this.accessTokens.delete(accessToken);
+    const sid =
+      this.refreshTokens.get(refreshToken ?? '')?.sid ??
+      this.accessTokens.get(accessToken ?? '')?.sid;
+    if (!sid) return;
+
+    for (const tokens of [this.accessTokens, this.refreshTokens]) {
+      for (const [token, session] of tokens) {
+        if (session.sid === sid) tokens.delete(token);
+      }
+    }
   }
 }

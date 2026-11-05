@@ -10,13 +10,25 @@ export interface HttpResponse {
 
 export function bearerToken(req: HttpRequest): string | undefined {
   const header = req.headers.authorization;
-  return typeof header === 'string' && header.startsWith('Bearer ') ? header.slice(7) : undefined;
+  if (typeof header !== 'string') return undefined;
+
+  const [scheme, token] = header.split(' ');
+  return scheme?.toLowerCase() === 'bearer' && token ? token : undefined;
 }
 
 export function readCookie(req: HttpRequest, name: string): string | undefined {
   const header = req.headers.cookie;
   if (typeof header !== 'string') return undefined;
 
-  const pair = header.split('; ').find((part) => part.startsWith(`${name}=`));
-  return pair && decodeURIComponent(pair.slice(name.length + 1));
+  const pair = header
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${name}=`));
+  if (!pair) return undefined;
+
+  try {
+    return decodeURIComponent(pair.slice(name.length + 1));
+  } catch {
+    return undefined;
+  }
 }
