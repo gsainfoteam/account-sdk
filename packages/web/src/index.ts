@@ -7,7 +7,13 @@ export {
   type RequireAuthOptions,
 } from './client/create-account-client';
 export { AccountClientOptionsSchema, type AccountClientOptions } from './client/options';
-export { type SessionPaths } from './session/session-adapter';
+export {
+  type LoginCredential,
+  type Session,
+  type SessionPaths,
+  type SessionRejection,
+  type SessionTokens,
+} from './session/session-adapter';
 export {
   AccountError,
   type AccountErrorCode,
