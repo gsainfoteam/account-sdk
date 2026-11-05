@@ -1,24 +1,25 @@
 # @gsainfoteam/account-testing
 
-[`@gsainfoteam/account-nest`](../nest)를 붙인 서비스 백엔드를 실제 IdP 없이 테스트하는 가짜 IdP다.
+[`@gsainfoteam/account-nest`](../nest)나 [`@gsainfoteam/account-server`](../server)를 붙인 서비스 백엔드를 실제 IdP 없이 테스트하는 가짜 IdP다.
 
 ## 테스트 대상
 
-`/auth/login`, `/auth/refresh`, `/auth/logout`과 토큰 처리는 SDK가 만들고 SDK에서 테스트한다. 서비스가 테스트할 것은 그 위에 직접 작성한 코드다.
+code 교환과 id_token 검증(`loginWithCode`)은 SDK에서 테스트한다. 서비스가 테스트할 것은 그 위에 직접 작성한 코드다.
 
-- `resolve`: IdP 사용자를 서비스 DB의 사용자와 제대로 연결하는가. 기존 사용자를 찾지 못해 새로 만들어 버리면 사용자에게는 자기 데이터가 사라진 것처럼 보인다.
+- 사용자 연결: IdP 사용자를 서비스 DB의 사용자와 제대로 연결하는가. 기존 사용자를 찾지 못해 새로 만들어 버리면 사용자에게는 자기 데이터가 사라진 것처럼 보인다.
+- 세션: [세션 프로토콜](../../README.md#세션-프로토콜)대로 발급, 갱신, 로그아웃하는가.
 - guard를 붙인 API: 로그인하지 않은 요청을 막고, 로그인한 요청에서는 세션으로 사용자를 찾아 동작하는가.
-- 서비스 정책: 약관 동의(`SessionRejected`), 한 기기 로그인(`onLogin: 'replace'`) 등.
+- 서비스 정책: 약관 동의(403 거절과 ticket), 한 기기 로그인 등.
 
-`resolve`를 실행하려면 `/auth/login`을 거쳐야 하고, `/auth/login`은 IdP와 통신한다. 가짜 IdP는 이 통신에 실제 IdP처럼 응답하므로, 서비스
+이 코드를 실행하려면 `/auth/login`을 거쳐야 하고, `/auth/login`은 IdP와 통신한다. 가짜 IdP는 이 통신에 실제 IdP처럼 응답하므로, 서비스
 코드를 실제 로그인 경로 그대로 실행할 수 있다.
 
 | 실제 로그인                                          | 테스트에서                                    |
 | ---------------------------------------------------- | --------------------------------------------- |
 | 사용자가 브라우저에서 IdP에 로그인하고 code를 받는다 | `idp.authorize()`가 그 결과(code 등)를 만든다 |
 | 프론트가 code를 `POST /auth/login`으로 보낸다        | 테스트가 supertest로 보낸다                   |
-| SDK가 IdP에서 code를 교환하고 사용자를 확인한다      | 가짜 IdP가 응답한다                           |
-| 서비스의 `resolve`가 사용자를 연결하고 세션이 생긴다 | 실제로 실행된다(서비스 코드, 서비스 DB)       |
+| `loginWithCode`가 code를 교환하고 사용자를 확인한다  | 가짜 IdP가 응답한다                           |
+| 서비스 코드가 사용자를 연결하고 세션을 만든다        | 실제로 실행된다(서비스 코드, 서비스 DB)       |
 
 실제 IdP와의 연동(client 등록, redirect URI)은 확인하지 못하므로, 스테이징 IdP로 한 번은 직접 로그인해 본다.
 
@@ -65,7 +66,7 @@ async function login(user = fakeUser()) {
   const { body } = await idp.authorize({ clientId: process.env.ACCOUNT_CLIENT_ID!, user });
   const res = await request(app.getHttpServer())
     .post('/auth/login')
-    .send({ ...body, transport: 'body' }); // 'body'면 토큰을 쿠키 대신 응답 body로 받는다
+    .send({ ...body, transport: 'body' }); // 서비스가 세션 프로토콜대로 구현했다면 refresh token도 body로 온다
   return res.body.access_token as string;
 }
 

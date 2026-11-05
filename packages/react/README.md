@@ -2,7 +2,7 @@
 
 인포팀 계정(IdP) 로그인을 React 앱에 붙인다. [`@gsainfoteam/account-web`](../web)의 export를 모두 다시 내보내므로 이 패키지 하나만 설치하면 된다.
 
-서비스 백엔드에는 [`@gsainfoteam/account-nest`](../nest)의 세션 모듈이 있어야 한다. 이 패키지는 그 백엔드의 로그인, 갱신, 로그아웃 endpoint를 호출한다.
+서비스 백엔드는 [세션 프로토콜](../../README.md#세션-프로토콜)의 로그인, 갱신, 로그아웃 endpoint를 구현해야 한다. 이 패키지는 그 endpoint를 호출한다. 형식이 다른 백엔드는 [`session` 옵션](../web/README.md#백엔드-형식이-다를-때)으로 붙인다.
 
 ## 설치
 
@@ -120,7 +120,7 @@ if (status === 'unauthenticated') return <button onClick={() => login()}>로그�
 | `network_error`         | IdP나 서비스 백엔드에 연결하지 못했다                                         |
 
 `session_rejected`는 약관 동의처럼 로그인 전에 추가 입력이 필요할 때 쓴다. 사용자에게 입력을 받은 뒤 `retryLogin(body)`로 보내면 IdP를 다시 거치지 않고
-로그인을 마친다. 백엔드 쪽은 [로그인 전 추가 입력](../nest/README.md#로그인-전-추가-입력)을 참고한다.
+로그인을 마친다. 백엔드 쪽은 [세션 프로토콜](../../README.md#세션-프로토콜)의 거절과 ticket 규칙을 참고한다.
 
 ### 5. API 요청
 

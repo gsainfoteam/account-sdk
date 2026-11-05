@@ -8,7 +8,7 @@
 
 1. IdP에 서비스를 client로 등록한다. [IdP client 등록](#idp-client-등록)
 2. npm 패키지를 받을 수 있도록 인증을 설정한다. [설치 인증](#설치-인증)
-3. 백엔드에 [`@gsainfoteam/account-nest`](packages/nest)를 붙인다. 로그인, 갱신, 로그아웃 endpoint가 생긴다.
+3. 백엔드에 [`@gsainfoteam/account-nest`](packages/nest)나 [`@gsainfoteam/account-server`](packages/server)를 붙이고, [세션 프로토콜](#세션-프로토콜)의 로그인, 갱신, 로그아웃 endpoint를 만든다.
 4. 프론트에 [`@gsainfoteam/account-react`](packages/react)나 [`gsainfoteam_account`](packages/flutter)를 붙이고, 3의 백엔드 주소를 넘긴다.
 
 ## 패키지
@@ -18,7 +18,7 @@
 | [`@gsainfoteam/account-react`](packages/react)       | React 앱. web을 포함한다                                      | GitHub Packages |
 | [`@gsainfoteam/account-web`](packages/web)           | React를 쓰지 않는 웹 앱                                       | GitHub Packages |
 | [`gsainfoteam_account`](packages/flutter)            | Flutter 앱                                                    | pub.dev         |
-| [`@gsainfoteam/account-nest`](packages/nest)         | NestJS 백엔드. server를 포함한다                              | GitHub Packages |
+| [`@gsainfoteam/account-nest`](packages/nest)         | NestJS 백엔드. server를 포함한다. 세션은 직접 구현한다        | GitHub Packages |
 | [`@gsainfoteam/account-server`](packages/server)     | NestJS를 쓰지 않는 Node, Bun 백엔드. 세션은 직접 구현한다     | GitHub Packages |
 | [`@gsainfoteam/account-core`](packages/core)         | 위 패키지들의 공용 코어. 직접 설치하지 않는다                 | GitHub Packages |
 | [`@gsainfoteam/account-contract`](packages/contract) | IdP와 SDK가 함께 쓰는 값(scope, 거절 사유). account-be도 쓴다 | GitHub Packages |
@@ -120,8 +120,8 @@ sequenceDiagram
 IdP 로그인이 끝나면 서비스 백엔드가 자기 세션을 발급한다. IdP 토큰은 로그인할 때 사용자를 확인하는 데 한 번만 쓰고, 이후의 API 요청과 로그인 유지에는 서비스 세션만 쓴다.
 
 - **세션:** 로그인 한 번을 가리킨다. 토큰을 갱신해도 유지되고, 로그아웃하면 끝난다.
-- **access token:** 서비스 백엔드가 서명한 JWT로, 수명은 15분이다. API 요청마다 붙인다.
-- **refresh token:** access token이 만료되면 새로 받는 데 쓴다. 쓸 때마다 새 토큰으로 바뀌고, 이미 쓴 토큰이 다시 오면 탈취된 것으로 보고 그 세션을 끝낸다.
+- **access token:** 서비스 백엔드가 발급한다. 형식은 백엔드가 정하고, 수명은 짧게(15분 정도) 둔다. API 요청마다 붙인다.
+- **refresh token:** access token이 만료되면 새로 받는 데 쓴다. 쓸 때마다 새 토큰으로 바꾸고, 이미 쓴 토큰이 다시 오면 그 세션을 끝내는 것을 권장한다.
   웹에서는 JavaScript가 읽을 수 없는 httpOnly 쿠키에, 앱에서는 보안 저장소에 둔다.
 
 IdP 토큰을 서비스 API에 그대로 쓰지 않는 이유는 다음과 같다.
@@ -130,7 +130,27 @@ IdP 토큰을 서비스 API에 그대로 쓰지 않는 이유는 다음과 같�
 - IdP 토큰을 오래 쓰려면 `offline_access`가 필요한데, 이 scope를 요청하면 account-fe가 로그인할 때마다 동의 화면을 띄운다.
 - 서비스에 필요한 값(예: 기기 id)을 토큰에 함께 실을 수 있고, IdP가 잠깐 멈춰도 이미 로그인한 사용자는 영향을 받지 않는다.
 
-서비스가 직접 작성하는 것은 IdP 사용자를 자기 DB의 사용자와 연결하는 함수 하나와, 세션을 저장할 store다. 나머지는 nest 세션 모듈과 프론트 SDK가 맡는다.
+세션은 서비스마다 요구사항(저장소, 토큰 형식, 기기 id 같은 추가 값)이 달라서 SDK가 만들지 않고 서비스 백엔드가 직접 구현한다. 백엔드 SDK는 code 교환과 id_token 검증(`loginWithCode`)까지만 맡는다.
+
+### 세션 프로토콜
+
+프론트 SDK의 `api` 옵션은 서비스 백엔드가 아래 endpoint를 구현했다고 가정한다. 경로는 `{ baseUrl, paths }`로 바꿀 수 있다. 백엔드 형식이 이것과 다르면 웹에서는 `session` 옵션에 백엔드 호출을 직접 구현해서 넘긴다. [`@gsainfoteam/account-web`](packages/web#백엔드-형식이-다를-때) 참고.
+
+모든 요청은 `POST`다. 웹은 쿠키를 보내도록 `credentials: 'include'`로 요청하고, refresh와 logout에는 body가 없다. 앱은 모든 요청에 JSON body와 `transport: 'body'`를 보낸다.
+
+| endpoint        | 요청 body                                                                                                   | 성공 응답                                                                |
+| --------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `/auth/login`   | `{ code, code_verifier, redirect_uri, nonce, iss?, transport }` 또는 `{ ticket, transport }`                | `200 { access_token, expires_in?, refresh_token? }`                      |
+| `/auth/refresh` | 웹은 없음(쿠키), 앱은 `{ refresh_token, transport }`                                                        | `200 { access_token, expires_in?, refresh_token? }`, 세션이 없으면 `401` |
+| `/auth/logout`  | 웹은 없음(쿠키), 앱은 `{ refresh_token, transport }`. `Authorization: Bearer <access_token>`이 붙을 수 있다 | `2xx`                                                                    |
+
+- **login:** 백엔드는 받은 값으로 `loginWithCode`를 호출한다. code를 IdP와 교환하고, id_token의 `aud`와 `nonce`를 확인한 뒤 사용자를 돌려준다. 그 사용자로 서비스 세션을 만든다.
+- **transport:** 웹은 `'cookie'`를 보낸다. 백엔드는 refresh token을 httpOnly, `Secure`, `SameSite=Strict` 쿠키(이름 `refresh_token`, path는 갱신 endpoint가 있는 경로)로 내려주고 body에는 넣지 않는다. 앱은 `'body'`를 보내고, 백엔드는 refresh token을 body에 넣는다.
+- **거절과 ticket:** 약관 동의처럼 로그인 전에 사용자 입력이 더 필요하면 `403 { error: 'session_rejected', ticket, details }`로 거절한다. code는 한 번만 교환할 수 있으므로, `ticket`에는 백엔드가 이미 확인한 사용자를 담는다(짧은 수명, 서명이나 암호화 필수). 클라이언트는 `{ ticket, ...추가 입력 }`으로 login을 다시 호출한다. 403이 아닌 실패(400, 401, 5xx)는 거절이 아니라 오류로 처리된다.
+- **CORS:** 프론트와 백엔드의 origin이 다르면 프론트 origin을 허용하고 `credentials: true`로 설정한다. `SameSite=Strict` 쿠키는 같은 site(예: `ziggle.gistory.me`와 `api.ziggle.gistory.me`)에서만 오가므로, 프론트와 백엔드는 같은 등록 도메인 아래에 둔다.
+- **CSRF:** 쿠키를 쓰는 세 endpoint는 `Origin` 헤더가 있으면 프론트 origin과 같은지 확인한다. 같은 site의 다른 서브도메인이 보낸 form 요청을 막는다. 앱은 `Origin`을 보내지 않는다.
+
+[`examples/nest`](examples/nest)에 이 프로토콜을 메모리 저장소로 구현한 예제가 있다.
 
 ### 로그아웃
 
