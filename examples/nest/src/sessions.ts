@@ -41,15 +41,16 @@ export class Sessions {
     return token && token.expiresAt > Date.now() ? token.sub : null;
   }
 
+  // a re-login in the same browser can leave the two tokens in different sessions; both are ended
   end(refreshToken: string | undefined, accessToken: string | undefined): void {
-    const sid =
-      this.refreshTokens.get(refreshToken ?? '')?.sid ??
-      this.accessTokens.get(accessToken ?? '')?.sid;
-    if (!sid) return;
+    const sids = new Set([
+      this.refreshTokens.get(refreshToken ?? '')?.sid,
+      this.accessTokens.get(accessToken ?? '')?.sid,
+    ]);
 
     for (const tokens of [this.accessTokens, this.refreshTokens]) {
       for (const [token, session] of tokens) {
-        if (session.sid === sid) tokens.delete(token);
+        if (sids.has(session.sid)) tokens.delete(token);
       }
     }
   }

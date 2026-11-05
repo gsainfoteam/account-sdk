@@ -43,6 +43,7 @@ try {
   // 사용자가 브라우저를 닫았다
 } on AccountSessionRejectedException catch (error) {
   // 서비스 백엔드가 약관 동의 같은 추가 입력을 요구했다. 이유는 error.body 에 있다
+  if (!account.canRetryLogin) rethrow;
   await account.retryLogin({'agreedToTerms': true});
 }
 ```

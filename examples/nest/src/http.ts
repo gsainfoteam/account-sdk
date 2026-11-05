@@ -12,7 +12,7 @@ export function bearerToken(req: HttpRequest): string | undefined {
   const header = req.headers.authorization;
   if (typeof header !== 'string') return undefined;
 
-  const [scheme, token] = header.split(' ');
+  const [scheme, token] = header.split(/ +/);
   return scheme?.toLowerCase() === 'bearer' && token ? token : undefined;
 }
 
