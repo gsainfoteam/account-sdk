@@ -26,7 +26,7 @@ import 'scopes.generated.dart';
 /// [url]을 브라우저 세션으로 열고, 돌아온 callback URL을 결과로 돌려준다.
 typedef BrowserAuthenticator = Future<String> Function(Uri url, String callbackUrlScheme);
 
-/// callback의 code를 서비스 백엔드(`@gsainfoteam/account-nest` 세션 모듈)에 넘기면
+/// callback의 code를 서비스 백엔드의 [세션 프로토콜](https://github.com/gsainfoteam/account-sdk#세션-프로토콜) endpoint에 넘기면
 /// 백엔드가 confidential client로서 code를 교환하고 id_token으로 사용자를 확인한다.
 class AccountClient {
   AccountClient({

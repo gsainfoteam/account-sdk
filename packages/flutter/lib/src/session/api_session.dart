@@ -27,7 +27,7 @@ class ApiSession {
     final (status, json) = await _post(paths.login, body);
     if (_ok(status)) return SessionTokens.fromJson(json);
 
-    if (json case {'ticket': final String ticket}) {
+    if (json case {'ticket': final String ticket} when status == 403) {
       throw SessionRejection(AccountSessionRejectedException(status, json['details']), ticket);
     }
     throw AccountSessionRejectedException(status, json);
