@@ -148,10 +148,4 @@ pnpm version:packages    # 버전 반영. Flutter pubspec 도 같은 버전으�
 `v*` 태그를 push 하면 GitHub Actions가 npm 패키지를 npmjs.com에, Flutter 패키지를 pub.dev에 배포한다. npm 배포는 토큰 없이
 [Trusted Publishing](https://docs.npmjs.com/trusted-publishers)(GitHub Actions OIDC)으로 하고, provenance가 함께 붙는다.
 
-새 npm 패키지를 추가하면 한 번은 직접 설정해야 한다. Trusted Publishing은 이미 있는 패키지에만 설정할 수 있다.
-
-1. `infoteam` 조직 권한이 있는 계정으로 `npm login` 하고 루트에서 `pnpm build`를 한 뒤, 그 패키지 디렉터리에서 `pnpm publish --access public`으로 첫 버전을 올린다. 모든 패키지를 처음 옮길 때는 루트에서 `pnpm build && pnpm -r publish --access public`으로 한 번에 올린다.
-2. npmjs.com의 패키지 Settings에서 Trusted Publisher로 GitHub Actions를 추가한다. 조직은 `gsainfoteam`, 저장소는 `account-sdk`, workflow는 `release.yml`, environment는 `npm`이다. Allowed actions에서 `npm publish`(직접 배포)를 허용한다. 허용하지 않으면 staged publish만 가능해서 `changeset publish`가 실패한다. 저장한 설정은 2일 안에 첫 배포가 성공하지 않으면 만료된다.
-3. 같은 화면에서 Publishing access를 "Require two-factor authentication and disallow tokens"로 바꾼다.
-
 배포 job은 GitHub environment `npm`에서 돌고, Trusted Publisher도 이 environment에 묶는다. 저장소 Settings → Environments → `npm`에 required reviewers와 `v*` 태그만 허용하는 deployment rule을 두면, 승인 없이는 npm에 배포되지 않는다.
