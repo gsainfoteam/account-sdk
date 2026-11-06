@@ -12,7 +12,7 @@ final class SessionRejection implements Exception {
   const SessionRejection(this.exception, this.ticket);
 
   final AccountSessionRejectedException exception;
-  final String ticket;
+  final String? ticket;
 }
 
 /// 앱에는 쿠키가 없으므로 `transport: 'body'`를 써서 refresh token을 body로 주고받는다.
@@ -27,9 +27,10 @@ class ApiSession {
     final (status, json) = await _post(paths.login, body);
     if (_ok(status)) return SessionTokens.fromJson(json);
 
-    if (json case {'ticket': final String ticket}) {
+    if (json case {'ticket': final String ticket} when status == 403) {
       throw SessionRejection(AccountSessionRejectedException(status, json['details']), ticket);
     }
+    if (status == 403) throw SessionRejection(AccountSessionRejectedException(status, json), null);
     throw AccountSessionRejectedException(status, json);
   }
 

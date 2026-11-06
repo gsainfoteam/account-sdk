@@ -1,13 +1,13 @@
-import { CurrentSession } from '@gsainfoteam/account-nest';
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 
-import { SessionGuard, type Session } from './account';
+import { type HttpRequest } from './http';
+import { SessionGuard } from './session.guard';
 
 @Controller()
 export class MeController {
   @Get('me')
   @UseGuards(SessionGuard)
-  me(@CurrentSession() session: Session): Session {
-    return session;
+  me(@Req() req: HttpRequest): { sub: string } {
+    return { sub: req.sub! };
   }
 }

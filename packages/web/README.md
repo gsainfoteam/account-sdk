@@ -34,3 +34,47 @@ await account.fetch(`${apiUrl}/me`);
 - 상태는 zustand의 vanilla store(`account.store`)에 있으므로, 어느 프레임워크에서든 구독할 수 있다.
 - API 요청에는 `account.fetch`, `@gsainfoteam/account-web/openapi-fetch`, `@gsainfoteam/account-web/axios` 중 하나를 쓴다.
 - 옵션, guard, 에러 코드, 로그아웃은 React와 같다. [`account-react` README](../react/README.md#사용)를 참고한다.
+
+## 백엔드 형식이 다를 때
+
+`api`는 백엔드가 [세션 프로토콜](../../README.md#세션-프로토콜)을 구현했다고 가정한다. 형식이 다르면 `api` 대신 `session`에 백엔드 호출을 직접
+구현해서 넘긴다. 둘 중 하나만 줄 수 있다.
+
+```ts
+import { createAccountClient, type Session } from '@gsainfoteam/account-web';
+
+const session: Session = {
+  async start(credential) {
+    if ('ticket' in credential) throw new Error('this backend does not reject logins');
+    const res = await fetch(`${apiUrl}/oauth/callback`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        code: credential.code,
+        verifier: credential.codeVerifier,
+        redirectUri: credential.redirectUri,
+        nonce: credential.nonce,
+      }),
+    });
+    if (!res.ok) throw new Error(`login failed: ${res.status}`);
+    const { token } = await res.json();
+    return { tokens: { accessToken: token } };
+  },
+  async refresh() {
+    const res = await fetch(`${apiUrl}/token`, { method: 'POST', credentials: 'include' });
+    if (res.status === 401) return null; // 세션 없음
+    if (!res.ok) throw new Error(`refresh failed: ${res.status}`);
+    return { accessToken: (await res.json()).token };
+  },
+  async end() {
+    await fetch(`${apiUrl}/signout`, { method: 'POST', credentials: 'include' });
+  },
+};
+
+const account = createAccountClient({ issuer: 'production', clientId, session });
+```
+
+- `start`는 callback으로 받은 code, PKCE verifier, `redirectUri`, `nonce`를 받는다. 백엔드는 code를 교환할 때 이 `redirectUri`를 그대로 쓰고, id_token의 `nonce`를 확인해야 한다.
+- 로그인 전에 추가 입력을 받으려면 `start`가 `{ rejected: { error, ticket } }`를 돌려준다. 그러면 `retryLogin(body)`가 `start({ ticket }, body)`로 다시 부른다.
+- `refresh`는 세션이 없으면 `null`을 돌려준다. 다른 실패는 throw 한다.

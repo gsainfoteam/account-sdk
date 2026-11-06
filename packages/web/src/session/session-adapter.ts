@@ -16,7 +16,10 @@ export const SessionTokensSchema = z.pipe(
   z.transform((raw) => ({ accessToken: raw.access_token, expiresIn: raw.expires_in })),
 );
 
-export type SessionTokens = z.output<typeof SessionTokensSchema>;
+export interface SessionTokens {
+  accessToken: string;
+  expiresIn?: number | undefined;
+}
 
 /** code는 한 번만 교환할 수 있어서, 재시도할 때는 백엔드가 이미 확인한 사용자를 담은 ticket을 쓴다. */
 export interface SessionRejection {

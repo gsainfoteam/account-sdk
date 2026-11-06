@@ -2,7 +2,7 @@ import { clearDiscoveryCache } from '@gsainfoteam/account-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import production from '../../core/tests/fixtures/discovery.production.json' with { type: 'json' };
-import { createAccountClient, type AccountClientOptions } from '../src';
+import { createAccountClient, type AccountClientOptions, type Session } from '../src';
 import { fakeServers, type Route } from './fake-servers';
 
 const API = 'api.ziggle.gistory.me';
@@ -52,6 +52,78 @@ describe('createAccountClient', () => {
     expect(() => createAccountClient({ issuer: 'production', clientId: '', api: '/api' })).toThrow(
       expect.objectContaining({ code: 'invalid_request' }),
     );
+  });
+
+  it.each([
+    ['neither', {}],
+    ['both', { api: '/api', session: customSession() }],
+  ])('needs exactly one of api and session, not %s', (_, backend) => {
+    expect(() =>
+      createAccountClient({ issuer: 'production', clientId: 'ziggle', ...backend }),
+    ).toThrow(expect.objectContaining({ code: 'invalid_request' }));
+  });
+});
+
+function customSession(overrides: Partial<Session> = {}): Session {
+  return {
+    start: vi.fn<Session['start']>(async () => ({ tokens: { accessToken: 'custom-token' } })),
+    refresh: vi.fn<Session['refresh']>(async () => null),
+    end: vi.fn<Session['end']>(async () => undefined),
+    ...overrides,
+  };
+}
+
+describe('a backend with its own session format', () => {
+  it('restores the session through the methods of a class instance', async () => {
+    class ClassSession implements Session {
+      private readonly token = 'restored-token';
+      start = customSession().start;
+      async refresh() {
+        return { accessToken: this.token };
+      }
+      async end() {}
+    }
+    const { client } = setup({}, { api: undefined, session: new ClassSession() });
+
+    await client.ready();
+
+    expect(client.getAccessToken()).toBe('restored-token');
+  });
+
+  it('logs in, refreshes and logs out through the given session instead of the protocol', async () => {
+    const session = customSession({
+      refresh: vi.fn<Session['refresh']>(async () => ({ accessToken: 'refreshed-token' })),
+    });
+    const servers = setup(
+      {
+        [`${API}/me`]: ({ headers }) =>
+          new Response(null, {
+            status: headers.get('authorization') === 'Bearer refreshed-token' ? 200 : 401,
+          }),
+      },
+      { api: undefined, session },
+    );
+    const { authorize, returned } = await loginAndReturn(servers);
+    await returned.ready();
+
+    expect(session.start).toHaveBeenCalledWith(
+      {
+        code: 'code-1',
+        codeVerifier: expect.any(String),
+        redirectUri: 'http://localhost:3000/auth/callback',
+        nonce: authorize.searchParams.get('nonce'),
+        iss: 'https://account.gistory.me',
+      },
+      undefined,
+    );
+    expect(returned.getAccessToken()).toBe('custom-token');
+
+    expect((await returned.fetch(`https://${API}/me`)).status).toBe(200);
+    expect(session.refresh).toHaveBeenCalledOnce();
+
+    await returned.logout();
+    expect(session.end).toHaveBeenCalledWith('refreshed-token');
+    expect(servers.callsTo(`${API}/auth/login`)).toHaveLength(0);
   });
 });
 

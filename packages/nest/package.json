@@ -18,7 +18,6 @@
   "sideEffects": false,
   "exports": {
     ".": "./dist/index.js",
-    "./drizzle": "./dist/drizzle.js",
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -28,7 +27,6 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.14",
     "@gsainfoteam/account-contract": "workspace:^",
     "@gsainfoteam/account-testing": "workspace:^",
     "@nestjs/common": "^11.2.7",
@@ -36,11 +34,7 @@
     "@nestjs/platform-express": "^11.2.7",
     "@nestjs/platform-fastify": "^11.2.7",
     "@nestjs/testing": "^11.2.7",
-    "@types/ioredis-mock": "^8.2.8",
     "@types/node": "^24.0.0",
-    "drizzle-orm": "^0.45.4",
-    "ioredis": "^5.11.1",
-    "ioredis-mock": "^8.13.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "tsdown": "^0.23.0",
@@ -53,9 +47,7 @@
   },
   "dependencies": {
     "@gsainfoteam/account-core": "workspace:^",
-    "@gsainfoteam/account-server": "workspace:^",
-    "cookie": "^1.1.1",
-    "jose": "^6.2.12"
+    "@gsainfoteam/account-server": "workspace:^"
   },
   "peerDependencies": {
     "@nestjs/common": "^10.0.0 || ^11.0.0 || ^12.0.0",

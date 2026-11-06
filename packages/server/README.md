@@ -2,8 +2,8 @@
 
 서비스 백엔드용 인포팀 계정(IdP) 클라이언트. 특정 프레임워크에 의존하지 않고 `fetch`만 쓴다. NestJS라면 [`@gsainfoteam/account-nest`](../nest)를 쓴다.
 
-이 패키지는 IdP로 사용자를 확인하는 데까지만 맡는다. [서비스 세션](../../README.md#서비스-세션)(토큰 발급, 갱신, 로그아웃)은 직접 구현해야 하므로,
-가능하면 NestJS 세션 모듈을 쓴다.
+이 패키지는 IdP로 사용자를 확인하는 데까지만 맡는다. [서비스 세션](../../README.md#서비스-세션)(토큰 발급, 갱신, 로그아웃)은 서비스가
+[세션 프로토콜](../../README.md#세션-프로토콜)에 맞춰 직접 구현한다.
 
 ## 설치
 
@@ -33,7 +33,8 @@ user.studentId; // string | undefined
 ```
 
 - `loginWithCode`는 code를 confidential client로서 교환하고, 응답에 담긴 id_token으로 사용자를 만든다. 그래서 프론트는 `openid`를 요청해야 한다(웹과 Flutter SDK는 항상 요청한다).
-- `requiredScopes`의 필드는 `loginWithCode` 결과에서 필수 타입이 된다. id_token에 필드가 빠져 있으면 `missing_claims`로 실패한다.
+- `requiredScopes`의 필드는 `loginWithCode` 결과에서 필수 타입이 된다. id_token에 필드가 빠져 있으면 `missing_claims`로 실패한다. `profile`과 `picture`는
+  사용자가 비워 둘 수 있어서 예외다.
 - `getUserInfoBySub` 결과에서는 `clientCredentialsScopes` 중 `requiredScopes`에도 있는 필드만 필수 타입이다. 선택 scope는 사용자가 거절했을 수 있어서, 그 필드는 `undefined`일 수 있다.
 - `requiredScopes`에는 client에 **필수로** 등록한 scope만 넣는다. 선택 scope를 넣으면 그 scope를 거부한 사용자는 로그인하지 못한다.
 - `loginWithCode(params, { maxAge: 300, amr: ['hwk'] })`처럼 로그인 조건을 요구할 수 있다. IdP에 로그인한 지 5분이 넘었거나 패스키로 로그인하지 않았으면

@@ -24,7 +24,11 @@ import { createStore, type StoreApi } from 'zustand/vanilla';
 import { type AccountState } from './account-state';
 import { AccountClientOptionsSchema, type AccountClientOptions } from './options';
 import { apiSession } from '../session/api-session';
-import { type LoginCredential, type SessionRejection } from '../session/session-adapter';
+import {
+  type LoginCredential,
+  type Session,
+  type SessionRejection,
+} from '../session/session-adapter';
 import { STORAGE_KEYS } from '../storage/keys';
 import { saveTransaction, takeTransaction, type StoredTransaction } from '../storage/transactions';
 
@@ -109,8 +113,7 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
 
   const options = parsed.data;
   const { clientId, fetch } = options;
-  const { baseUrl, paths = {} } = isString(options.api) ? { baseUrl: options.api } : options.api;
-  const session = apiSession(baseUrl, paths, fetch);
+  const session = options.session ?? sessionFromApi(options.api!, fetch);
   const transactions = options.transactionStorage ?? globalThis.sessionStorage;
   const redirect = options.redirect ?? ((url: string) => window.location.assign(url));
 
@@ -351,6 +354,14 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   };
 
   return client;
+}
+
+function sessionFromApi(
+  api: NonNullable<AccountClientOptions['api']>,
+  fetch: Fetch | undefined,
+): Session {
+  const { baseUrl, paths = {} } = isString(api) ? { baseUrl: api } : api;
+  return apiSession(baseUrl, paths, fetch);
 }
 
 /** 사용자가 직접 로그인하면 되는 자동 로그인 실패 코드다. 에러로 알리지 않는다. */

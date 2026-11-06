@@ -1,4 +1,4 @@
-// 서비스 프론트(web, flutter)와 account-nest 세션 endpoint가 서로 맞춰야 하는 wire 형식이다.
+// 서비스 프론트(web, flutter)와 서비스 백엔드의 세션 endpoint가 서로 맞춰야 하는 wire 형식이다. README의 세션 프로토콜 절에 정리되어 있다.
 
 import * as z from 'zod/mini';
 
@@ -18,13 +18,6 @@ export const LoginCodeBodySchema = z.object({
 export type LoginRequestBody = (
   z.input<typeof LoginTicketBodySchema> | z.input<typeof LoginCodeBodySchema>
 ) & { transport?: SessionTransport };
-
-/** 서비스가 login body에 같이 보낸 값 중 이 키는 `resolve`에 넘기지 않는다. */
-export const LOGIN_PROTOCOL_FIELDS: readonly string[] = [
-  ...Object.keys(LoginTicketBodySchema.shape),
-  ...Object.keys(LoginCodeBodySchema.shape),
-  'transport',
-];
 
 export const SessionTokensResponseSchema = z.looseObject({
   access_token: z.string().check(z.minLength(1)),

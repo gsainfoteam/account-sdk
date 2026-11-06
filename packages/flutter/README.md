@@ -2,7 +2,7 @@
 
 인포팀 계정(IdP) 로그인을 Flutter 앱에 붙인다. 시스템 브라우저로 IdP에 로그인하고, 서비스 백엔드가 발급한 세션을 보안 저장소에 둔다.
 
-서비스 백엔드에는 [`@gsainfoteam/account-nest`](../nest)의 세션 모듈이 있어야 한다. 이 패키지는 그 백엔드의 로그인, 갱신, 로그아웃 endpoint를 호출한다.
+서비스 백엔드는 [세션 프로토콜](../../README.md#세션-프로토콜)의 로그인, 갱신, 로그아웃 endpoint를 구현해야 한다. 이 패키지는 그 endpoint를 `transport: 'body'`로 호출한다.
 
 ## 설치
 
@@ -43,6 +43,7 @@ try {
   // 사용자가 브라우저를 닫았다
 } on AccountSessionRejectedException catch (error) {
   // 서비스 백엔드가 약관 동의 같은 추가 입력을 요구했다. 이유는 error.body 에 있다
+  if (!account.canRetryLogin) rethrow;
   await account.retryLogin({'agreedToTerms': true});
 }
 ```
@@ -53,7 +54,7 @@ try {
 | --------------------------------- | -------------------------------------------------------------------------------- |
 | `AccountCancelledException`       | 사용자가 브라우저를 닫았다                                                       |
 | `AccountDeniedException`          | IdP가 거절했다. 사용자가 취소했거나 필수 정보를 인증하지 않았다(`reason`)        |
-| `AccountSessionRejectedException` | 서비스 백엔드가 로그인을 거절했다. `retryLogin(body)`로 이어 갈 수 있다          |
+| `AccountSessionRejectedException` | 서비스 백엔드가 실패 응답을 줬다(`statusCode`). 403이면서 ticket이 있으면(`canRetryLogin`) `retryLogin(body)`로 이어 갈 수 있다 |
 | `AccountNetworkException`         | IdP나 서비스 백엔드에 연결하지 못했다                                            |
 
 ### API 요청

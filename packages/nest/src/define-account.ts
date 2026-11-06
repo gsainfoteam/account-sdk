@@ -1,4 +1,4 @@
-import { AccountError, SESSION_PATHS } from '@gsainfoteam/account-core';
+import { AccountError } from '@gsainfoteam/account-core';
 import {
   createAccountServer,
   type AccountServer,
@@ -10,27 +10,10 @@ import {
   Inject,
   Logger,
   Module,
-  type CanActivate,
   type OnApplicationBootstrap,
   type ConfigurableModuleAsyncOptions,
   type ConfigurableModuleCls,
-  type Type,
 } from '@nestjs/common';
-import * as z from 'zod/mini';
-
-import {
-  cookieSettings,
-  createSessionController,
-  createSessionGuards,
-  type SessionPaths,
-  type SessionRuntime,
-} from './session/session-http';
-import {
-  createSessionManager,
-  type ClaimsSchema,
-  type Session,
-  type SessionModuleOptions,
-} from './session/session-manager';
 
 export interface AccountScopes<
   RequiredScopes extends readonly ClientScope[],
@@ -38,12 +21,6 @@ export interface AccountScopes<
 > {
   requiredScopes?: RequiredScopes;
   clientCredentialsScopes?: LookupScopes;
-}
-
-export interface SessionDefinition<Claims extends Record<string, unknown>> {
-  claims?: ClaimsSchema<Claims>;
-  /** 빠진 경로는 `/auth/login`, `/auth/refresh`, `/auth/logout`으로 채운다. */
-  paths?: Partial<SessionPaths>;
 }
 
 export type AccountModuleOptions = Omit<
@@ -57,21 +34,12 @@ export type AccountModuleOptions = Omit<
   verifyRegistration?: 'error' | 'warn' | 'off';
 };
 
-export type AccountSessionModuleOptions<
-  RequiredScope extends ClientScope,
-  Claims extends Record<string, unknown>,
-> = AccountModuleOptions & { session: SessionModuleOptions<RequiredScope, Claims> };
-
 export interface AccountModuleExtras {
   isGlobal: boolean;
 }
 
 export type AccountModuleAsyncOptions<Options = AccountModuleOptions> =
   ConfigurableModuleAsyncOptions<Options> & Partial<AccountModuleExtras>;
-
-export interface SessionVerifier<Claims extends Record<string, unknown>> {
-  verifySession(accessToken: string): Promise<Session<Claims> | null>;
-}
 
 export interface DefinedAccount<
   RequiredScope extends ClientScope,
@@ -85,28 +53,6 @@ export interface DefinedAccount<
   >;
   AccountService: abstract new () => AccountServer<RequiredScope, LookupScope>;
 }
-
-export interface DefinedSessionAccount<
-  RequiredScope extends ClientScope,
-  LookupScope extends ClientScope,
-  Claims extends Record<string, unknown>,
-> {
-  AccountModule: ConfigurableModuleCls<
-    AccountSessionModuleOptions<RequiredScope, Claims>,
-    'forRoot',
-    'create',
-    AccountModuleExtras
-  >;
-  AccountService: abstract new () => AccountServer<RequiredScope, LookupScope> &
-    SessionVerifier<Claims>;
-  /** 서비스 access token이 없거나 유효하지 않으면 401을 던진다. */
-  SessionGuard: Type<CanActivate>;
-  OptionalSessionGuard: Type<CanActivate>;
-}
-
-export type SessionOf<
-  Account extends { AccountService: abstract new () => SessionVerifier<Record<string, unknown>> },
-> = NonNullable<Awaited<ReturnType<InstanceType<Account['AccountService']>['verifySession']>>>;
 
 /**
  * 생성자 인자의 타입이 클래스여야 `emitDecoratorMetadata`가 주입 토큰을 기록한다. 실제로 주입되는 값은
@@ -124,25 +70,8 @@ abstract class AccountServerToken<
   abstract verifyRegistration: AccountServer<RequiredScope, LookupScope>['verifyRegistration'];
 }
 
-abstract class SessionAccountServerToken<
-  RequiredScope extends ClientScope,
-  LookupScope extends ClientScope,
-  Claims extends Record<string, unknown>,
->
-  extends AccountServerToken<RequiredScope, LookupScope>
-  implements SessionVerifier<Claims>
-{
-  abstract verifySession: SessionVerifier<Claims>['verifySession'];
-}
-
-type AnyModuleOptions = AccountModuleOptions & {
-  session?: SessionModuleOptions<ClientScope, Record<string, unknown>>;
-};
-
 interface AccountRuntime {
-  service: AccountServer<ClientScope, ClientScope> &
-    Partial<SessionVerifier<Record<string, unknown>>>;
-  session?: SessionRuntime;
+  service: AccountServer<ClientScope, ClientScope>;
   verifyRegistration: NonNullable<AccountModuleOptions['verifyRegistration']>;
 }
 
@@ -156,25 +85,14 @@ interface AccountRuntime {
 export function defineAccount<
   const RequiredScopes extends readonly ClientScope[] = [],
   const LookupScopes extends readonly ClientScope[] = [],
-  Claims extends Record<string, unknown> = Record<never, never>,
 >(
-  definition: AccountScopes<RequiredScopes, LookupScopes> & { session: SessionDefinition<Claims> },
-): DefinedSessionAccount<RequiredScopes[number], LookupScopes[number], Claims>;
-export function defineAccount<
-  const RequiredScopes extends readonly ClientScope[] = [],
-  const LookupScopes extends readonly ClientScope[] = [],
->(
-  definition?: AccountScopes<RequiredScopes, LookupScopes>,
+  scopes?: AccountScopes<RequiredScopes, LookupScopes>,
 ): DefinedAccount<RequiredScopes[number], LookupScopes[number]>;
 export function defineAccount(
-  definition: AccountScopes<readonly ClientScope[], readonly ClientScope[]> & {
-    session?: SessionDefinition<Record<string, unknown>>;
-  } = {},
+  scopes: AccountScopes<readonly ClientScope[], readonly ClientScope[]> = {},
 ): object {
-  const { session: sessionDefinition, ...scopes } = definition;
-
   const { ConfigurableModuleClass, MODULE_OPTIONS_TOKEN } =
-    new ConfigurableModuleBuilder<AnyModuleOptions>()
+    new ConfigurableModuleBuilder<AccountModuleOptions>()
       .setClassMethodName('forRoot')
       .setExtras<AccountModuleExtras>({ isGlobal: false }, (module, extras) => ({
         ...module,
@@ -183,43 +101,16 @@ export function defineAccount(
       .build();
 
   const RUNTIME = Symbol('gsainfoteam-account:runtime');
-  const SESSION_RUNTIME = Symbol('gsainfoteam-account:session-runtime');
-  const paths: SessionPaths = { ...SESSION_PATHS, ...sessionDefinition?.paths };
 
-  abstract class AccountService extends SessionAccountServerToken<
-    ClientScope,
-    ClientScope,
-    Record<string, unknown>
-  > {}
+  abstract class AccountService extends AccountServerToken<ClientScope, ClientScope> {}
 
   const createRuntime = ({
-    session,
     verifyRegistration = 'error',
     ...options
-  }: AnyModuleOptions): AccountRuntime => {
-    const server = createAccountServer({ ...options, ...scopes });
-    if (!sessionDefinition) return { service: server, verifyRegistration };
-
-    if (!session) {
-      throw new AccountError('invalid_request', {
-        description: 'this account defines a session, so forRoot needs the session option',
-      });
-    }
-
-    const manager = createSessionManager(
-      server,
-      options.clientId,
-      scopes.requiredScopes ?? [],
-      sessionDefinition.claims ?? z.object({}),
-      session,
-    );
-
-    return {
-      service: { ...server, verifySession: manager.verify },
-      session: { manager, cookie: cookieSettings(session.cookie, paths) },
-      verifyRegistration,
-    };
-  };
+  }: AccountModuleOptions): AccountRuntime => ({
+    service: createAccountServer({ ...options, ...scopes }),
+    verifyRegistration,
+  });
 
   @Module({
     providers: [
@@ -229,17 +120,7 @@ export function defineAccount(
         inject: [RUNTIME],
         useFactory: (runtime: AccountRuntime) => runtime.service,
       },
-      ...(sessionDefinition
-        ? [
-            {
-              provide: SESSION_RUNTIME,
-              inject: [RUNTIME],
-              useFactory: (runtime: AccountRuntime) => runtime.session,
-            },
-          ]
-        : []),
     ],
-    controllers: sessionDefinition ? [createSessionController(SESSION_RUNTIME, paths)] : [],
     exports: [AccountService],
   })
   class AccountModule extends ConfigurableModuleClass implements OnApplicationBootstrap {
@@ -266,7 +147,5 @@ export function defineAccount(
     }
   }
 
-  return sessionDefinition
-    ? { AccountModule, AccountService, ...createSessionGuards(AccountService) }
-    : { AccountModule, AccountService };
+  return { AccountModule, AccountService };
 }
