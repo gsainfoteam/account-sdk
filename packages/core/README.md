@@ -1,4 +1,4 @@
-# @gsainfoteam/account-core
+# @infoteam/account-core
 
 다른 패키지들이 공유하는 코어. discovery와 그 결함 보정, PKCE authorization URL, callback 검증, 토큰 요청, id_token과 userinfo 검증, 에러 타입을 담는다.
 보통은 직접 설치하지 않는다. [`account-react`](../react), [`account-web`](../web), [`account-nest`](../nest), [`account-server`](../server)가 이 패키지에 의존한다.

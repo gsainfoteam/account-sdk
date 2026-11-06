@@ -10,7 +10,7 @@ import {
   type OAuthErrorCode,
   type TokenEndpointAuthMethod,
   type UserClaims,
-} from '@gsainfoteam/account-contract';
+} from '@infoteam/account-contract';
 import { exportJWK, generateKeyPair, SignJWT } from 'jose';
 import * as oauth from 'oauth4webapi';
 

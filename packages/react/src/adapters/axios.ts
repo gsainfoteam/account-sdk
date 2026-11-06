@@ -1,1 +1,1 @@
-export * from '@gsainfoteam/account-web/axios';
+export * from '@infoteam/account-web/axios';

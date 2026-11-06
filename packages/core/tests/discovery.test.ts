@@ -69,7 +69,7 @@ describe('end_session_endpoint', () => {
 
 describe('scopes', () => {
   it('match what the IdP advertises', () => {
-    expect([...SCOPES].sort(), 'account-be and @gsainfoteam/account-contract disagree').toEqual(
+    expect([...SCOPES].sort(), 'account-be and @infoteam/account-contract disagree').toEqual(
       [...production.scopes_supported].sort(),
     );
   });

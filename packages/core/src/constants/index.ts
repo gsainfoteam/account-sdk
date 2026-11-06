@@ -1,6 +1,6 @@
 import idp from './idp.json' with { type: 'json' };
 
-export { CODE_CHALLENGE_METHOD } from '@gsainfoteam/account-contract';
+export { CODE_CHALLENGE_METHOD } from '@infoteam/account-contract';
 
 /** Flutter 패키지와 함께 쓰는 값은 `idp.json`에서 가져오고, 둘이 같은지는 Flutter 테스트가 확인한다. */
 export const ENVIRONMENTS: Readonly<typeof idp.environments> = idp.environments;

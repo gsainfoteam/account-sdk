@@ -1,4 +1,4 @@
-import { DENIAL_REASONS, OAUTH_ERROR_CODES } from '@gsainfoteam/account-contract';
+import { DENIAL_REASONS, OAUTH_ERROR_CODES } from '@infoteam/account-contract';
 import { isError } from 'es-toolkit';
 import * as z from 'zod/mini';
 

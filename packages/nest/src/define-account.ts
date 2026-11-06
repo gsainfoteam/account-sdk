@@ -1,10 +1,10 @@
-import { AccountError } from '@gsainfoteam/account-core';
+import { AccountError } from '@infoteam/account-core';
 import {
   createAccountServer,
   type AccountServer,
   type AccountServerOptions,
   type ClientScope,
-} from '@gsainfoteam/account-server';
+} from '@infoteam/account-server';
 import {
   ConfigurableModuleBuilder,
   Inject,

@@ -1,4 +1,4 @@
-import { clearDiscoveryCache, type ClientScope } from '@gsainfoteam/account-core';
+import { clearDiscoveryCache, type ClientScope } from '@infoteam/account-core';
 import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import production from '../../core/tests/fixtures/discovery.production.json' with { type: 'json' };

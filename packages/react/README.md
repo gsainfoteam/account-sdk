@@ -1,15 +1,13 @@
-# @gsainfoteam/account-react
+# @infoteam/account-react
 
-인포팀 계정(IdP) 로그인을 React 앱에 붙인다. [`@gsainfoteam/account-web`](../web)의 export를 모두 다시 내보내므로 이 패키지 하나만 설치하면 된다.
+인포팀 계정(IdP) 로그인을 React 앱에 붙인다. [`@infoteam/account-web`](../web)의 export를 모두 다시 내보내므로 이 패키지 하나만 설치하면 된다.
 
 서비스 백엔드는 [세션 프로토콜](../../README.md#세션-프로토콜)의 로그인, 갱신, 로그아웃 endpoint를 구현해야 한다. 이 패키지는 그 endpoint를 호출한다. 형식이 다른 백엔드는 [`session` 옵션](../web/README.md#백엔드-형식이-다를-때)으로 붙인다.
 
 ## 설치
 
-GitHub Packages에서 배포한다. 먼저 [설치 인증](../../README.md#설치-인증)을 설정한다.
-
 ```bash
-pnpm add @gsainfoteam/account-react zod
+pnpm add @infoteam/account-react zod
 ```
 
 `zod`(4.x)는 peerDependency다. SDK가 export 하는 스키마를 앱과 같은 인스턴스로 쓰기 위해서다.
@@ -21,7 +19,7 @@ pnpm add @gsainfoteam/account-react zod
 
 ```ts
 // src/account.ts
-import { createAccountClient } from '@gsainfoteam/account-react';
+import { createAccountClient } from '@infoteam/account-react';
 
 export const account = createAccountClient({
   issuer: 'production',
@@ -136,7 +134,7 @@ const response = await account.fetch(`${API_URL}/me`); // 컴포넌트 안에서
 openapi-fetch를 쓰면 다음과 같다.
 
 ```ts
-import { createAccountMiddleware } from '@gsainfoteam/account-react/openapi-fetch';
+import { createAccountMiddleware } from '@infoteam/account-react/openapi-fetch';
 
 api.use(createAccountMiddleware(account));
 ```
@@ -144,7 +142,7 @@ api.use(createAccountMiddleware(account));
 axios를 쓰면 다음과 같다.
 
 ```ts
-import { attachAccount } from '@gsainfoteam/account-react/axios';
+import { attachAccount } from '@infoteam/account-react/axios';
 
 attachAccount(instance, account);
 ```

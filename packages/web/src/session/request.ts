@@ -1,4 +1,4 @@
-import { AccountError, AUTHORIZATION_HEADER, bearer, type Fetch } from '@gsainfoteam/account-core';
+import { AccountError, AUTHORIZATION_HEADER, bearer, type Fetch } from '@infoteam/account-core';
 import { attemptAsync, trimEnd } from 'es-toolkit';
 import * as z from 'zod/mini';
 

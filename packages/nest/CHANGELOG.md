@@ -1,4 +1,4 @@
-# @gsainfoteam/account-nest
+# @infoteam/account-nest
 
 ## 0.5.1
 

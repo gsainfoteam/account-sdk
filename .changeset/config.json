@@ -4,13 +4,13 @@
   "commit": false,
   "fixed": [
     [
-      "@gsainfoteam/account-core",
-      "@gsainfoteam/account-web",
-      "@gsainfoteam/account-react",
-      "@gsainfoteam/account-server",
-      "@gsainfoteam/account-nest",
+      "@infoteam/account-core",
+      "@infoteam/account-web",
+      "@infoteam/account-react",
+      "@infoteam/account-server",
+      "@infoteam/account-nest",
       "gsainfoteam_account",
-      "@gsainfoteam/account-testing"
+      "@infoteam/account-testing"
     ]
   ],
   "linked": [],
@@ -21,5 +21,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["@gsainfoteam/account-example-*"]
+  "ignore": ["@infoteam/account-example-*"]
 }

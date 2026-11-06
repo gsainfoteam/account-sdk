@@ -1,5 +1,5 @@
 {
-  "name": "@gsainfoteam/account-contract",
+  "name": "@infoteam/account-contract",
   "version": "0.2.0",
   "description": "Values the Infoteam account IdP and its SDKs share, such as the scopes the IdP accepts and the reasons account-fe gives for turning a user away",
   "license": "MIT",
@@ -10,7 +10,7 @@
     "directory": "packages/contract"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "files": [
     "dist"

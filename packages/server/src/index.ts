@@ -19,4 +19,4 @@ export {
   type Scope,
   type TokenResponse,
   type UserInfo,
-} from '@gsainfoteam/account-core';
+} from '@infoteam/account-core';

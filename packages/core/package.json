@@ -1,5 +1,5 @@
 {
-  "name": "@gsainfoteam/account-core",
+  "name": "@infoteam/account-core",
   "version": "0.5.1",
   "description": "Shared core for the Infoteam account IdP: discovery, PKCE authorization, callback validation, token exchange and id_token verification",
   "license": "MIT",
@@ -10,7 +10,7 @@
     "directory": "packages/core"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "files": [
     "dist"
@@ -37,7 +37,7 @@
     "node": ">=20.19"
   },
   "dependencies": {
-    "@gsainfoteam/account-contract": "workspace:^",
+    "@infoteam/account-contract": "workspace:^",
     "es-toolkit": "^1.52.0",
     "jose": "^6.2.12",
     "oauth4webapi": "^3.8.8"

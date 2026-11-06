@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 
-import { clearDiscoveryCache } from '@gsainfoteam/account-core';
+import { clearDiscoveryCache } from '@infoteam/account-core';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

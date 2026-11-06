@@ -1,4 +1,4 @@
-import { type AccountError } from '@gsainfoteam/account-core';
+import { type AccountError } from '@infoteam/account-core';
 
 /** client가 세션 복구를 시도하기 전까지는 `loading`이다. */
 export type AccountStatus = 'loading' | 'authenticated' | 'unauthenticated';

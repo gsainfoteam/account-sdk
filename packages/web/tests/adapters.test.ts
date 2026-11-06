@@ -1,4 +1,4 @@
-import { clearDiscoveryCache } from '@gsainfoteam/account-core';
+import { clearDiscoveryCache } from '@infoteam/account-core';
 import axios, { type AxiosAdapter } from 'axios';
 import createFetchClient from 'openapi-fetch';
 import { afterEach, describe, expect, it, vi } from 'vitest';

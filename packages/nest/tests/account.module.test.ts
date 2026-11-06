@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 
-import { clearDiscoveryCache } from '@gsainfoteam/account-core';
-import { createFakeIdp } from '@gsainfoteam/account-testing';
+import { clearDiscoveryCache } from '@infoteam/account-core';
+import { createFakeIdp } from '@infoteam/account-testing';
 import { Inject, Injectable, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { afterEach, describe, expect, expectTypeOf, it } from 'vitest';

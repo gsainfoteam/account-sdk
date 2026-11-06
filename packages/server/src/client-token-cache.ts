@@ -1,4 +1,4 @@
-import { CLIENT_TOKEN_REFRESH_MARGIN_MS, type TokenResponse } from '@gsainfoteam/account-core';
+import { CLIENT_TOKEN_REFRESH_MARGIN_MS, type TokenResponse } from '@infoteam/account-core';
 import { Mutex } from 'es-toolkit';
 
 export interface ClientTokenCache {

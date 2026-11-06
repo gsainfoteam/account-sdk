@@ -1,4 +1,4 @@
-import { discover, SCOPES, type Environment } from '@gsainfoteam/account-core';
+import { discover, SCOPES, type Environment } from '@infoteam/account-core';
 import { describe, expect, it } from 'vitest';
 
 import { createAccountServer } from '../../src';
@@ -10,7 +10,7 @@ describe.each(environments)('%s IdP', (environment) => {
     const metadata = await discover(environment);
     expect(
       [...metadata.scopesSupported].sort(),
-      'account-be and @gsainfoteam/account-contract disagree',
+      'account-be and @infoteam/account-contract disagree',
     ).toEqual([...SCOPES].sort());
   });
 

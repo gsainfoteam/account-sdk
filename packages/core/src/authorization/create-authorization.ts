@@ -1,4 +1,4 @@
-import { type Prompt } from '@gsainfoteam/account-contract';
+import { type Prompt } from '@infoteam/account-contract';
 import { difference, uniq } from 'es-toolkit';
 import * as oauth from 'oauth4webapi';
 

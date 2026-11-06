@@ -4,7 +4,7 @@ import {
   type ClaimsOf,
   type ClientScope,
   type UserClaims,
-} from '@gsainfoteam/account-contract';
+} from '@infoteam/account-contract';
 import * as oauth from 'oauth4webapi';
 import * as z from 'zod/mini';
 

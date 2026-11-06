@@ -1,7 +1,7 @@
 ---
-'@gsainfoteam/account-web': minor
-'@gsainfoteam/account-nest': minor
-'@gsainfoteam/account-core': minor
+'@infoteam/account-web': minor
+'@infoteam/account-nest': minor
+'@infoteam/account-core': minor
 'gsainfoteam_account': patch
 ---
 

@@ -16,7 +16,7 @@ import {
   type Fetch,
   type Prompt,
   type OAuthErrorCode,
-} from '@gsainfoteam/account-core';
+} from '@infoteam/account-core';
 import { attempt, isString, Mutex } from 'es-toolkit';
 import * as z from 'zod/mini';
 import { createStore, type StoreApi } from 'zustand/vanilla';

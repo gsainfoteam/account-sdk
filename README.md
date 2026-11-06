@@ -7,84 +7,21 @@
 ## 시작 순서
 
 1. IdP에 서비스를 client로 등록한다. [IdP client 등록](#idp-client-등록)
-2. npm 패키지를 받을 수 있도록 인증을 설정한다. [설치 인증](#설치-인증)
-3. 백엔드에 [`@gsainfoteam/account-nest`](packages/nest)나 [`@gsainfoteam/account-server`](packages/server)를 붙이고, [세션 프로토콜](#세션-프로토콜)의 로그인, 갱신, 로그아웃 endpoint를 만든다.
-4. 프론트에 [`@gsainfoteam/account-react`](packages/react)나 [`gsainfoteam_account`](packages/flutter)를 붙이고, 3의 백엔드 주소를 넘긴다.
+2. 백엔드에 [`@infoteam/account-nest`](packages/nest)나 [`@infoteam/account-server`](packages/server)를 붙이고, [세션 프로토콜](#세션-프로토콜)의 로그인, 갱신, 로그아웃 endpoint를 만든다.
+3. 프론트에 [`@infoteam/account-react`](packages/react)나 [`gsainfoteam_account`](packages/flutter)를 붙이고, 2의 백엔드 주소를 넘긴다.
 
 ## 패키지
 
-| 패키지                                               | 용도                                                          | 배포            |
-| ---------------------------------------------------- | ------------------------------------------------------------- | --------------- |
-| [`@gsainfoteam/account-react`](packages/react)       | React 앱. web을 포함한다                                      | GitHub Packages |
-| [`@gsainfoteam/account-web`](packages/web)           | React를 쓰지 않는 웹 앱                                       | GitHub Packages |
-| [`gsainfoteam_account`](packages/flutter)            | Flutter 앱                                                    | pub.dev         |
-| [`@gsainfoteam/account-nest`](packages/nest)         | NestJS 백엔드. server를 포함한다. 세션은 직접 구현한다        | GitHub Packages |
-| [`@gsainfoteam/account-server`](packages/server)     | NestJS를 쓰지 않는 Node, Bun 백엔드. 세션은 직접 구현한다     | GitHub Packages |
-| [`@gsainfoteam/account-core`](packages/core)         | 위 패키지들의 공용 코어. 직접 설치하지 않는다                 | GitHub Packages |
-| [`@gsainfoteam/account-contract`](packages/contract) | IdP와 SDK가 함께 쓰는 값(scope, 거절 사유). account-be도 쓴다 | GitHub Packages |
-| [`@gsainfoteam/account-testing`](packages/testing)   | 서비스 백엔드 테스트용 가짜 IdP                               | GitHub Packages |
-
-### 설치 인증
-
-npm 패키지는 GitHub Packages에서 받는다. GitHub Packages는 public 패키지도 인증 없이는 설치할 수 없으므로, 서비스 프로젝트 루트에 `.npmrc`를 둔다.
-
-```ini
-@gsainfoteam:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
-```
-
-첫 줄은 `@gsainfoteam` 패키지를 GitHub Packages에서 받게 하고, 둘째 줄은 그때 쓸 토큰을 정한다. `NODE_AUTH_TOKEN`에는 `read:packages` 권한이 있는 토큰을 넣는다.
-
-```bash
-gh auth refresh -s read:packages
-export NODE_AUTH_TOKEN=$(gh auth token)
-```
-
-#### GitHub Actions
-
-`secrets.GITHUB_TOKEN`을 `NODE_AUTH_TOKEN`으로 넘기고, job의 `permissions`에 `packages: read`를 넣는다. 패키지가 public이므로 다른 저장소의 `GITHUB_TOKEN`으로도 패키지를 받을 수 있고, 패키지의 접근 설정은 바꾸지 않아도 된다. 토큰을 `echo`로 `.npmrc`에 써 넣는 step은 만들지 않는다.
-
-npm 프로젝트에서는 `actions/setup-node`가 runner에 `.npmrc`를 만들도록 설정한다.
-
-```yaml
-permissions:
-  contents: read
-  packages: read
-steps:
-  - uses: actions/checkout@v6
-  - uses: actions/setup-node@v7
-    with:
-      node-version: 24
-      registry-url: https://npm.pkg.github.com
-      scope: '@gsainfoteam'
-  - run: npm ci
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
-
-Bun은 프로젝트 루트의 `.npmrc`를 읽으므로, 위 `.npmrc`를 커밋하고 `bun install` step에 `NODE_AUTH_TOKEN`만 넘긴다.
-
-#### Docker 빌드
-
-이미지 안에서 설치할 때는 토큰을 build secret으로 넘긴다. 토큰은 secret을 mount한 `RUN` 명령 안에서만 환경 변수로 노출되므로 이미지 layer에 남지 않는다.
-
-```dockerfile
-# syntax=docker/dockerfile:1
-COPY package.json package-lock.json .npmrc ./
-RUN --mount=type=secret,id=NODE_AUTH_TOKEN,env=NODE_AUTH_TOKEN npm ci
-```
-
-```yaml
-- uses: docker/build-push-action@v6
-  with:
-    secret-envs: NODE_AUTH_TOKEN=NODE_AUTH_TOKEN
-  env:
-    NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
-
-#### GitHub Actions 외부 빌드
-
-Cloudflare Pages나 Vercel처럼 GitHub Actions 밖에서 빌드하면 `GITHUB_TOKEN`이 없다. `read:packages` 권한이 있는 classic PAT를 `NODE_AUTH_TOKEN` 환경 변수로 넣는다. GitHub Packages의 npm registry는 fine-grained PAT를 받지 않는다.
+| 패키지                                            | 용도                                                          | 배포                                                            |
+| ------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------- |
+| [`@infoteam/account-react`](packages/react)       | React 앱. web을 포함한다                                      | [npm](https://www.npmjs.com/package/@infoteam/account-react)    |
+| [`@infoteam/account-web`](packages/web)           | React를 쓰지 않는 웹 앱                                       | [npm](https://www.npmjs.com/package/@infoteam/account-web)      |
+| [`gsainfoteam_account`](packages/flutter)         | Flutter 앱                                                    | [pub.dev](https://pub.dev/packages/gsainfoteam_account)         |
+| [`@infoteam/account-nest`](packages/nest)         | NestJS 백엔드. server를 포함한다. 세션은 직접 구현한다        | [npm](https://www.npmjs.com/package/@infoteam/account-nest)     |
+| [`@infoteam/account-server`](packages/server)     | NestJS를 쓰지 않는 Node, Bun 백엔드. 세션은 직접 구현한다     | [npm](https://www.npmjs.com/package/@infoteam/account-server)   |
+| [`@infoteam/account-core`](packages/core)         | 위 패키지들의 공용 코어. 직접 설치하지 않는다                 | [npm](https://www.npmjs.com/package/@infoteam/account-core)     |
+| [`@infoteam/account-contract`](packages/contract) | IdP와 SDK가 함께 쓰는 값(scope, 거절 사유). account-be도 쓴다 | [npm](https://www.npmjs.com/package/@infoteam/account-contract) |
+| [`@infoteam/account-testing`](packages/testing)   | 서비스 백엔드 테스트용 가짜 IdP                               | [npm](https://www.npmjs.com/package/@infoteam/account-testing)  |
 
 ### IdP client 등록
 
@@ -134,7 +71,7 @@ IdP 토큰을 서비스 API에 그대로 쓰지 않는 이유는 다음과 같�
 
 ### 세션 프로토콜
 
-프론트 SDK의 `api` 옵션은 서비스 백엔드가 아래 endpoint를 구현했다고 가정한다. 경로는 `{ baseUrl, paths }`로 바꿀 수 있다. 백엔드 형식이 이것과 다르면 웹에서는 `session` 옵션에 백엔드 호출을 직접 구현해서 넘긴다. [`@gsainfoteam/account-web`](packages/web#백엔드-형식이-다를-때) 참고.
+프론트 SDK의 `api` 옵션은 서비스 백엔드가 아래 endpoint를 구현했다고 가정한다. 경로는 `{ baseUrl, paths }`로 바꿀 수 있다. 백엔드 형식이 이것과 다르면 웹에서는 `session` 옵션에 백엔드 호출을 직접 구현해서 넘긴다. [`@infoteam/account-web`](packages/web#백엔드-형식이-다를-때) 참고.
 
 모든 요청은 `POST`다. 웹은 쿠키를 보내도록 `credentials: 'include'`로 요청하고, refresh와 logout에는 body가 없다. 앱은 모든 요청에 JSON body와 `transport: 'body'`를 보낸다.
 
@@ -188,7 +125,7 @@ Flutter 패키지는 `packages/flutter`에서 `flutter analyze`와 `flutter test
 - IdP 주소와 경로는 discovery(`/.well-known/openid-configuration`)에서 가져온다. account-be의 discovery 문서에 있는 결함은 `normalizeDiscovery` 한 곳에서만 보정한다.
 - 여러 언어가 함께 쓰는 값(IdP 주소, 경로, 저장소 키 namespace)은 [`packages/core/src/constants/idp.json`](packages/core/src/constants/idp.json)에 둔다.
   Flutter 패키지는 테스트로 이 파일과 값이 같은지 확인한다.
-- scope와 거절 사유, scope별 사용자 필드(`SCOPE_CLAIMS`)는 [`@gsainfoteam/account-contract`](packages/contract)에 둔다. account-be와 SDK가 모두 이 패키지를 import 하고,
+- scope와 거절 사유, scope별 사용자 필드(`SCOPE_CLAIMS`)는 [`@infoteam/account-contract`](packages/contract)에 둔다. account-be와 SDK가 모두 이 패키지를 import 하고,
   Dart enum은 `pnpm contract:dart`가 여기서 생성한다.
 
 ### 스테이징 로그인 확인
@@ -208,4 +145,7 @@ pnpm changeset           # 변경 기록
 pnpm version:packages    # 버전 반영. Flutter pubspec 도 같은 버전으로 맞춘다
 ```
 
-`v*` 태그를 push 하면 GitHub Actions가 npm 패키지를 GitHub Packages에, Flutter 패키지를 pub.dev에 배포한다.
+`v*` 태그를 push 하면 GitHub Actions가 npm 패키지를 npmjs.com에, Flutter 패키지를 pub.dev에 배포한다. npm 배포는 토큰 없이
+[Trusted Publishing](https://docs.npmjs.com/trusted-publishers)(GitHub Actions OIDC)으로 하고, provenance가 함께 붙는다.
+
+배포 job은 GitHub environment `npm`에서 돌고, Trusted Publisher도 이 environment에 묶는다. 저장소 Settings → Environments → `npm`에 required reviewers와 `v*` 태그만 허용하는 deployment rule을 두면, 승인 없이는 npm에 배포되지 않는다.

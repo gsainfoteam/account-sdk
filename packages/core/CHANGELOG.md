@@ -1,4 +1,4 @@
-# @gsainfoteam/account-core
+# @infoteam/account-core
 
 ## 0.5.1
 

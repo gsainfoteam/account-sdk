@@ -1,4 +1,4 @@
-import { type UserClaims } from '@gsainfoteam/account-contract';
+import { type UserClaims } from '@infoteam/account-contract';
 import * as z from 'zod/mini';
 
 import { type Equals } from '../internal/case';

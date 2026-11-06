@@ -2,7 +2,7 @@ import {
   AUTHORIZATION_CODE_TTL_MS,
   ScopeSchema,
   type AuthorizationTransaction,
-} from '@gsainfoteam/account-core';
+} from '@infoteam/account-core';
 import { attempt } from 'es-toolkit';
 import * as z from 'zod/mini';
 

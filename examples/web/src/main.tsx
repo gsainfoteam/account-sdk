@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 
-import { AccountError, AccountProvider, useAccount } from '@gsainfoteam/account-react';
+import { AccountError, AccountProvider, useAccount } from '@infoteam/account-react';
 import {
   createRootRoute,
   createRoute,
