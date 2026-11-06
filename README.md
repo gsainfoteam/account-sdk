@@ -12,20 +12,16 @@
 
 ## 패키지
 
-| 패키지                                            | 용도                                                          | 배포    |
-| ------------------------------------------------- | ------------------------------------------------------------- | ------- |
-| [`@infoteam/account-react`](packages/react)       | React 앱. web을 포함한다                                      | npm     |
-| [`@infoteam/account-web`](packages/web)           | React를 쓰지 않는 웹 앱                                       | npm     |
-| [`gsainfoteam_account`](packages/flutter)         | Flutter 앱                                                    | pub.dev |
-| [`@infoteam/account-nest`](packages/nest)         | NestJS 백엔드. server를 포함한다. 세션은 직접 구현한다        | npm     |
-| [`@infoteam/account-server`](packages/server)     | NestJS를 쓰지 않는 Node, Bun 백엔드. 세션은 직접 구현한다     | npm     |
-| [`@infoteam/account-core`](packages/core)         | 위 패키지들의 공용 코어. 직접 설치하지 않는다                 | npm     |
-| [`@infoteam/account-contract`](packages/contract) | IdP와 SDK가 함께 쓰는 값(scope, 거절 사유). account-be도 쓴다 | npm     |
-| [`@infoteam/account-testing`](packages/testing)   | 서비스 백엔드 테스트용 가짜 IdP                               | npm     |
-
-npm 패키지는 [npmjs.com](https://www.npmjs.com/org/infoteam)에 public으로 배포하므로 설치에 인증이 필요 없다.
-
-0.5.1까지는 GitHub Packages에 `@gsainfoteam/account-*`로 배포했다. 옮길 때는 import 경로의 scope를 `@infoteam`으로 바꾸고, 다른 `@gsainfoteam` 패키지를 쓰지 않으면 `.npmrc`의 GitHub Packages 설정과 CI의 `NODE_AUTH_TOKEN`도 지운다.
+| 패키지                                            | 용도                                                          | 배포                                                            |
+| ------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------- |
+| [`@infoteam/account-react`](packages/react)       | React 앱. web을 포함한다                                      | [npm](https://www.npmjs.com/package/@infoteam/account-react)    |
+| [`@infoteam/account-web`](packages/web)           | React를 쓰지 않는 웹 앱                                       | [npm](https://www.npmjs.com/package/@infoteam/account-web)      |
+| [`gsainfoteam_account`](packages/flutter)         | Flutter 앱                                                    | [pub.dev](https://pub.dev/packages/gsainfoteam_account)         |
+| [`@infoteam/account-nest`](packages/nest)         | NestJS 백엔드. server를 포함한다. 세션은 직접 구현한다        | [npm](https://www.npmjs.com/package/@infoteam/account-nest)     |
+| [`@infoteam/account-server`](packages/server)     | NestJS를 쓰지 않는 Node, Bun 백엔드. 세션은 직접 구현한다     | [npm](https://www.npmjs.com/package/@infoteam/account-server)   |
+| [`@infoteam/account-core`](packages/core)         | 위 패키지들의 공용 코어. 직접 설치하지 않는다                 | [npm](https://www.npmjs.com/package/@infoteam/account-core)     |
+| [`@infoteam/account-contract`](packages/contract) | IdP와 SDK가 함께 쓰는 값(scope, 거절 사유). account-be도 쓴다 | [npm](https://www.npmjs.com/package/@infoteam/account-contract) |
+| [`@infoteam/account-testing`](packages/testing)   | 서비스 백엔드 테스트용 가짜 IdP                               | [npm](https://www.npmjs.com/package/@infoteam/account-testing)  |
 
 ### IdP client 등록
 
