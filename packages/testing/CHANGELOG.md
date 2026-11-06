@@ -1,5 +1,16 @@
 # @infoteam/account-testing
 
+## 0.6.0
+
+### Minor Changes
+
+- ab0d692: Publish to npmjs.com under the `@infoteam` scope. Packages were `@gsainfoteam/account-*` on GitHub Packages up to 0.5.1; replace the scope in imports and drop the GitHub Packages `.npmrc` entry if nothing else needs it. This release also removes the nest session module, so services that used it implement their own sessions as described in the session-adapter change.
+
+### Patch Changes
+
+- Updated dependencies [ab0d692]
+  - @infoteam/account-contract@0.3.0
+
 ## 0.5.1
 
 No changes in this release.

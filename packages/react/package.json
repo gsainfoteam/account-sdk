@@ -1,6 +1,6 @@
 {
   "name": "@infoteam/account-react",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "React bindings for the Infoteam account IdP browser client",
   "license": "MIT",
   "type": "module",

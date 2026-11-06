@@ -1,5 +1,24 @@
 # @infoteam/account-nest
 
+## 0.6.0
+
+### Minor Changes
+
+- ab0d692: Publish to npmjs.com under the `@infoteam` scope. Packages were `@gsainfoteam/account-*` on GitHub Packages up to 0.5.1; replace the scope in imports and drop the GitHub Packages `.npmrc` entry if nothing else needs it. This release also removes the nest session module, so services that used it implement their own sessions as described in the session-adapter change.
+- 8aa03c8: Let services own their sessions.
+
+  - web: add a `session` option so a backend with its own session format can plug in its calls. Give exactly one of `api` and `session`. `Session` and its related types are now exported, and `SessionTokens.expiresIn` is optional.
+  - nest: **breaking** — remove the session module (`session` in `defineAccount`, `SessionGuard`, `OptionalSessionGuard`, `CurrentSession`, the session stores and the `./drizzle` entry). Services implement `/auth/login`, `/auth/refresh` and `/auth/logout` themselves with `loginWithCode`, following the session protocol in the README. See `examples/nest`.
+  - core: remove `LOGIN_PROTOCOL_FIELDS`, which only the nest session module used.
+  - flutter: only a 403 login failure carries a retry ticket, matching the web SDK and the session protocol. A new login also forgets the ticket of an earlier rejected login. A 403 without a ticket also forgets it, as on web.
+
+### Patch Changes
+
+- Updated dependencies [ab0d692]
+- Updated dependencies [8aa03c8]
+  - @infoteam/account-core@0.6.0
+  - @infoteam/account-server@0.6.0
+
 ## 0.5.1
 
 ### Patch Changes

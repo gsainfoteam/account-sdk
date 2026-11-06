@@ -1,6 +1,6 @@
 {
   "name": "@infoteam/account-contract",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Values the Infoteam account IdP and its SDKs share, such as the scopes the IdP accepts and the reasons account-fe gives for turning a user away",
   "license": "MIT",
   "type": "module",
