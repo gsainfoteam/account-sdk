@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -307,5 +308,31 @@ void main() {
       'pot-g-idp-login-redirect://callback',
     );
     expect(client.state.status, AccountStatus.unauthenticated);
+  });
+
+  test('stays signed out when a refresh finishes after logout', () async {
+    final answer = Completer<http.Response>();
+    final store = MemoryTokenStore();
+    await store.write(const StoredSession(accessToken: 'token-1', refreshToken: 'rt-1'));
+    final client = AccountClient(
+      issuer: AccountIssuer.production,
+      clientId: 'pot-g',
+      redirectUri: Uri.parse('pot-g://callback'),
+      api: Uri.parse('https://api.pot-g.gistory.me'),
+      store: store,
+      httpClient: MockClient((request) async {
+        if (request.url.path == '/auth/refresh') return answer.future;
+        return http.Response('', 201);
+      }),
+    );
+    await client.restore();
+
+    final refreshing = client.refresh();
+    await client.logout();
+    answer.complete(http.Response(jsonEncode({'access_token': 'token-2'}), 200));
+
+    expect(await refreshing, isFalse);
+    expect(client.state.status, AccountStatus.unauthenticated);
+    expect(await store.read(), isNull);
   });
 }

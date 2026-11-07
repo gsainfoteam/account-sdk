@@ -63,6 +63,7 @@ class AccountClient {
   final BrowserAuthenticator _browser;
   late final _session = ApiSession(_http, api, paths);
   String? _ticket;
+  int _logouts = 0;
 
   /// 세션을 refresh 하는 동안 쓰기 잠금을 잡는다. 그래서 요청들은 새 토큰을 기다린다.
   final ReadWriteMutex mutex = ReadWriteMutex();
@@ -145,6 +146,7 @@ class AccountClient {
     final stored = await _store.read();
 
     _ticket = null;
+    _logouts++;
     await _unauthenticate();
     await _store.writeLoggedOut(true);
 
@@ -187,9 +189,11 @@ class AccountClient {
       final current = accessToken;
       if (current != null && staleToken != null && current != staleToken) return true;
 
+      final logouts = _logouts;
       final refreshToken = (await _store.read())?.refreshToken;
       final tokens = refreshToken == null ? null : await _session.refresh(refreshToken);
 
+      if (logouts != _logouts) return false;
       if (tokens == null) {
         await _unauthenticate();
         return false;
