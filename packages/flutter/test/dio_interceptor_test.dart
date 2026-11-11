@@ -95,4 +95,26 @@ void main() {
       throwsA(isA<DioException>().having((e) => e.response?.statusCode, 'status', 500)),
     );
   });
+
+  test('reports a failed refresh instead of waiting forever', () async {
+    final dio = Dio(BaseOptions(baseUrl: 'https://api.pot-g.gistory.me'))
+      ..httpClientAdapter = ServiceAdapter();
+    final store = MemoryTokenStore();
+    await store.write(const StoredSession(accessToken: 'token-1', refreshToken: 'rt-1'));
+    final client = AccountClient(
+      issuer: AccountIssuer.production,
+      clientId: 'pot-g',
+      redirectUri: Uri.parse('pot-g://callback'),
+      api: Uri.parse('https://api.pot-g.gistory.me'),
+      store: store,
+      httpClient: MockClient((request) async => http.Response('', 500)),
+    );
+    await client.restore();
+    dio.interceptors.add(AccountInterceptor(client, dio));
+
+    await expectLater(
+      dio.get<Object?>('/me').timeout(const Duration(seconds: 2)),
+      throwsA(isA<DioException>()),
+    );
+  });
 }
