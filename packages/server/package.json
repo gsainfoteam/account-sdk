@@ -1,6 +1,6 @@
 {
   "name": "@infoteam/account-server",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Backend client for the Infoteam account IdP: code exchange with id_token login and user lookup with client credentials",
   "license": "MIT",
   "type": "module",

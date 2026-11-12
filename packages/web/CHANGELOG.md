@@ -1,5 +1,11 @@
 # @infoteam/account-web
 
+## 0.6.1
+
+### Patch Changes
+
+- @infoteam/account-core@0.6.1
+
 ## 0.6.0
 
 ### Minor Changes

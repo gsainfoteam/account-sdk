@@ -1,3 +1,9 @@
+## 0.6.1
+
+### Patch Changes
+
+- 742a802: Fix `AccountInterceptor` hanging forever when the retry after a refresh failed, and a refresh that finished after `logout()` signing the user back in.
+
 ## 0.6.0
 
 ### Patch Changes
