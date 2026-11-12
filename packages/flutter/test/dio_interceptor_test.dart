@@ -97,6 +97,7 @@ void main() {
   });
 
   test('reports a failed refresh instead of waiting forever', () async {
+    var refreshes = 0;
     final dio = Dio(BaseOptions(baseUrl: 'https://api.pot-g.gistory.me'))
       ..httpClientAdapter = ServiceAdapter();
     final store = MemoryTokenStore();
@@ -107,7 +108,10 @@ void main() {
       redirectUri: Uri.parse('pot-g://callback'),
       api: Uri.parse('https://api.pot-g.gistory.me'),
       store: store,
-      httpClient: MockClient((request) async => http.Response('', 500)),
+      httpClient: MockClient((request) async {
+        if (request.url.path == '/auth/refresh') refreshes++;
+        return http.Response('', 500);
+      }),
     );
     await client.restore();
     dio.interceptors.add(AccountInterceptor(client, dio));
@@ -116,5 +120,6 @@ void main() {
       dio.get<Object?>('/me').timeout(const Duration(seconds: 2)),
       throwsA(isA<DioException>()),
     );
+    expect(refreshes, 1);
   });
 }

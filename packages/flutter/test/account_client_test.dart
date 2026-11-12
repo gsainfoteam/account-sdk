@@ -400,7 +400,11 @@ void main() {
     final answer = Completer<http.Response>();
     final store = GatedStore();
     await store.write(const StoredSession(accessToken: 'token-1', refreshToken: 'rt-1'));
-    final client = refreshing(store, () => answer.future);
+    var refreshes = 0;
+    final client = refreshing(store, () {
+      refreshes++;
+      return answer.future;
+    });
     await client.restore();
 
     store.armed = 'clear';
@@ -413,6 +417,7 @@ void main() {
     answer.complete(http.Response(jsonEncode({'access_token': 'token-2'}), 200));
 
     expect(await refreshed, isFalse);
+    expect(refreshes, 0);
     expect(client.state.status, AccountStatus.unauthenticated);
     expect(await store.read(), isNull);
   });
