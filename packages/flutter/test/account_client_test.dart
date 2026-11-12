@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -75,6 +76,44 @@ typedef Callback = String Function(Uri authorize);
 
 String success(Uri authorize, {String? state, String iss = 'https://account.gistory.me'}) =>
     'pot-g-idp-login-redirect://callback?code=c-1&state=${state ?? authorize.queryParameters['state']}&iss=$iss';
+
+class GatedStore extends MemoryTokenStore {
+  final entered = Completer<void>();
+  final gate = Completer<void>();
+  String? armed;
+
+  Future<void> _wait(String op) async {
+    if (armed != op) return;
+    armed = null;
+    entered.complete();
+    await gate.future;
+  }
+
+  @override
+  Future<void> write(StoredSession session) async {
+    await _wait('write');
+    return super.write(session);
+  }
+
+  @override
+  Future<void> clear() async {
+    await _wait('clear');
+    return super.clear();
+  }
+}
+
+AccountClient refreshing(TokenStore store, Future<http.Response> Function() refresh) =>
+    AccountClient(
+      issuer: AccountIssuer.production,
+      clientId: 'pot-g',
+      redirectUri: Uri.parse('pot-g://callback'),
+      api: Uri.parse('https://api.pot-g.gistory.me'),
+      store: store,
+      httpClient: MockClient((request) async {
+        if (request.url.path == '/auth/refresh') return refresh();
+        return http.Response('', 201);
+      }),
+    );
 
 void main() {
   setUp(clearDiscoveryCache);
@@ -307,5 +346,98 @@ void main() {
       'pot-g-idp-login-redirect://callback',
     );
     expect(client.state.status, AccountStatus.unauthenticated);
+  });
+
+  test('stays signed out when a refresh finishes after logout', () async {
+    final answer = Completer<http.Response>();
+    final store = MemoryTokenStore();
+    await store.write(const StoredSession(accessToken: 'token-1', refreshToken: 'rt-1'));
+    final client = AccountClient(
+      issuer: AccountIssuer.production,
+      clientId: 'pot-g',
+      redirectUri: Uri.parse('pot-g://callback'),
+      api: Uri.parse('https://api.pot-g.gistory.me'),
+      store: store,
+      httpClient: MockClient((request) async {
+        if (request.url.path == '/auth/refresh') return answer.future;
+        return http.Response('', 201);
+      }),
+    );
+    await client.restore();
+
+    final refreshing = client.refresh();
+    await client.logout();
+    answer.complete(http.Response(jsonEncode({'access_token': 'token-2'}), 200));
+
+    expect(await refreshing, isFalse);
+    expect(client.state.status, AccountStatus.unauthenticated);
+    expect(await store.read(), isNull);
+  });
+
+  test('stays signed out when logout runs while refreshed tokens are being saved', () async {
+    final store = GatedStore();
+    await store.write(const StoredSession(accessToken: 'token-1', refreshToken: 'rt-1'));
+    final client = refreshing(
+      store,
+      () async => http.Response(jsonEncode({'access_token': 'token-2'}), 200),
+    );
+    await client.restore();
+
+    store.armed = 'write';
+    final refreshed = client.refresh();
+    await store.entered.future;
+    final loggingOut = client.logout();
+    await pumpEventQueue();
+    store.gate.complete();
+    await loggingOut;
+    await refreshed;
+
+    expect(client.state.status, AccountStatus.unauthenticated);
+    expect(await store.read(), isNull);
+  });
+
+  test('does not refresh with the tokens a running logout is clearing', () async {
+    final answer = Completer<http.Response>();
+    final store = GatedStore();
+    await store.write(const StoredSession(accessToken: 'token-1', refreshToken: 'rt-1'));
+    var refreshes = 0;
+    final client = refreshing(store, () {
+      refreshes++;
+      return answer.future;
+    });
+    await client.restore();
+
+    store.armed = 'clear';
+    final loggingOut = client.logout();
+    await store.entered.future;
+    final refreshed = client.refresh();
+    await pumpEventQueue();
+    store.gate.complete();
+    await loggingOut;
+    answer.complete(http.Response(jsonEncode({'access_token': 'token-2'}), 200));
+
+    expect(await refreshed, isFalse);
+    expect(refreshes, 0);
+    expect(client.state.status, AccountStatus.unauthenticated);
+    expect(await store.read(), isNull);
+  });
+
+  test('concurrent refreshes do not report success when the refresh failed', () async {
+    final store = MemoryTokenStore();
+    await store.write(const StoredSession(accessToken: 'token-1', refreshToken: 'rt-1'));
+    final client = refreshing(store, () async {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      return http.Response('', 500);
+    });
+    await client.restore();
+
+    final results = await Future.wait(
+      List.generate(
+        3,
+        (_) =>
+            client.refresh(staleToken: 'token-1').then<Object>((ok) => ok, onError: (_) => 'threw'),
+      ),
+    );
+    expect(results, ['threw', false, false]);
   });
 }

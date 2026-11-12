@@ -13,7 +13,10 @@ abstract final class SkipAccountAuth {
 const _retriedKey = '${AccountConstants.storageNamespace}:retried';
 
 /// 모든 요청에 access token을 보내고, 401이면 refresh 한 뒤 한 번 다시 시도한다.
-class AccountInterceptor extends QueuedInterceptor {
+///
+/// [QueuedInterceptor]를 쓰면 재시도의 에러가 원래 요청의 `onError` 뒤에 줄을 서서 영원히 끝나지 않는다.
+/// 동시 refresh는 [AccountClient.refresh]가 막는다.
+class AccountInterceptor extends Interceptor {
   AccountInterceptor(this.client, this.dio);
 
   final AccountClient client;

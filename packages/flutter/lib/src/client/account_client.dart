@@ -63,9 +63,13 @@ class AccountClient {
   final BrowserAuthenticator _browser;
   late final _session = ApiSession(_http, api, paths);
   String? _ticket;
+  int _logouts = 0;
 
   /// 세션을 refresh 하는 동안 쓰기 잠금을 잡는다. 그래서 요청들은 새 토큰을 기다린다.
   final ReadWriteMutex mutex = ReadWriteMutex();
+
+  /// 로그아웃이 refresh의 네트워크 응답을 기다리지 않게, 저장소를 읽고 쓰는 구간만 따로 잠근다.
+  final Mutex _storeLock = Mutex();
   final _state = BehaviorSubject.seeded(const AccountState(AccountStatus.loading));
 
   /// 현재 상태를 먼저 내보내고, 그 뒤로 바뀔 때마다 내보낸다.
@@ -142,11 +146,15 @@ class AccountClient {
   /// [idp]가 `true`면 브라우저 세션으로 IdP 로그아웃 페이지를 열어 IdP 로그인 세션도 끝낸다. 돌아올 곳은 [redirectUri]다.
   /// IdP가 아직 로그아웃을 지원하지 않거나 사용자가 브라우저를 닫으면 서비스 세션만 끝난다.
   Future<void> logout({bool idp = false}) async {
-    final stored = await _store.read();
+    final stored = await _storeLock.protect(() async {
+      final stored = await _store.read();
 
-    _ticket = null;
-    await _unauthenticate();
-    await _store.writeLoggedOut(true);
+      _ticket = null;
+      _logouts++;
+      await _unauthenticate();
+      await _store.writeLoggedOut(true);
+      return stored;
+    });
 
     await _session
         .end(accessToken: stored?.accessToken, refreshToken: stored?.refreshToken)
@@ -179,7 +187,8 @@ class AccountClient {
       await mutex.acquireRead();
       mutex.release();
 
-      return accessToken != null;
+      final token = accessToken;
+      return token != null && token != staleToken;
     }
 
     await mutex.acquireWrite();
@@ -187,16 +196,21 @@ class AccountClient {
       final current = accessToken;
       if (current != null && staleToken != null && current != staleToken) return true;
 
-      final refreshToken = (await _store.read())?.refreshToken;
+      final (logouts, refreshToken) = await _storeLock.protect(
+        () async => (_logouts, (await _store.read())?.refreshToken),
+      );
       final tokens = refreshToken == null ? null : await _session.refresh(refreshToken);
 
-      if (tokens == null) {
-        await _unauthenticate();
-        return false;
-      }
+      return await _storeLock.protect(() async {
+        if (logouts != _logouts) return false;
+        if (tokens == null) {
+          await _unauthenticate();
+          return false;
+        }
 
-      await _authenticate(tokens.accessToken, tokens.refreshToken ?? refreshToken);
-      return true;
+        await _authenticate(tokens.accessToken, tokens.refreshToken ?? refreshToken);
+        return true;
+      });
     } finally {
       mutex.release();
     }
