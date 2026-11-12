@@ -24,7 +24,10 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm release
+      - run: pnpm build
+
+      # trusted publisher가 stage만 허용하므로 npmjs.com에서 승인해야 공개된다.
+      - run: pnpm stage publish -r --access public --no-git-checks
 
   flutter:
     name: Publish to pub.dev
@@ -44,8 +47,18 @@ jobs:
       - name: Authenticate to pub.dev after the last third-party action
         uses: dart-lang/setup-dart@v1
 
-      - run: flutter pub get
+      - id: published
+        run: |
+          version=$(sed -n 's/^version: //p' pubspec.yaml)
+          if curl -sf -o /dev/null "https://pub.dev/api/packages/gsainfoteam_account/versions/$version"; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
         working-directory: packages/flutter
 
-      - run: flutter pub publish --force
+      - if: steps.published.outputs.skip != 'true'
+        run: flutter pub get
+        working-directory: packages/flutter
+
+      - if: steps.published.outputs.skip != 'true'
+        run: flutter pub publish --force
         working-directory: packages/flutter
