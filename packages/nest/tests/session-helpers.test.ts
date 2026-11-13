@@ -78,6 +78,15 @@ describe('login bodies', () => {
     ]);
   });
 
+  it('rejects null optional fields', async () => {
+    expect(await failedFields(Object.assign(new LoginBody(), { ticket: null }))).toEqual([
+      'ticket',
+    ]);
+    expect(
+      await failedFields(Object.assign(new LoginCodeBody(), code, { iss: null, transport: null })),
+    ).toEqual(['iss', 'transport']);
+  });
+
   it('checks fields a service adds by extending the body', async () => {
     const { IsBoolean } = await import('class-validator');
     class SignupBody extends LoginBody {

@@ -1,9 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsOptional, IsString, ValidateIf } from 'class-validator';
+import { IsIn, IsString, ValidateIf } from 'class-validator';
 
 import type { SessionTransport } from '@infoteam/account-server';
 
 const TRANSPORTS = ['cookie', 'body'] satisfies SessionTransport[];
+
+/** `IsOptional`과 달리 null은 검사한다. ticket이 null이면 code 필드 검사를 건너뛰게 된다. */
+const IfDefined = () => ValidateIf((_body, value) => value !== undefined);
 
 /** ticket 흐름이 없는 서비스의 `POST /auth/login` body다. 서비스 입력이 더 있으면 상속해서 필드를 더한다. */
 export class LoginCodeBody {
@@ -24,12 +27,12 @@ export class LoginCodeBody {
   nonce!: string;
 
   @ApiPropertyOptional({ type: String })
-  @IsOptional()
+  @IfDefined()
   @IsString()
   iss?: string;
 
   @ApiPropertyOptional({ enum: TRANSPORTS, description: '앱은 body, 웹은 cookie' })
-  @IsOptional()
+  @IfDefined()
   @IsIn(TRANSPORTS)
   transport?: SessionTransport;
 }
@@ -62,17 +65,17 @@ export class LoginBody {
   nonce!: string;
 
   @ApiPropertyOptional({ type: String })
-  @IsOptional()
+  @IfDefined()
   @IsString()
   iss?: string;
 
   @ApiPropertyOptional({ type: String, description: '403 session_rejected 응답의 ticket' })
-  @IsOptional()
+  @IfDefined()
   @IsString()
   ticket?: string;
 
   @ApiPropertyOptional({ enum: TRANSPORTS, description: '앱은 body, 웹은 cookie' })
-  @IsOptional()
+  @IfDefined()
   @IsIn(TRANSPORTS)
   transport?: SessionTransport;
 }
