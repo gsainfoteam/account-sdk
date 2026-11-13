@@ -1,5 +1,11 @@
 # @infoteam/account-react
 
+## 0.7.0
+
+### Patch Changes
+
+- @infoteam/account-web@0.7.0
+
 ## 0.6.1
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # @infoteam/account-nest
 
+## 0.7.0
+
+### Minor Changes
+
+- b4f9e8b: Add `toHttpException` to turn a login `AccountError` into the matching HTTP exception, the `LoginCodeBody` and `LoginBody` DTOs in `@infoteam/account-nest/dto`, and re-export the session protocol schemas and types (`SessionRejectedResponse`, `SESSION_REJECTED`, `LoginCodeBodySchema`, ...) from `@infoteam/account-server`.
+
+### Patch Changes
+
+- Updated dependencies [b4f9e8b]
+  - @infoteam/account-server@0.7.0
+  - @infoteam/account-core@0.7.0
+
 ## 0.6.1
 
 ### Patch Changes
