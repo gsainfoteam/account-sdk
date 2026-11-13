@@ -1,11 +1,9 @@
-import { AccountError } from '@infoteam/account-nest';
+import { toHttpException } from '@infoteam/account-nest';
 import {
-  BadGatewayException,
   BadRequestException,
   Body,
   Controller,
   HttpCode,
-  InternalServerErrorException,
   Post,
   Req,
   Res,
@@ -32,29 +30,6 @@ function assertTrustedOrigin(req: HttpRequest): void {
   const origin = req.headers.origin;
   if (origin !== undefined && origin !== WEB_ORIGIN)
     throw new BadRequestException('untrusted origin');
-}
-
-// 403 is reserved for session_rejected, so the frontend SDK treats every other failure as an error.
-function toHttpError(error: unknown): never {
-  if (!AccountError.is(error)) throw error;
-
-  const body = { error: error.code, error_description: error.description };
-  switch (error.code) {
-    case 'invalid_request':
-      throw new BadRequestException(body);
-    case 'network_error':
-    case 'server_error':
-    case 'discovery_failed':
-    case 'temporarily_unavailable':
-      throw new BadGatewayException(body);
-    case 'invalid_client':
-    case 'unauthorized_client':
-    case 'invalid_scope':
-    case 'missing_claims':
-      throw new InternalServerErrorException(body);
-    default:
-      throw new UnauthorizedException(body);
-  }
 }
 
 const LoginBody = z.object({
@@ -87,7 +62,7 @@ export class AuthController {
     const { code, code_verifier, redirect_uri, nonce, iss, transport } = body.data;
     const { user } = await this.account
       .loginWithCode({ code, codeVerifier: code_verifier, redirectUri: redirect_uri, nonce, iss })
-      .catch(toHttpError);
+      .catch(toHttpException);
 
     return this.respond(this.sessions.issue(user.sub), transport, res);
   }

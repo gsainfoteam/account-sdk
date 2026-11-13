@@ -8,6 +8,7 @@ export {
   type AccountScopes,
   type DefinedAccount,
 } from './define-account';
+export { toHttpException } from './http-exception';
 export * from '@infoteam/account-server';
 
 /** scope에 맞춘 필드 타입이 필요하면 {@link defineAccount}를 쓴다. */
