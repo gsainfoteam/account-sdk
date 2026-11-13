@@ -3,3 +3,4 @@ packages:
   - 'examples/*'
 allowBuilds:
   unrs-resolver: false
+  '@scarf/scarf': false
