@@ -19,4 +19,12 @@ export {
   type Scope,
   type TokenResponse,
   type UserInfo,
+  LoginCodeBodySchema,
+  LoginTicketBodySchema,
+  SESSION_REJECTED,
+  SessionTokensResponseSchema,
+  type LoginRequestBody,
+  type SessionRejectedResponse,
+  type SessionTokensResponse,
+  type SessionTransport,
 } from '@infoteam/account-core';

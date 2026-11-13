@@ -56,9 +56,12 @@ AccountModule.forRootAsync({
 프론트 SDK가 보낸 code를 `loginWithCode`에 넘기면 IdP와 교환하고 id_token의 `aud`와 `nonce`를 확인한 뒤 사용자를 돌려준다. 그 사용자로 서비스 세션을 만든다.
 
 ```ts
+import { toHttpException } from '@infoteam/account-nest';
+import { LoginCodeBody } from '@infoteam/account-nest/dto';
+
 @Post('auth/login')
 @HttpCode(200)
-async login(@Req() req: Request, @Body() body: LoginBody, @Res({ passthrough: true }) res: Response) {
+async login(@Req() req: Request, @Body() body: LoginCodeBody, @Res({ passthrough: true }) res: Response) {
   const origin = req.headers.origin;
   if (origin !== undefined && origin !== WEB_ORIGIN) throw new BadRequestException('untrusted origin');
 
@@ -70,7 +73,7 @@ async login(@Req() req: Request, @Body() body: LoginBody, @Res({ passthrough: tr
       nonce: body.nonce,
       iss: body.iss,
     })
-    .catch(toHttpError); // 아래 에러 절 참고
+    .catch(toHttpException); // 아래 에러 절 참고
   const local = await this.users.upsertByIdp(user); // user.email 은 string
   const { accessToken, refreshToken } = await this.sessions.issue(local.id);
 
@@ -78,6 +81,27 @@ async login(@Req() req: Request, @Body() body: LoginBody, @Res({ passthrough: tr
   return { access_token: accessToken };
 }
 ```
+
+### login body
+
+`@infoteam/account-nest/dto`는 login body를 class-validator와 Swagger 데코레이터가 붙은 클래스로 내보낸다. `class-validator`와 `@nestjs/swagger`가
+설치되어 있어야 하고, 이 경로를 import 하지 않으면 둘 다 필요 없다.
+
+- `LoginCodeBody`: `{ code, code_verifier, redirect_uri, nonce, iss?, transport? }`. ticket 흐름이 없는 서비스가 쓴다.
+- `LoginBody`: 위 필드에 `ticket?`을 더한다. code 필드는 ticket이 없을 때만 검사한다. 거절 뒤 ticket으로 다시 로그인하는 서비스가 쓴다.
+
+ticket과 함께 받는 추가 입력은 상속해서 더한다.
+
+```ts
+class SignupBody extends LoginBody {
+  @IsOptional()
+  @IsString()
+  nickname?: string;
+}
+```
+
+거절 응답의 형식은 `SessionRejectedResponse` 타입과 `SESSION_REJECTED` 상수로, wire 형식의 zod 스키마는 `LoginCodeBodySchema`,
+`LoginTicketBodySchema`, `SessionTokensResponseSchema`로 내보낸다.
 
 갱신, 로그아웃, 앱용 `transport: 'body'`, 거절과 ticket 규칙은 [세션 프로토콜](../../README.md#세션-프로토콜)에 있고, 메모리 저장소로 구현한 예시(ticket 흐름 제외)는
 [`examples/nest`](../../examples/nest)에 있다.
@@ -106,7 +130,7 @@ findUser(sub: string) {
 
 ## 에러
 
-SDK는 실패하면 `AccountError`를 던지므로 `code`로 HTTP 상태를 나눈다. 403은 [거절](../../README.md#세션-프로토콜) 전용이므로 다른 실패에 쓰지 않는다.
+SDK는 실패하면 `AccountError`를 던진다. `toHttpException`이 `code`에 따라 아래 표의 HTTP 예외로 바꿔 던지고, `AccountError`가 아니면 그대로 던진다. 403은 [거절](../../README.md#세션-프로토콜) 전용이므로 쓰지 않는다.
 
 | `code`                                                                         | 상태 | 의미                                   |
 | ------------------------------------------------------------------------------ | ---- | -------------------------------------- |
@@ -114,8 +138,6 @@ SDK는 실패하면 `AccountError`를 던지므로 `code`로 HTTP 상태를 나�
 | `network_error`, `server_error`, `discovery_failed`, `temporarily_unavailable` | 502  | IdP에 연결하지 못했거나 IdP가 실패했다 |
 | `invalid_client`, `unauthorized_client`, `invalid_scope`, `missing_claims`     | 500  | client 등록이나 서버 설정이 틀렸다     |
 | 그 밖의 code (`invalid_grant`, `invalid_id_token` 등)                          | 401  | 만료되거나 이미 쓴 code, 검증 실패     |
-
-[`examples/nest`의 `toHttpError`](../../examples/nest/src/auth.controller.ts)가 이 표를 구현한다.
 
 ## 테스트
 

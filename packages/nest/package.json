@@ -18,6 +18,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./dist/index.js",
+    "./dto": "./dist/dto.js",
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -33,8 +34,10 @@
     "@nestjs/core": "^11.2.7",
     "@nestjs/platform-express": "^11.2.7",
     "@nestjs/platform-fastify": "^11.2.7",
+    "@nestjs/swagger": "^11.4.8",
     "@nestjs/testing": "^11.2.7",
     "@types/node": "^24.0.0",
+    "class-validator": "^0.14.4",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "tsdown": "^0.23.0",
@@ -51,7 +54,24 @@
   },
   "peerDependencies": {
     "@nestjs/common": "^10.0.0 || ^11.0.0 || ^12.0.0",
+    "@nestjs/swagger": "^7.0.0 || ^8.0.0 || ^11.0.0",
+    "class-validator": "^0.14.0 || ^0.15.0",
     "zod": "^4.0.0"
   },
-  "types": "./dist/index.d.ts"
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "dto": [
+        "./dist/dto.d.ts"
+      ]
+    }
+  },
+  "peerDependenciesMeta": {
+    "@nestjs/swagger": {
+      "optional": true
+    },
+    "class-validator": {
+      "optional": true
+    }
+  }
 }
