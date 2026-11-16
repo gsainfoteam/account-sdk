@@ -225,6 +225,9 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   };
 
   const restoreSession = async (): Promise<void> => {
+    // logout이 서버에 닿지 못했으면 refresh 쿠키가 남아 있으므로, 다시 로그인하기 전에는 쓰지 않는다.
+    if (localStorage.getItem(STORAGE_KEYS.loggedOut) !== null) return unauthenticate();
+
     try {
       const tokens = await session.refresh();
       if (tokens) return authenticate(tokens.accessToken);

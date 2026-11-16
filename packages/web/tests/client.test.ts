@@ -328,6 +328,22 @@ describe('ready', () => {
     });
   });
 
+  it('stays signed out after a logout that never reached the server', async () => {
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }),
+      [`${API}/auth/logout`]: () => {
+        throw new TypeError('offline');
+      },
+    });
+    await servers.client.ready();
+    await servers.client.logout();
+
+    const reloaded = servers.create();
+    await reloaded.ready();
+    expect(reloaded.store.getState()).toMatchObject({ status: 'unauthenticated' });
+    expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1);
+  });
+
   it('settles as signed out without a cookie', async () => {
     const { client } = setup({
       [`${API}/auth/refresh`]: () => new Response(null, { status: 401 }),

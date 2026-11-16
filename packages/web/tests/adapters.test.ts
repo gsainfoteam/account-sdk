@@ -13,6 +13,10 @@ const API = 'api.ziggle.gistory.me';
 interface Paths {
   '/notices': {
     get: { responses: { 200: { content: { 'application/json': { id: number }[] } } } };
+    post: {
+      requestBody: { content: { 'application/json': { title: string } } };
+      responses: { 200: { content: { 'application/json': { title: string } } } };
+    };
   };
 }
 
@@ -20,10 +24,12 @@ function setup() {
   let refreshes = 0;
   const servers = fakeServers({
     [`${API}/auth/refresh`]: () => Response.json({ access_token: `token-${++refreshes}` }),
-    [`${API}/notices`]: ({ headers }) =>
-      headers.get('authorization') === 'Bearer token-2'
-        ? Response.json([{ id: 1 }])
-        : new Response(null, { status: 401 }),
+    [`${API}/notices`]: ({ headers, method, body }) =>
+      headers.get('authorization') !== 'Bearer token-2'
+        ? new Response(null, { status: 401 })
+        : method === 'POST'
+          ? new Response(body, { headers: { 'content-type': 'application/json' } })
+          : Response.json([{ id: 1 }]),
   });
   const client = createAccountClient({
     issuer: 'production',
@@ -47,6 +53,17 @@ describe('openapi-fetch middleware', () => {
     const results = await Promise.all([api.GET('/notices'), api.GET('/notices')]);
     expect(results.map((result) => result.response.status)).toEqual([200, 200]);
     expect(refreshes()).toBe(2);
+  });
+
+  it('sends the body again on the retry', async () => {
+    const { client, fetch } = setup();
+    const api = createFetchClient<Paths>({ baseUrl: `https://${API}`, fetch });
+    api.use(createAccountMiddleware(client));
+
+    await client.ready();
+    const { response, data } = await api.POST('/notices', { body: { title: 'hello' } });
+    expect(response.status).toBe(200);
+    expect(data).toEqual({ title: 'hello' });
   });
 });
 
