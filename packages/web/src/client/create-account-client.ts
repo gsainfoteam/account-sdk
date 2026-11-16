@@ -317,8 +317,8 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
       try {
         const { accessToken } = store.getState();
         if (accessToken && accessToken !== staleToken) return accessToken;
-
-        const tokens = await session.refresh();
+        const tokens =
+          localStorage.getItem(STORAGE_KEYS.loggedOut) === null && (await session.refresh());
         if (!tokens) {
           unauthenticate();
           return null;

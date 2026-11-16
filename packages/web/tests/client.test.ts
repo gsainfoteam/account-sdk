@@ -338,8 +338,11 @@ describe('ready', () => {
     await servers.client.ready();
     await servers.client.logout();
 
+    expect(await servers.client.refresh()).toBeNull();
+
     const reloaded = servers.create();
     await reloaded.ready();
+    expect(await reloaded.refresh()).toBeNull();
     expect(reloaded.store.getState()).toMatchObject({ status: 'unauthenticated' });
     expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1);
   });
