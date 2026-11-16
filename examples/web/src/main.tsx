@@ -14,12 +14,12 @@ import { createRoot } from 'react-dom/client';
 import { account, API_URL } from './account';
 
 function Home() {
-  const { status, error, login, logout } = useAccount();
+  const { status, error, isAuthenticated, login, logout } = useAccount();
   return (
     <main>
       <p>status: {status}</p>
       {error && <p>error: {error.code}</p>}
-      {status === 'authenticated' ? (
+      {isAuthenticated ? (
         <button onClick={() => void logout()}>sign out</button>
       ) : (
         <button onClick={() => void login({ returnTo: '/me' })}>sign in</button>

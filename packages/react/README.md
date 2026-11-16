@@ -102,12 +102,13 @@ account.store.subscribe(() => router.revalidate());
 ### 4. 상태와 로그인
 
 ```tsx
-const { status, error, login, logout, retryLogin, fetch } = useAccount();
+const { isLoading, isAuthenticated, error, login, logout, retryLogin, fetch } = useAccount();
 
-if (status === 'unauthenticated') return <button onClick={() => login()}>로그인</button>;
+if (isLoading) return <Loading />;
+if (!isAuthenticated) return <button onClick={() => login()}>로그인</button>;
 ```
 
-`status`는 `loading`, `authenticated`, `unauthenticated` 중 하나다. IdP에서 돌아온 로그인이나 세션 복구가 실패하면 `error`에 `AccountError`가 들어간다. `login()` 호출 자체가 실패하면(예: IdP에 연결하지 못함) 그 Promise가 reject 되므로 버튼에서도 에러를 처리한다. 자주 보는 `error.code`는 다음과 같다.
+`status`는 `loading`, `authenticated`, `unauthenticated` 중 하나다. `isLoading`과 `isAuthenticated`는 각각 `status`가 `loading`, `authenticated`인지를 나타낸다. 세션을 복구하는 동안에는 `isAuthenticated`도 `false`이므로, 비로그인 화면은 `isLoading`을 먼저 확인한 뒤 보여 준다. IdP에서 돌아온 로그인이나 세션 복구가 실패하면 `error`에 `AccountError`가 들어간다. `login()` 호출 자체가 실패하면(예: IdP에 연결하지 못함) 그 Promise가 reject 되므로 버튼에서도 에러를 처리한다. 자주 보는 `error.code`는 다음과 같다.
 
 | `error.code`            | 뜻                                                                            |
 | ----------------------- | ----------------------------------------------------------------------------- |
