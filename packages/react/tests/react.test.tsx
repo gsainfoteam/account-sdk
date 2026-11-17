@@ -29,8 +29,9 @@ function setup(routes: Record<string, () => Response>) {
 }
 
 function Status() {
-  const { status, accessToken } = useAccount();
-  return <p>{`${status}:${accessToken ?? '-'}`}</p>;
+  const { status, accessToken, isLoading, isAuthenticated } = useAccount();
+  const flags = [isLoading, isAuthenticated].map(Number).join('');
+  return <p>{`${status}:${accessToken ?? '-'}:${flags}`}</p>;
 }
 
 beforeEach(() => {
@@ -50,8 +51,20 @@ describe('AccountProvider', () => {
         <Status />
       </AccountProvider>,
     );
-    expect(screen.getByText('loading:-')).toBeTruthy();
-    await screen.findByText('authenticated:restored');
+    expect(screen.getByText('loading:-:10')).toBeTruthy();
+    await screen.findByText('authenticated:restored:01');
+  });
+
+  it('reports a user without a session as unauthenticated', async () => {
+    const { client } = setup({
+      [`${API}/auth/refresh`]: () => new Response(null, { status: 401 }),
+    });
+    render(
+      <AccountProvider client={client}>
+        <Status />
+      </AccountProvider>,
+    );
+    await screen.findByText('unauthenticated:-:00');
   });
 });
 
@@ -110,6 +123,6 @@ describe('AccountProvider on the callback page', () => {
     );
     expect(window.location.pathname).toBe('/notices/1');
     expect(screen.getByText('signing in')).toBeTruthy();
-    await screen.findByText('authenticated:service');
+    await screen.findByText('authenticated:service:01');
   });
 });
