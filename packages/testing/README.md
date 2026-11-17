@@ -1,6 +1,6 @@
 # @infoteam/account-testing
 
-[![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-testing)](https://www.npmjs.com/package/@infoteam/account-testing)
+[![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-testing?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-testing)
 
 [`@infoteam/account-nest`](https://github.com/gsainfoteam/account-sdk/tree/main/packages/nest)나 [`@infoteam/account-server`](https://github.com/gsainfoteam/account-sdk/tree/main/packages/server)를 붙인 서비스 백엔드를 실제 IdP 없이 테스트할 수 있도록 가짜 IdP를 제공합니다.
 

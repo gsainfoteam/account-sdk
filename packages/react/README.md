@@ -1,6 +1,6 @@
 # @infoteam/account-react
 
-[![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-react)](https://www.npmjs.com/package/@infoteam/account-react)
+[![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-react?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-react)
 
 인포팀 계정(IdP) 로그인을 React 앱에 붙입니다. [`@infoteam/account-web`](https://github.com/gsainfoteam/account-sdk/tree/main/packages/web)의 export를 모두 다시 내보내므로 이 패키지 하나만 설치하면 됩니다.
 

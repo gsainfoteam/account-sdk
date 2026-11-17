@@ -1,6 +1,6 @@
 # @infoteam/account-web
 
-[![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-web)](https://www.npmjs.com/package/@infoteam/account-web)
+[![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-web?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-web)
 
 인포팀 계정(IdP) 로그인을 웹 앱에 붙입니다. 특정 프레임워크에 의존하지 않습니다. React 앱이라면 [`@infoteam/account-react`](https://github.com/gsainfoteam/account-sdk/tree/main/packages/react)를 씁니다.
 

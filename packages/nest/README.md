@@ -1,6 +1,6 @@
 # @infoteam/account-nest
 
-[![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-nest)](https://www.npmjs.com/package/@infoteam/account-nest)
+[![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-nest?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-nest)
 
 NestJS 백엔드를 인포팀 계정(IdP)에 붙입니다. 모듈이 [`@infoteam/account-server`](https://github.com/gsainfoteam/account-sdk/tree/main/packages/server)의 IdP 클라이언트를 주입해 주고, 앱이 시작될 때 IdP 등록을 확인합니다.
 

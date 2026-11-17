@@ -18,26 +18,26 @@
 
 **프론트엔드**
 
-| 패키지                                      | 용도                                 | 버전                                                                                                                      |
-| ------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| [`@infoteam/account-react`](packages/react) | React 앱. `account-web`을 포함합니다 | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-react)](https://www.npmjs.com/package/@infoteam/account-react) |
-| [`@infoteam/account-web`](packages/web)     | React를 쓰지 않는 웹 앱              | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-web)](https://www.npmjs.com/package/@infoteam/account-web)     |
-| [`gsainfoteam_account`](packages/flutter)   | Flutter 앱                           | [![pub](https://img.shields.io/pub/v/gsainfoteam_account)](https://pub.dev/packages/gsainfoteam_account)                  |
+| 패키지                                      | 용도                                 | 버전                                                                                                                                   |
+| ------------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| [`@infoteam/account-react`](packages/react) | React 앱. `account-web`을 포함합니다 | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-react?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-react) |
+| [`@infoteam/account-web`](packages/web)     | React를 쓰지 않는 웹 앱              | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-web?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-web)     |
+| [`gsainfoteam_account`](packages/flutter)   | Flutter 앱                           | [![pub](https://img.shields.io/pub/v/gsainfoteam_account?color=0175C2)](https://pub.dev/packages/gsainfoteam_account)                  |
 
 **백엔드**
 
-| 패키지                                          | 용도                                         | 버전                                                                                                                          |
-| ----------------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| [`@infoteam/account-nest`](packages/nest)       | NestJS 백엔드. `account-server`를 포함합니다 | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-nest)](https://www.npmjs.com/package/@infoteam/account-nest)       |
-| [`@infoteam/account-server`](packages/server)   | NestJS를 쓰지 않는 Node, Bun 백엔드          | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-server)](https://www.npmjs.com/package/@infoteam/account-server)   |
-| [`@infoteam/account-testing`](packages/testing) | 서비스 백엔드 테스트용 가짜 IdP              | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-testing)](https://www.npmjs.com/package/@infoteam/account-testing) |
+| 패키지                                          | 용도                                         | 버전                                                                                                                                       |
+| ----------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`@infoteam/account-nest`](packages/nest)       | NestJS 백엔드. `account-server`를 포함합니다 | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-nest?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-nest)       |
+| [`@infoteam/account-server`](packages/server)   | NestJS를 쓰지 않는 Node, Bun 백엔드          | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-server?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-server)   |
+| [`@infoteam/account-testing`](packages/testing) | 서비스 백엔드 테스트용 가짜 IdP              | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-testing?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-testing) |
 
 **공용**
 
-| 패키지                                            | 용도                                                            | 버전                                                                                                                            |
-| ------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| [`@infoteam/account-core`](packages/core)         | 위 패키지들의 공용 코어. 직접 설치하지 않습니다                 | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-core)](https://www.npmjs.com/package/@infoteam/account-core)         |
-| [`@infoteam/account-contract`](packages/contract) | IdP와 SDK가 함께 쓰는 값(scope, 거절 사유). account-be도 씁니다 | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-contract)](https://www.npmjs.com/package/@infoteam/account-contract) |
+| 패키지                                            | 용도                                                            | 버전                                                                                                                                         |
+| ------------------------------------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`@infoteam/account-core`](packages/core)         | 위 패키지들의 공용 코어. 직접 설치하지 않습니다                 | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-core?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-core)         |
+| [`@infoteam/account-contract`](packages/contract) | IdP와 SDK가 함께 쓰는 값(scope, 거절 사유). account-be도 씁니다 | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-contract?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-contract) |
 
 > [!NOTE]
 > 백엔드 SDK는 사용자 확인까지만 맡습니다. 서비스 세션은 어느 백엔드 SDK를 쓰든 서비스가 직접 구현합니다.

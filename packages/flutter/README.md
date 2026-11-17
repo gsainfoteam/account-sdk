@@ -1,6 +1,6 @@
 # gsainfoteam_account
 
-[![pub](https://img.shields.io/pub/v/gsainfoteam_account)](https://pub.dev/packages/gsainfoteam_account)
+[![pub](https://img.shields.io/pub/v/gsainfoteam_account?color=0175C2)](https://pub.dev/packages/gsainfoteam_account)
 
 인포팀 계정(IdP) 로그인을 Flutter 앱에 붙입니다. 시스템 브라우저로 IdP에 로그인하고, 서비스 백엔드가 발급한 세션을 보안 저장소에 둡니다.
 

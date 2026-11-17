@@ -1,6 +1,6 @@
 # @infoteam/account-core
 
-[![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-core)](https://www.npmjs.com/package/@infoteam/account-core)
+[![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-core?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-core)
 
 인포팀 계정 SDK의 다른 패키지들이 공유하는 코어입니다.
 

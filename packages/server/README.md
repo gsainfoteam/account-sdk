@@ -1,6 +1,6 @@
 # @infoteam/account-server
 
-[![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-server)](https://www.npmjs.com/package/@infoteam/account-server)
+[![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-server?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-server)
 
 서비스 백엔드용 인포팀 계정(IdP) 클라이언트입니다. 특정 프레임워크에 의존하지 않고 `fetch`만 씁니다. NestJS라면 [`@infoteam/account-nest`](https://github.com/gsainfoteam/account-sdk/tree/main/packages/nest)를 씁니다.
 
