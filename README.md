@@ -214,7 +214,7 @@ pnpm version:packages    # 버전 반영. Flutter pubspec 도 같은 버전으�
 
 패키지 코드를 바꾼 PR에는 changeset과 `pnpm version:packages` 결과를 함께 커밋합니다. README처럼 문서만 바꾼 PR은 버전을 올리지 않습니다.
 
-`vX.Y.Z` 형식의 태그를 push 하면 GitHub Actions가 npm 패키지를 npmjs.com에, Flutter 패키지를 pub.dev에 배포합니다.
+`vX.Y.Z` 형식의 태그를 push 하면 GitHub Actions가 npm 패키지를 npmjs.com에, Flutter 패키지를 pub.dev에 배포합니다. 두 배포가 끝나면 PR 목록으로 노트를 채운 GitHub Release도 만듭니다.
 
 - npm 배포는 토큰 없이 [Trusted Publishing](https://docs.npmjs.com/trusted-publishers)(GitHub Actions OIDC)으로 하고, provenance가 함께 붙습니다.
 - Trusted Publisher가 stage 배포만 허용하므로, npm 패키지는 npmjs.com에서 승인해야 공개됩니다.

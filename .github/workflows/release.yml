@@ -62,3 +62,17 @@ jobs:
       - if: steps.published.outputs.skip != 'true'
         run: flutter pub publish --force
         working-directory: packages/flutter
+
+  github:
+    name: Create the GitHub Release
+    needs: [npm, flutter]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      # `gh release create`로 태그를 만들어 배포를 시작했다면 Release가 이미 있다.
+      - run: gh release view "$TAG" > /dev/null 2>&1 || gh release create "$TAG" --verify-tag --generate-notes
