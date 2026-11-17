@@ -2,9 +2,9 @@
 
 [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-web)](https://www.npmjs.com/package/@infoteam/account-web)
 
-인포팀 계정(IdP) 로그인을 웹 앱에 붙인다. 특정 프레임워크에 의존하지 않는다. React 앱이라면 [`@infoteam/account-react`](https://github.com/gsainfoteam/account-sdk/tree/main/packages/react)를 쓴다.
+인포팀 계정(IdP) 로그인을 웹 앱에 붙입니다. 특정 프레임워크에 의존하지 않습니다. React 앱이라면 [`@infoteam/account-react`](https://github.com/gsainfoteam/account-sdk/tree/main/packages/react)를 씁니다.
 
-> **서비스 백엔드가 [세션 프로토콜](https://github.com/gsainfoteam/account-sdk#세션-프로토콜)을 구현해야 한다.** 형식이 다른 백엔드는 [`session` 옵션](#session-옵션)으로 붙인다.
+> **서비스 백엔드가 [세션 프로토콜](https://github.com/gsainfoteam/account-sdk#세션-프로토콜)을 구현해야 합니다.** 형식이 다른 백엔드는 [`session` 옵션](#session-옵션)으로 붙입니다.
 
 ## 설치
 
@@ -33,13 +33,13 @@ await account.requireAuth({ returnTo: nextUrl });
 await account.fetch(`${apiUrl}/me`);
 ```
 
-- 상태는 zustand의 vanilla store(`account.store`)에 있으므로, 어느 프레임워크에서든 구독할 수 있다.
-- API 요청에는 `account.fetch`, `@infoteam/account-web/openapi-fetch`, `@infoteam/account-web/axios` 중 하나를 쓴다. [예시](https://github.com/gsainfoteam/account-sdk/tree/main/packages/react#5-api-요청)를 참고한다.
-- 옵션, guard, 에러 코드, 로그아웃은 React와 같다. [`account-react` README](https://github.com/gsainfoteam/account-sdk/tree/main/packages/react#사용)를 참고한다.
+- 상태는 zustand의 vanilla store(`account.store`)에 있으므로, 어느 프레임워크에서든 구독할 수 있습니다.
+- API 요청에는 `account.fetch`, `@infoteam/account-web/openapi-fetch`, `@infoteam/account-web/axios` 중 하나를 씁니다. [예시](https://github.com/gsainfoteam/account-sdk/tree/main/packages/react#5-api-요청)를 참고합니다.
+- 옵션, guard, 에러 코드, 로그아웃은 React와 같습니다. [`account-react` README](https://github.com/gsainfoteam/account-sdk/tree/main/packages/react#사용)를 참고합니다.
 
 ## `session` 옵션
 
-`api` 옵션을 쓰면 SDK는 백엔드가 [세션 프로토콜](https://github.com/gsainfoteam/account-sdk#세션-프로토콜)을 구현했다고 가정한다. 형식이 다르면 `api` 대신 `session`에 백엔드 호출을 직접 구현해서 넘긴다. 둘 중 하나만 줄 수 있다.
+`api` 옵션을 쓰면 SDK는 백엔드가 [세션 프로토콜](https://github.com/gsainfoteam/account-sdk#세션-프로토콜)을 구현했다고 가정합니다. 형식이 다르면 `api` 대신 `session`에 백엔드 호출을 직접 구현해서 넘깁니다. 둘 중 하나만 줄 수 있습니다.
 
 ```ts
 import { createAccountClient, type Session } from '@infoteam/account-web';
@@ -76,10 +76,10 @@ const session: Session = {
 const account = createAccountClient({ issuer: 'production', clientId, session });
 ```
 
-| 메서드    | 입출력                                                                                                                                                               |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `start`   | callback으로 받은 code, PKCE verifier, `redirectUri`, `nonce`를 받는다. 백엔드는 code를 교환할 때 이 `redirectUri`를 그대로 쓰고, id_token의 `nonce`를 확인해야 한다 |
-| `refresh` | 세션이 없으면 `null`을 돌려준다. 다른 실패는 throw 한다                                                                                                              |
-| `end`     | 백엔드 세션을 끝낸다                                                                                                                                                 |
+| 메서드    | 입출력                                                                                                                                                                   |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `start`   | callback으로 받은 code, PKCE verifier, `redirectUri`, `nonce`를 받습니다. 백엔드는 code를 교환할 때 이 `redirectUri`를 그대로 쓰고, id_token의 `nonce`를 확인해야 합니다 |
+| `refresh` | 세션이 없으면 `null`을 돌려줍니다. 다른 실패는 throw 합니다                                                                                                              |
+| `end`     | 백엔드 세션을 끝냅니다                                                                                                                                                   |
 
-로그인 전에 추가 입력을 받으려면 `start`가 `{ rejected: { error, ticket } }`를 돌려준다. 그러면 `retryLogin(body)`가 `start({ ticket }, body)`를 호출한다.
+로그인 전에 추가 입력을 받으려면 `start`가 `{ rejected: { error, ticket } }`를 돌려줍니다. 그러면 `retryLogin(body)`가 `start({ ticket }, body)`를 호출합니다.

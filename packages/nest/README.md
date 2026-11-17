@@ -2,9 +2,9 @@
 
 [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-nest)](https://www.npmjs.com/package/@infoteam/account-nest)
 
-NestJS 백엔드를 인포팀 계정(IdP)에 붙인다. 모듈이 [`@infoteam/account-server`](https://github.com/gsainfoteam/account-sdk/tree/main/packages/server)의 IdP 클라이언트를 주입해 주고, 앱이 시작될 때 IdP 등록을 확인한다.
+NestJS 백엔드를 인포팀 계정(IdP)에 붙입니다. 모듈이 [`@infoteam/account-server`](https://github.com/gsainfoteam/account-sdk/tree/main/packages/server)의 IdP 클라이언트를 주입해 주고, 앱이 시작될 때 IdP 등록을 확인합니다.
 
-> **서비스 세션은 직접 구현한다.** 로그인, 갱신, 로그아웃 endpoint와 guard는 서비스가 [세션 프로토콜](https://github.com/gsainfoteam/account-sdk#세션-프로토콜)에 맞춰 만든다.
+> **서비스 세션은 직접 구현합니다.** 로그인, 갱신, 로그아웃 endpoint와 guard는 서비스가 [세션 프로토콜](https://github.com/gsainfoteam/account-sdk#세션-프로토콜)에 맞춰 만듭니다.
 
 ## 설치
 
@@ -12,11 +12,11 @@ NestJS 백엔드를 인포팀 계정(IdP)에 붙인다. 모듈이 [`@infoteam/ac
 pnpm add @infoteam/account-nest zod
 ```
 
-ESM으로만 배포한다. CommonJS(`module: commonjs`)로 빌드하는 Nest 앱도 Node 20.19 이상이면 `require()`로 그대로 불러온다.
+ESM으로만 배포합니다. CommonJS(`module: commonjs`)로 빌드하는 Nest 앱도 Node 20.19 이상이면 `require()`로 그대로 불러옵니다.
 
 ### jest 설정
 
-jest는 ESM을 `require()` 하지 못하므로, SDK와 그 의존성(jose, oauth4webapi)만 변환하도록 설정한다.
+jest는 ESM을 `require()` 하지 못하므로, SDK와 그 의존성(jose, oauth4webapi)만 변환하도록 설정합니다.
 
 ```js
 // jest 설정
@@ -26,7 +26,7 @@ transformIgnorePatterns: ['/node_modules/(?!\\.pnpm|@infoteam|jose|oauth4webapi)
 
 ## 모듈 설정
 
-타입을 정하는 정적인 값(scope)은 `defineAccount`에 두고, 환경마다 다른 값(client id, secret)은 `forRoot`나 `forRootAsync`에 둔다.
+타입을 정하는 정적인 값(scope)은 `defineAccount`에 두고, 환경마다 다른 값(client id, secret)은 `forRoot`나 `forRootAsync`에 둡니다.
 
 ```ts
 // account.ts
@@ -51,15 +51,15 @@ AccountModule.forRootAsync({
 }),
 ```
 
-> **`export type AccountService` 줄은 반드시 함께 쓴다.** 이 줄이 있어야 구조 분해로 받은 클래스를 타입으로 쓸 수 있고, `@Inject` 없이 생성자 타입만으로 주입된다.
+> **`export type AccountService` 줄은 반드시 함께 씁니다.** 이 줄이 있어야 구조 분해로 받은 클래스를 타입으로 쓸 수 있고, `@Inject` 없이 생성자 타입만으로 주입됩니다.
 
-- scope 없이 쓸 때는 `defineAccount` 대신 패키지가 내보내는 `AccountModule`, `AccountService`를 바로 써도 된다.
-- 앱이 시작될 때 IdP에 등록한 client 정보를 읽어 `requiredScopes`, `clientCredentialsScopes`, 인증 방식(`client_secret_post`)이 맞는지 확인한다. 맞지 않으면 앱이 시작되지 않는다.
-- `verifyRegistration: 'warn'`이면 로그만 남긴다. IdP에 연결하지 못했을 때도 로그만 남긴다.
+- scope 없이 쓸 때는 `defineAccount` 대신 패키지가 내보내는 `AccountModule`, `AccountService`를 바로 써도 됩니다.
+- 앱이 시작될 때 IdP에 등록한 client 정보를 읽어 `requiredScopes`, `clientCredentialsScopes`, 인증 방식(`client_secret_post`)이 맞는지 확인합니다. 맞지 않으면 앱이 시작되지 않습니다.
+- `verifyRegistration: 'warn'`이면 로그만 남깁니다. IdP에 연결하지 못했을 때도 로그만 남깁니다.
 
 ## 로그인 endpoint
 
-프론트 SDK가 보낸 code를 `loginWithCode`에 넘기면 `loginWithCode`가 code를 IdP와 교환하고 id_token의 `aud`와 `nonce`를 확인한 뒤 사용자를 돌려준다. 그 사용자로 서비스 세션을 만든다.
+프론트 SDK가 보낸 code를 `loginWithCode`에 넘기면 `loginWithCode`가 code를 IdP와 교환하고 id_token의 `aud`와 `nonce`를 확인한 뒤 사용자를 돌려줍니다. 그 사용자로 서비스 세션을 만듭니다.
 
 ```ts
 import { toHttpException } from '@infoteam/account-nest';
@@ -88,18 +88,18 @@ async login(@Req() req: Request, @Body() body: LoginCodeBody, @Res({ passthrough
 }
 ```
 
-갱신, 로그아웃, 앱용 `transport: 'body'`, 거절과 ticket 규칙은 [세션 프로토콜](https://github.com/gsainfoteam/account-sdk#세션-프로토콜)에 있다. 메모리 저장소로 구현한 예시(ticket 흐름 제외)는 [`examples/nest`](https://github.com/gsainfoteam/account-sdk/tree/main/examples/nest)에 있다.
+갱신, 로그아웃, 앱용 `transport: 'body'`, 거절과 ticket 규칙은 [세션 프로토콜](https://github.com/gsainfoteam/account-sdk#세션-프로토콜)에 있습니다. 메모리 저장소로 구현한 예시(ticket 흐름 제외)는 [`examples/nest`](https://github.com/gsainfoteam/account-sdk/tree/main/examples/nest)에 있습니다.
 
 ### login body
 
-`@infoteam/account-nest/dto`는 login body를 class-validator와 Swagger 데코레이터가 붙은 클래스로 내보낸다. `class-validator`와 `@nestjs/swagger`가 설치되어 있어야 하고, 이 경로를 import 하지 않으면 둘 다 필요 없다.
+`@infoteam/account-nest/dto`는 login body를 class-validator와 Swagger 데코레이터가 붙은 클래스로 내보냅니다. `class-validator`와 `@nestjs/swagger`가 설치되어 있어야 하고, 이 경로를 import 하지 않으면 둘 다 필요 없습니다.
 
-| 클래스          | 필드                                                                  | 대상 서비스                               |
-| --------------- | --------------------------------------------------------------------- | ----------------------------------------- |
-| `LoginCodeBody` | `{ code, code_verifier, redirect_uri, nonce, iss?, transport? }`      | ticket 흐름이 없는 서비스                 |
-| `LoginBody`     | 위 필드에 `ticket?`을 더한다. code 필드는 ticket이 없을 때만 검사한다 | 거절 뒤 ticket으로 다시 로그인하는 서비스 |
+| 클래스          | 필드                                                                      | 대상 서비스                               |
+| --------------- | ------------------------------------------------------------------------- | ----------------------------------------- |
+| `LoginCodeBody` | `{ code, code_verifier, redirect_uri, nonce, iss?, transport? }`          | ticket 흐름이 없는 서비스                 |
+| `LoginBody`     | 위 필드에 `ticket?`을 더합니다. code 필드는 ticket이 없을 때만 검사합니다 | 거절 뒤 ticket으로 다시 로그인하는 서비스 |
 
-ticket과 함께 받는 추가 입력은 상속해서 더한다.
+ticket과 함께 받는 추가 입력은 상속해서 더합니다.
 
 ```ts
 class SignupBody extends LoginBody {
@@ -109,18 +109,18 @@ class SignupBody extends LoginBody {
 }
 ```
 
-그 밖에 다음 값도 내보낸다.
+그 밖에 다음 값도 내보냅니다.
 
 - 거절 응답의 형식: `SessionRejectedResponse` 타입, `SESSION_REJECTED` 상수
 - wire 형식의 zod 스키마: `LoginCodeBodySchema`, `LoginTicketBodySchema`, `SessionTokensResponseSchema`
 
 ## scope와 필드 타입
 
-`requiredScopes`에 넣은 scope의 필드는 `loginWithCode`가 돌려주는 사용자에서 필수 타입이 된다. 예를 들어 `email`을 넣으면 `user.email`은 `string`이다. id_token에 그 필드가 빠져 있으면 SDK가 `missing_claims`로 실패하므로, `undefined`가 서비스 코드까지 전달되지 않는다. 다만 `profile`과 `picture`는 사용자가 비워 둘 수 있어서 필수 scope여도 `undefined`일 수 있다.
+`requiredScopes`에 넣은 scope의 필드는 `loginWithCode`가 돌려주는 사용자에서 필수 타입이 됩니다. 예를 들어 `email`을 넣으면 `user.email`은 `string`입니다. id_token에 그 필드가 빠져 있으면 SDK가 `missing_claims`로 실패하므로, `undefined`가 서비스 코드까지 전달되지 않습니다. 다만 `profile`과 `picture`는 사용자가 비워 둘 수 있어서 필수 scope여도 `undefined`일 수 있습니다.
 
-> **`requiredScopes`에는 client에 필수로 등록한 scope만 넣는다.** 사용자가 거부할 수 있는 선택 scope를 넣으면, 그 scope를 거부한 사용자는 로그인하지 못한다.
+> **`requiredScopes`에는 client에 필수로 등록한 scope만 넣습니다.** 사용자가 거부할 수 있는 선택 scope를 넣으면, 그 scope를 거부한 사용자는 로그인하지 못합니다.
 
-scope 구성이 다른 설정이 여러 개 필요하면(예: 사용자 앱과 관리자 웹) `defineAccount`를 여러 번 호출한다. 호출할 때마다 주입 토큰이 따로 생긴다.
+scope 구성이 다른 설정이 여러 개 필요하면(예: 사용자 앱과 관리자 웹) `defineAccount`를 여러 번 호출합니다. 호출할 때마다 주입 토큰이 따로 생깁니다.
 
 ## 다른 사용자 조회
 
@@ -132,19 +132,19 @@ findUser(sub: string) {
 }
 ```
 
-메서드 목록은 [`@infoteam/account-server`의 메서드 절](https://github.com/gsainfoteam/account-sdk/tree/main/packages/server#메서드)에 있다.
+메서드 목록은 [`@infoteam/account-server`의 메서드 절](https://github.com/gsainfoteam/account-sdk/tree/main/packages/server#메서드)에 있습니다.
 
 ## 에러
 
-SDK는 실패하면 `AccountError`를 던진다. `toHttpException`이 `code`에 따라 아래 표의 HTTP 예외로 바꿔 던지고, `AccountError`가 아니면 그대로 던진다. 403은 [거절](https://github.com/gsainfoteam/account-sdk#거절과-ticket) 전용이므로 쓰지 않는다.
+SDK는 실패하면 `AccountError`를 던집니다. `toHttpException`이 `code`에 따라 아래 표의 HTTP 예외로 바꿔 던지고, `AccountError`가 아니면 그대로 던집니다. 403은 [거절](https://github.com/gsainfoteam/account-sdk#거절과-ticket) 전용이므로 쓰지 않습니다.
 
-| `code`                                                                         | 상태 | 의미                                   |
-| ------------------------------------------------------------------------------ | ---- | -------------------------------------- |
-| `invalid_request`                                                              | 400  | 요청 형식이 틀렸다                     |
-| `network_error`, `server_error`, `discovery_failed`, `temporarily_unavailable` | 502  | IdP에 연결하지 못했거나 IdP가 실패했다 |
-| `invalid_client`, `unauthorized_client`, `invalid_scope`, `missing_claims`     | 500  | client 등록이나 서버 설정이 틀렸다     |
-| 그 밖의 code (`invalid_grant`, `invalid_id_token` 등)                          | 401  | 만료되거나 이미 쓴 code, 검증 실패     |
+| `code`                                                                         | 상태 | 의미                                       |
+| ------------------------------------------------------------------------------ | ---- | ------------------------------------------ |
+| `invalid_request`                                                              | 400  | 요청 형식이 틀렸습니다                     |
+| `network_error`, `server_error`, `discovery_failed`, `temporarily_unavailable` | 502  | IdP에 연결하지 못했거나 IdP가 실패했습니다 |
+| `invalid_client`, `unauthorized_client`, `invalid_scope`, `missing_claims`     | 500  | client 등록이나 서버 설정이 틀렸습니다     |
+| 그 밖의 code (`invalid_grant`, `invalid_id_token` 등)                          | 401  | 만료되거나 이미 쓴 code, 검증 실패         |
 
 ## 테스트
 
-[`@infoteam/account-testing`](https://github.com/gsainfoteam/account-sdk/tree/main/packages/testing)의 가짜 IdP로 진짜 IdP 없이 로그인 endpoint까지 e2e 테스트를 실행한다.
+[`@infoteam/account-testing`](https://github.com/gsainfoteam/account-sdk/tree/main/packages/testing)의 가짜 IdP로 진짜 IdP 없이 로그인 endpoint까지 e2e 테스트를 실행합니다.

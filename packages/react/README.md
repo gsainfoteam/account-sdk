@@ -2,9 +2,9 @@
 
 [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-react)](https://www.npmjs.com/package/@infoteam/account-react)
 
-인포팀 계정(IdP) 로그인을 React 앱에 붙인다. [`@infoteam/account-web`](https://github.com/gsainfoteam/account-sdk/tree/main/packages/web)의 export를 모두 다시 내보내므로 이 패키지 하나만 설치하면 된다.
+인포팀 계정(IdP) 로그인을 React 앱에 붙입니다. [`@infoteam/account-web`](https://github.com/gsainfoteam/account-sdk/tree/main/packages/web)의 export를 모두 다시 내보내므로 이 패키지 하나만 설치하면 됩니다.
 
-> **서비스 백엔드가 [세션 프로토콜](https://github.com/gsainfoteam/account-sdk#세션-프로토콜)의 로그인, 갱신, 로그아웃 endpoint를 구현해야 한다.** 형식이 다른 백엔드는 [`session` 옵션](https://github.com/gsainfoteam/account-sdk/tree/main/packages/web#session-옵션)으로 붙인다.
+> **서비스 백엔드가 [세션 프로토콜](https://github.com/gsainfoteam/account-sdk#세션-프로토콜)의 로그인, 갱신, 로그아웃 endpoint를 구현해야 합니다.** 형식이 다른 백엔드는 [`session` 옵션](https://github.com/gsainfoteam/account-sdk/tree/main/packages/web#session-옵션)으로 붙입니다.
 
 ## 설치
 
@@ -12,8 +12,8 @@
 pnpm add @infoteam/account-react zod
 ```
 
-- `zod`(4.x)는 peerDependency다. SDK가 export 하는 스키마를 앱과 같은 인스턴스로 쓰기 위해서다.
-- `openapi-fetch`나 `axios` 어댑터를 쓸 때만 그 라이브러리를 설치한다.
+- `zod`(4.x)는 peerDependency입니다. SDK가 export 하는 스키마를 앱과 같은 인스턴스로 쓰기 위해서입니다.
+- `openapi-fetch`나 `axios` 어댑터를 쓸 때만 그 라이브러리를 설치합니다.
 
 ## 사용
 
@@ -30,20 +30,20 @@ export const account = createAccountClient({
 });
 ```
 
-| 옵션          | 설명                                                                                                              |
-| ------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `issuer`      | `'production'` 또는 `'staging'`                                                                                   |
-| `clientId`    | IdP에 등록한 client id                                                                                            |
-| `api`         | 서비스 백엔드 주소. 경로가 기본값과 다르면 `{ baseUrl, paths: { refresh: '/auth/refresh-token' } }`로 준다        |
-| `scopes`      | 생략하면 IdP에 등록한 필수 scope와 선택 scope를 모두 요청한다. `openid`는 항상 함께 요청한다                      |
-| `redirectUri` | 생략하면 `/auth/callback`이다. IdP에 이 URL을 등록만 하고, 라우트는 만들지 않는다. SDK가 라우터보다 먼저 처리한다 |
-| `silentLogin` | 자동 로그인. 아래 설명 참고                                                                                       |
+| 옵션          | 설명                                                                                                                    |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `issuer`      | `'production'` 또는 `'staging'`                                                                                         |
+| `clientId`    | IdP에 등록한 client id                                                                                                  |
+| `api`         | 서비스 백엔드 주소. 경로가 기본값과 다르면 `{ baseUrl, paths: { refresh: '/auth/refresh-token' } }`로 줍니다            |
+| `scopes`      | 생략하면 IdP에 등록한 필수 scope와 선택 scope를 모두 요청합니다. `openid`는 항상 함께 요청합니다                        |
+| `redirectUri` | 생략하면 `/auth/callback`입니다. IdP에 이 URL을 등록만 하고, 라우트는 만들지 않습니다. SDK가 라우터보다 먼저 처리합니다 |
+| `silentLogin` | 자동 로그인. 아래 설명 참고                                                                                             |
 
-`silentLogin: true`이면 서비스 세션이 없을 때 화면 없이 IdP를 한 번 거쳐 온다.
+`silentLogin: true`이면 서비스 세션이 없을 때 화면 없이 IdP를 한 번 거쳐 옵니다.
 
-- 사용자가 다른 인포팀 서비스에서 이미 IdP에 로그인했다면 로그인 버튼을 누르지 않아도 로그인된다.
-- 아니면 에러 없이 비로그인 상태로 돌아온다.
-- 탭마다 한 번만 시도하고, 로그아웃한 뒤에는 시도하지 않는다.
+- 사용자가 다른 인포팀 서비스에서 이미 IdP에 로그인했다면 로그인 버튼을 누르지 않아도 로그인됩니다.
+- 아니면 에러 없이 비로그인 상태로 돌아옵니다.
+- 탭마다 한 번만 시도하고, 로그아웃한 뒤에는 시도하지 않습니다.
 
 ### 2. Provider
 
@@ -53,18 +53,18 @@ export const account = createAccountClient({
 </AccountProvider>
 ```
 
-- client는 라우터보다 먼저 만들어야 한다. client가 callback 주소를 라우터보다 먼저 처리해서 로그인 전 위치로 바꾸기 때문이다. 위처럼 모듈 최상단에서 만들고 라우트에서 import 하면 된다.
-- `fallback`은 IdP에서 돌아온 로그인을 마무리하거나 자동 로그인을 시도하는 동안에만 보인다. 그 밖에는 라우터를 바로 렌더링한다.
+- client는 라우터보다 먼저 만들어야 합니다. client가 callback 주소를 라우터보다 먼저 처리해서 로그인 전 위치로 바꾸기 때문입니다. 위처럼 모듈 최상단에서 만들고 라우트에서 import 하면 됩니다.
+- `fallback`은 IdP에서 돌아온 로그인을 마무리하거나 자동 로그인을 시도하는 동안에만 보입니다. 그 밖에는 라우터를 바로 렌더링합니다.
 
 ### 3. 라우트 보호
 
-라우터의 guard에서 `requireAuth`를 호출한다. 세션이 있으면 그대로 통과하고, 없으면 사용자를 IdP로 보냈다가 원래 가려던 페이지로 돌아오게 한다.
+라우터의 guard에서 `requireAuth`를 호출합니다. 세션이 있으면 그대로 통과하고, 없으면 사용자를 IdP로 보냈다가 원래 가려던 페이지로 돌아오게 합니다.
 
-`returnTo`에는 라우터가 주는 이동 대상을 넘긴다. 생략하면 현재 주소를 쓰는데, 페이지를 이동하는 중에는 현재 주소가 아직 이전 페이지를 가리킨다.
+`returnTo`에는 라우터가 주는 이동 대상을 넘깁니다. 생략하면 현재 주소를 쓰는데, 페이지를 이동하는 중에는 현재 주소가 아직 이전 페이지를 가리킵니다.
 
 #### TanStack Router
 
-파일 기반이든 `createRoute`든 같다.
+파일 기반이든 `createRoute`든 같습니다.
 
 ```ts
 // routes/_auth-required/route.tsx
@@ -79,7 +79,7 @@ account.store.subscribe(() => router.invalidate());
 
 #### React Router
 
-data router(v6.4 이상)에서 쓴다.
+data router(v6.4 이상)에서 씁니다.
 
 ```ts
 const router = createBrowserRouter([
@@ -92,7 +92,7 @@ const router = createBrowserRouter([
 account.store.subscribe(() => router.revalidate());
 ```
 
-7.9 이상에서 middleware를 켰다면 같은 호출을 client middleware에 둬도 된다.
+7.9 이상에서 middleware를 켰다면 같은 호출을 client middleware에 둬도 됩니다.
 
 #### `<Routes>` 컴포넌트 방식과 라우터 미사용 앱
 
@@ -102,13 +102,13 @@ account.store.subscribe(() => router.revalidate());
 </RequireAuth>
 ```
 
-로그인 화면을 따로 두는 앱은 `redirect={false}`를 넘기고 `fallback`에 로그인 화면을 둔다.
+로그인 화면을 따로 두는 앱은 `redirect={false}`를 넘기고 `fallback`에 로그인 화면을 둡니다.
 
 #### 공통 동작
 
-- `requireAuth`는 사용자를 IdP로 보내는 동안 끝나지 않는 Promise를 돌려준다. 그동안 라우터는 이동 중 화면을 유지한다.
-- 로그인이 실패했으면(사용자가 취소했거나 백엔드가 거절했으면) 다시 IdP로 보내지 않고 그 에러를 던진다. 다시 보내면 취소한 사용자가 IdP 화면으로 계속 되돌아가기 때문이다. 에러 화면에서 `error.code`로 경우를 나누고, 다시 시도하는 버튼에서 `login()`을 호출한다.
-- 다른 origin의 `returnTo`는 무시한다.
+- `requireAuth`는 사용자를 IdP로 보내는 동안 끝나지 않는 Promise를 돌려줍니다. 그동안 라우터는 이동 중 화면을 유지합니다.
+- 로그인이 실패했으면(사용자가 취소했거나 백엔드가 거절했으면) 다시 IdP로 보내지 않고 그 에러를 던집니다. 다시 보내면 취소한 사용자가 IdP 화면으로 계속 되돌아가기 때문입니다. 에러 화면에서 `error.code`로 경우를 나누고, 다시 시도하는 버튼에서 `login()`을 호출합니다.
+- 다른 origin의 `returnTo`는 무시합니다.
 
 ### 4. 상태와 로그인
 
@@ -123,25 +123,25 @@ if (status === 'unauthenticated') return <button onClick={() => login()}>로그�
 | `status` | `loading`, `authenticated`, `unauthenticated` 중 하나              |
 | `error`  | IdP에서 돌아온 로그인이나 세션 복구가 실패했을 때의 `AccountError` |
 
-`login()` 호출 자체가 실패하면(예: IdP에 연결하지 못함) 그 Promise가 reject 되므로 버튼에서도 에러를 처리한다. 자주 보는 `error.code`는 다음과 같다.
+`login()` 호출 자체가 실패하면(예: IdP에 연결하지 못함) 그 Promise가 reject 되므로 버튼에서도 에러를 처리합니다. 자주 보는 `error.code`는 다음과 같습니다.
 
-| `error.code`            | 뜻                                                                            |
-| ----------------------- | ----------------------------------------------------------------------------- |
-| `user_cancelled`        | 사용자가 IdP 화면에서 취소했다                                                |
-| `verification_required` | 서비스가 필수로 요구한 정보(예: 학번)를 사용자가 IdP에서 아직 인증하지 않았다 |
-| `session_rejected`      | 서비스 백엔드가 403으로 로그인을 거절했다. 거절 이유는 `error.details`에 있다 |
-| `server_error`          | 서비스 백엔드가 5xx로 응답했거나, 성공 응답에 `access_token`이 없었다         |
-| `network_error`         | IdP나 서비스 백엔드에 연결하지 못했다                                         |
+| `error.code`            | 뜻                                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------------- |
+| `user_cancelled`        | 사용자가 IdP 화면에서 취소했습니다                                                    |
+| `verification_required` | 서비스가 필수로 요구한 정보(예: 학번)를 사용자가 IdP에서 아직 인증하지 않았습니다     |
+| `session_rejected`      | 서비스 백엔드가 403으로 로그인을 거절했습니다. 거절 이유는 `error.details`에 있습니다 |
+| `server_error`          | 서비스 백엔드가 5xx로 응답했거나, 성공 응답에 `access_token`이 없었습니다             |
+| `network_error`         | IdP나 서비스 백엔드에 연결하지 못했습니다                                             |
 
-`session_rejected`는 약관 동의처럼 로그인 전에 추가 입력이 필요할 때 쓴다. `canRetryLogin`이 `true`이면(거절 응답에 ticket이 있으면) 사용자에게 입력을 받은 뒤 `retryLogin(body)`로 보내 IdP를 다시 거치지 않고 로그인을 마친다. 백엔드 쪽은 [거절과 ticket](https://github.com/gsainfoteam/account-sdk#거절과-ticket) 규칙을 참고한다.
+`session_rejected`는 약관 동의처럼 로그인 전에 추가 입력이 필요할 때 씁니다. `canRetryLogin`이 `true`이면(거절 응답에 ticket이 있으면) 사용자에게 입력을 받은 뒤 `retryLogin(body)`로 보내 IdP를 다시 거치지 않고 로그인을 마칩니다. 백엔드 쪽은 [거절과 ticket](https://github.com/gsainfoteam/account-sdk#거절과-ticket) 규칙을 참고합니다.
 
 ### 5. API 요청
 
-`fetch`는 access token을 붙여 요청하고, 401을 받으면 토큰을 한 번 갱신한 뒤 다시 보낸다. 여러 요청이 동시에 401을 받으면 먼저 성공한 갱신의 토큰을 함께 쓴다.
+`fetch`는 access token을 붙여 요청하고, 401을 받으면 토큰을 한 번 갱신한 뒤 다시 보냅니다. 여러 요청이 동시에 401을 받으면 먼저 성공한 갱신의 토큰을 함께 씁니다.
 
-- access token은 메모리에만 두고, refresh token은 서비스 백엔드가 httpOnly 쿠키로 관리한다. 페이지를 새로 고치면 refresh로 세션을 복구한다.
-- `fetch`는 전역 `fetch`와 사용법이 같다. 주소와 상관없이 access token을 붙이므로 서비스 백엔드에 보내는 요청에만 쓴다.
-- 상대 경로는 `api` 기준이 아니라 현재 페이지 기준이므로 백엔드 주소를 붙여 쓴다.
+- access token은 메모리에만 두고, refresh token은 서비스 백엔드가 httpOnly 쿠키로 관리합니다. 페이지를 새로 고치면 refresh로 세션을 복구합니다.
+- `fetch`는 전역 `fetch`와 사용법이 같습니다. 주소와 상관없이 access token을 붙이므로 서비스 백엔드에 보내는 요청에만 씁니다.
+- 상대 경로는 `api` 기준이 아니라 현재 페이지 기준이므로 백엔드 주소를 붙여 씁니다.
 
 ```ts
 const response = await account.fetch(`${API_URL}/me`); // 컴포넌트 안에서는 useAccount().fetch
@@ -155,11 +155,11 @@ import { createAccountMiddleware } from '@infoteam/account-react/openapi-fetch';
 api.use(createAccountMiddleware(account));
 ```
 
-다른 middleware보다 뒤에 등록한다. 뒤에 등록한 middleware가 요청을 새 `Request`로 바꾸면, body가 있는 요청은 401 뒤에 다시 보내지 못한다.
+다른 middleware보다 뒤에 등록합니다. 뒤에 등록한 middleware가 요청을 새 `Request`로 바꾸면, body가 있는 요청은 401 뒤에 다시 보내지 못합니다.
 
 #### axios
 
-axios에는 어댑터로 interceptor를 붙인다.
+axios에는 어댑터로 interceptor를 붙입니다.
 
 ```ts
 import { attachAccount } from '@infoteam/account-react/axios';
@@ -174,6 +174,6 @@ await logout(); // 서비스 세션만 끝낸다
 await logout({ idp: true, returnTo: '/' }); // IdP 로그인 세션까지 끝낸다
 ```
 
-- 둘의 차이는 [로그아웃](https://github.com/gsainfoteam/account-sdk#로그아웃)에 있다.
-- `idp: true`이면 IdP의 로그아웃 페이지를 거친다. 돌아올 때는 IdP에 등록한 callback URL을 거치므로 따로 등록할 URL은 없다.
-- IdP가 아직 로그아웃 endpoint를 제공하지 않으면 서비스 세션만 끝낸다.
+- 둘의 차이는 [로그아웃](https://github.com/gsainfoteam/account-sdk#로그아웃)에 있습니다.
+- `idp: true`이면 IdP의 로그아웃 페이지를 거칩니다. 돌아올 때는 IdP에 등록한 callback URL을 거치므로 따로 등록할 URL은 없습니다.
+- IdP가 아직 로그아웃 endpoint를 제공하지 않으면 서비스 세션만 끝냅니다.
