@@ -158,8 +158,7 @@ import { attachAccount } from '@infoteam/account-react/axios';
 attachAccount(instance, account);
 ```
 
-`@infoteam/account-react/openapi-fetch`의 `createAccountMiddleware`는 deprecated다. middleware는 이미 보낸 request를 받으므로 body를 다시 보내기
-어렵고, 다른 middleware와 등록한 순서에 따라 재시도가 달라진다.
+`@infoteam/account-react/openapi-fetch`의 `createAccountMiddleware`는 deprecated다. 이미 붙인 코드는 그대로 동작하지만, 새로 붙일 때는 `fetch` 옵션을 쓴다.
 
 ### 6. 로그아웃
 

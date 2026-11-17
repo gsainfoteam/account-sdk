@@ -81,6 +81,24 @@ describe('openapi-fetch middleware', () => {
     expect(response.status).toBe(200);
     expect(data).toEqual({ title: 'hello' });
   });
+
+  it('sends the body again when a later middleware replaces the request', async () => {
+    const { client, fetch } = setup();
+    const api = createFetchClient<Paths>({ baseUrl: `https://${API}`, fetch });
+    api.use(createAccountMiddleware(client));
+    api.use({
+      onRequest: ({ request }) => {
+        const headers = new Headers(request.headers);
+        headers.set('x-trace', '1');
+        return new Request(request, { headers });
+      },
+    });
+
+    await client.ready();
+    const { response, data } = await api.POST('/notices', { body: { title: 'hello' } });
+    expect(response.status).toBe(200);
+    expect(data).toEqual({ title: 'hello' });
+  });
 });
 
 describe('axios interceptors', () => {
