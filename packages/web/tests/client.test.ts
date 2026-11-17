@@ -272,6 +272,34 @@ describe('a service that asks for consent before login (house-moving-out)', () =
     });
   });
 
+  it('rejects the retry when a logout happens while it waits', async () => {
+    let respond: (() => void) | undefined;
+    const servers = setup({
+      [`${API}/auth/login`]: async ({ body }) => {
+        if (JSON.parse(body).ticket !== 't-1') {
+          return Response.json({ error: 'session_rejected', ticket: 't-1' }, { status: 403 });
+        }
+        await new Promise<void>((resolve) => (respond = resolve));
+        return Response.json({ access_token: 'service-token' });
+      },
+      [`${API}/auth/logout`]: () => new Response(null, { status: 204 }),
+    });
+    const { returned } = await loginAndReturn(servers);
+    await returned.ready();
+
+    const retry = returned.retryLogin({ agreedToPrivacy: true });
+    await vi.waitFor(() => expect(respond).toBeDefined());
+    await returned.logout();
+    respond!();
+
+    await expect(retry).rejects.toMatchObject({ code: 'unauthenticated' });
+    expect(returned.store.getState()).toMatchObject({
+      status: 'unauthenticated',
+      accessToken: null,
+      error: null,
+    });
+  });
+
   it.each([
     [400, 'unknown'],
     [502, 'server_error'],
