@@ -50,14 +50,25 @@ try {
 }
 ```
 
-실패하면 sealed class인 `AccountException`의 하위 타입을 던지므로, `switch`로 경우를 모두 처리할 수 있습니다.
+실패하면 sealed class인 `AccountException`의 하위 타입을 던집니다. 아래 타입을 모두 다루면 `switch`가 exhaustive 검사를 통과합니다.
 
-| 예외                              | 뜻                                                                                                                              |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `AccountCancelledException`       | 사용자가 브라우저를 닫았습니다                                                                                                      |
+| 예외                              | 뜻                                                                                                                                      |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `AccountCancelledException`       | 사용자가 브라우저를 닫았습니다                                                                                                          |
 | `AccountDeniedException`          | IdP가 거절했습니다. 사용자가 취소했거나 필수 정보를 인증하지 않았습니다(`reason`)                                                       |
+| `AccountStateMismatchException`   | callback의 `state`가 보낸 값과 다릅니다                                                                                                 |
+| `AccountMissingCodeException`     | callback에 code가 없습니다                                                                                                              |
+| `AccountIssuerMismatchException`  | callback의 `iss`가 discovery 문서의 issuer와 다릅니다(`issuer`)                                                                         |
+| `AccountOAuthException`           | IdP가 OAuth 오류를 돌려줬거나, client 등록 정보를 읽지 못했거나, 지원하지 않는 scope를 요청했습니다(`code`)                             |
 | `AccountSessionRejectedException` | 서비스 백엔드가 실패 응답을 줬습니다(`statusCode`). 403이면서 ticket이 있으면(`canRetryLogin`) `retryLogin(body)`로 이어 갈 수 있습니다 |
-| `AccountNetworkException`         | IdP나 서비스 백엔드에 연결하지 못했습니다                                                                                           |
+| `AccountNetworkException`         | IdP나 서비스 백엔드에 연결하지 못했습니다                                                                                               |
+| `AccountDiscoveryException`       | discovery 문서를 읽지 못했거나 필수 값이 없습니다                                                                                       |
+
+`AccountException`이 아닌 예외도 그대로 전파되므로, 이 경우도 따로 처리합니다.
+
+- 브라우저가 취소 이외의 이유로 던진 `PlatformException`
+- `loginBody`가 던진 예외
+- 이어 갈 로그인이 없을 때 `retryLogin`이 던지는 `StateError`
 
 ### API 요청
 
@@ -79,4 +90,5 @@ await account.logout(idp: true); // 브라우저에서 IdP 로그인 세션까�
 ```
 
 - 둘의 차이는 [로그아웃](https://github.com/gsainfoteam/account-sdk#로그아웃)에 있습니다.
-- `idp: true`이면 로그아웃이 끝난 뒤 `redirectUri`로 돌아옵니다.
+- `idp: true`이면 IdP 로그아웃 페이지를 연 뒤 `redirectUri`로 돌아옵니다.
+- IdP가 로그아웃 endpoint를 제공하지 않거나 사용자가 브라우저를 닫으면 서비스 세션만 끝나고 IdP 로그인 세션은 남습니다. 이때 `logout(idp: true)`는 에러 없이 끝나므로, 앱은 `redirectUri`로 돌아오는 것을 전제로 동작하지 않아야 합니다.
