@@ -1,5 +1,18 @@
 # @infoteam/account-react
 
+## 0.8.0
+
+### Minor Changes
+
+- 0818598: **Breaking:** remove the openapi-fetch middleware (`createAccountMiddleware` and the `./openapi-fetch` entry). Pass `account.fetch` as the `fetch` option instead: `createClient({ fetch: account.fetch })` for openapi-fetch, or `fetch: account.fetch` in hey-api's `createClientConfig`. `account.fetch` retries inside the fetch call, so requests with a body are sent again after a refresh whatever other middleware does. `openapi-fetch` is no longer a peer dependency. axios keeps using `attachAccount`.
+- 0818598: `useAccount()` also returns `isLoading` and `isAuthenticated`, so components can check the state without comparing `status` strings. `isAuthenticated` is also `false` while the session is being restored, so check `isLoading` first. `status` stays as it is.
+
+### Patch Changes
+
+- Updated dependencies [fa0c4dc]
+- Updated dependencies [0818598]
+  - @infoteam/account-web@0.8.0
+
 ## 0.7.1
 
 ### Patch Changes
