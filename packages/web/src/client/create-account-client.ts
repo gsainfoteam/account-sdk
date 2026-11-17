@@ -153,6 +153,8 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   let rejection: SessionRejection | null = null;
   let initializing: Promise<void> | undefined;
   let settled = false;
+  // 응답을 기다리는 동안 logout하면, 그 전에 보낸 요청의 결과로 다시 로그인하지 않는다.
+  let logouts = 0;
 
   const authenticate = (accessToken: string): void => {
     rejection = null;
@@ -170,7 +172,9 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   };
 
   const startSession = async (credential: LoginCredential, body?: unknown): Promise<void> => {
+    const started = logouts;
     const result = await session.start(credential, body);
+    if (logouts !== started) return;
 
     if ('rejected' in result) {
       rejection = result.rejected;
@@ -229,7 +233,9 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
     if (localStorage.getItem(STORAGE_KEYS.loggedOut) !== null) return unauthenticate();
 
     try {
+      const started = logouts;
       const tokens = await session.refresh();
+      if (logouts !== started) return;
       if (tokens) return authenticate(tokens.accessToken);
 
       if (trySilentLogin) {
@@ -293,6 +299,7 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
       const { accessToken } = store.getState();
 
       rejection = null;
+      logouts += 1;
       localStorage.setItem(STORAGE_KEYS.loggedOut, '1');
       unauthenticate();
 
@@ -317,8 +324,11 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
       try {
         const { accessToken } = store.getState();
         if (accessToken && accessToken !== staleToken) return accessToken;
+
+        const started = logouts;
         const tokens =
           localStorage.getItem(STORAGE_KEYS.loggedOut) === null && (await session.refresh());
+        if (logouts !== started) return null;
         if (!tokens) {
           unauthenticate();
           return null;

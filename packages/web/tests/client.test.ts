@@ -347,6 +347,24 @@ describe('ready', () => {
     expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1);
   });
 
+  it('ignores a refresh that finishes after a logout', async () => {
+    let respond = (_: Response) => undefined as void;
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => new Promise<Response>((resolve) => (respond = resolve)),
+      [`${API}/auth/logout`]: () => new Response(null, { status: 204 }),
+    });
+    const restoring = servers.client.ready();
+    await vi.waitFor(() => expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1));
+
+    await servers.client.logout();
+    respond(Response.json({ access_token: 'late' }));
+    await restoring;
+    expect(servers.client.store.getState()).toMatchObject({
+      status: 'unauthenticated',
+      accessToken: null,
+    });
+  });
+
   it('settles as signed out without a cookie', async () => {
     const { client } = setup({
       [`${API}/auth/refresh`]: () => new Response(null, { status: 401 }),
