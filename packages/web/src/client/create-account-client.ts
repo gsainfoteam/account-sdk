@@ -303,7 +303,6 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
         throw error;
       }
 
-      // 기다리는 동안 logout했으면 startSession이 결과를 버렸으므로, 호출한 쪽이 로그인된 줄 알면 안 된다.
       if (logouts !== started) {
         throw new AccountError('unauthenticated', {
           description: 'logged out before the login finished',

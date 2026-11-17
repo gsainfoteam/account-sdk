@@ -1,5 +1,4 @@
 // @vitest-environment node
-// happy-dom의 Request는 이미 읽은 request로 새 request를 만들어도 에러를 내지 않아서, 재시도 버그를 잡으려면 Node의 Request를 써야 한다.
 import { clearDiscoveryCache } from '@infoteam/account-core';
 import axios, { type AxiosAdapter } from 'axios';
 import { Window } from 'happy-dom';
@@ -34,7 +33,6 @@ function setup() {
           ? new Response(body, { headers: { 'content-type': 'application/json' } })
           : Response.json([{ id: 1 }]),
   });
-  // 실제 fetch처럼 보낸 request의 body를 읽는다. 그래야 이미 보낸 request를 다시 보내는 실수가 드러난다.
   const fetch: typeof globalThis.fetch = async (input, init) => {
     const response = await servers.fetch(input, init);
     if (input instanceof Request && input.body) await input.arrayBuffer();
