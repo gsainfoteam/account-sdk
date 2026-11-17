@@ -84,7 +84,7 @@ IdP 로그인이 끝나면 서비스 백엔드가 자기 세션을 발급합니�
 이미 쓴 refresh token이 다시 오면 그 세션을 끝내는 것을 권장합니다.
 
 > [!IMPORTANT]
-> web SDK는 같은 탭 안에서 동시에 일어난 refresh만 한 번으로 합칩니다. 그래서 탭 여러 개가 거의 동시에 같은 쿠키로 refresh 할 수 있습니다. 짧은 유예 시간(예: 10초) 안에 같은 토큰이 다시 오면 이미 발급한 새 토큰 쌍을 돌려주고, 유예 시간이 지난 뒤의 재사용만 탈취로 처리합니다.
+> web SDK는 [Web Locks](https://developer.mozilla.org/docs/Web/API/Web_Locks_API)로 같은 origin의 탭들이 refresh를 하나씩 보내게 합니다. 그래도 Web Locks가 없는 페이지(secure context가 아닌 페이지)이거나 origin이 다른 프론트 여러 개가 같은 백엔드를 쓰면, 같은 쿠키로 refresh가 거의 동시에 올 수 있습니다. 짧은 유예 시간(예: 10초) 안에 같은 토큰이 다시 오면 이미 발급한 새 토큰 쌍을 돌려주고, 유예 시간이 지난 뒤의 재사용만 탈취로 처리합니다.
 
 세션은 서비스마다 요구사항(저장소, 토큰 형식, 기기 id 같은 추가 값)이 달라서 SDK가 만들지 않고 서비스 백엔드가 직접 구현합니다. 백엔드 SDK는 code 교환과 id_token 검증(`loginWithCode`)까지만 맡습니다.
 
