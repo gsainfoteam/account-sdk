@@ -143,6 +143,17 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   }));
 
   const refreshMutex = new Mutex();
+  // 세션 복원도 같은 mutex를 거쳐야, 복원 중에 부른 refresh가 쿠키를 한 번 더 쓰지 않고 복원된 토큰을 받는다.
+  // 자동 로그인으로 넘어가면 끝나지 않는 Promise가 남으므로 restoreSession 전체가 아니라 refresh 요청만 감싼다.
+  const oneAtATime = async <T>(task: () => Promise<T>): Promise<T> => {
+    await refreshMutex.acquire();
+    try {
+      return await task();
+    } finally {
+      refreshMutex.release();
+    }
+  };
+
   const callback = takeCallback(redirectUri(), transactions);
   const trySilentLogin =
     options.silentLogin === true &&
@@ -242,7 +253,7 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
 
     try {
       const started = logouts;
-      const tokens = await session.refresh();
+      const tokens = await oneAtATime(() => session.refresh());
       if (logouts !== started) return;
       if (tokens) return authenticate(tokens.accessToken);
 
@@ -334,29 +345,28 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
       redirect(logout.url);
     },
 
-    async refresh(staleToken = store.getState().accessToken) {
-      await refreshMutex.acquire();
-      try {
-        const { accessToken } = store.getState();
-        if (accessToken && accessToken !== staleToken) return accessToken;
+    refresh(staleToken = store.getState().accessToken) {
+      return oneAtATime(async () => {
+        try {
+          const { accessToken } = store.getState();
+          if (accessToken && accessToken !== staleToken) return accessToken;
 
-        const started = logouts;
-        const tokens =
-          localStorage.getItem(STORAGE_KEYS.loggedOut) === null && (await session.refresh());
-        if (logouts !== started) return null;
-        if (!tokens) {
-          unauthenticate();
+          const started = logouts;
+          const tokens =
+            localStorage.getItem(STORAGE_KEYS.loggedOut) === null && (await session.refresh());
+          if (logouts !== started) return null;
+          if (!tokens) {
+            unauthenticate();
+            return null;
+          }
+
+          authenticate(tokens.accessToken);
+          return tokens.accessToken;
+        } catch (error) {
+          unauthenticate(toAccountError(error));
           return null;
         }
-
-        authenticate(tokens.accessToken);
-        return tokens.accessToken;
-      } catch (error) {
-        unauthenticate(toAccountError(error));
-        return null;
-      } finally {
-        refreshMutex.release();
-      }
+      });
     },
 
     async fetch(input, init) {

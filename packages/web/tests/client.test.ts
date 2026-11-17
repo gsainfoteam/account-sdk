@@ -393,6 +393,22 @@ describe('ready', () => {
     });
   });
 
+  it('hands the restored token to a refresh called while restoring, without a second request', async () => {
+    let respond = (_: Response) => undefined as void;
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => new Promise<Response>((resolve) => (respond = resolve)),
+    });
+    const restoring = servers.client.ready();
+    await vi.waitFor(() => expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1));
+
+    const refreshing = servers.client.refresh();
+    respond(Response.json({ access_token: 'restored' }));
+    await restoring;
+
+    expect(await refreshing).toBe('restored');
+    expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1);
+  });
+
   it('settles as signed out without a cookie', async () => {
     const { client } = setup({
       [`${API}/auth/refresh`]: () => new Response(null, { status: 401 }),
