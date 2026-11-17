@@ -11,7 +11,7 @@ pnpm add @infoteam/account-react zod
 ```
 
 `zod`(4.x)는 peerDependency다. SDK가 export 하는 스키마를 앱과 같은 인스턴스로 쓰기 위해서다.
-`openapi-fetch`나 `axios` 어댑터를 쓸 때만 그 라이브러리를 설치한다.
+`axios` 어댑터를 쓸 때만 `axios`를 설치한다.
 
 ## 사용
 
@@ -157,8 +157,6 @@ import { attachAccount } from '@infoteam/account-react/axios';
 
 attachAccount(instance, account);
 ```
-
-`@infoteam/account-react/openapi-fetch`의 `createAccountMiddleware`는 deprecated다. 이미 붙인 코드는 그대로 동작하지만, 새로 붙일 때는 `fetch` 옵션을 쓴다.
 
 ### 6. 로그아웃
 

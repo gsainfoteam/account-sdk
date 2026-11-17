@@ -8,7 +8,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAccountClient } from '../src';
 import { fakeServers } from './fake-servers';
 import { attachAccount } from '../src/adapters/axios';
-import { createAccountMiddleware } from '../src/adapters/openapi-fetch';
 
 const API = 'api.ziggle.gistory.me';
 
@@ -60,11 +59,10 @@ afterEach(() => {
   clearDiscoveryCache();
 });
 
-describe('openapi-fetch middleware', () => {
+describe('account.fetch as the fetch of openapi-fetch', () => {
   it('sends the service token and retries once after refreshing', async () => {
-    const { client, fetch, refreshes } = setup();
-    const api = createFetchClient<Paths>({ baseUrl: `https://${API}`, fetch });
-    api.use(createAccountMiddleware(client));
+    const { client, refreshes } = setup();
+    const api = createFetchClient<Paths>({ baseUrl: `https://${API}`, fetch: client.fetch });
 
     const results = await Promise.all([api.GET('/notices'), api.GET('/notices')]);
     expect(results.map((result) => result.response.status)).toEqual([200, 200]);
@@ -72,20 +70,17 @@ describe('openapi-fetch middleware', () => {
   });
 
   it('sends the body again on the retry', async () => {
-    const { client, fetch } = setup();
-    const api = createFetchClient<Paths>({ baseUrl: `https://${API}`, fetch });
-    api.use(createAccountMiddleware(client));
+    const { client } = setup();
+    const api = createFetchClient<Paths>({ baseUrl: `https://${API}`, fetch: client.fetch });
 
-    await client.ready();
     const { response, data } = await api.POST('/notices', { body: { title: 'hello' } });
     expect(response.status).toBe(200);
     expect(data).toEqual({ title: 'hello' });
   });
 
-  it('sends the body again when a later middleware replaces the request', async () => {
-    const { client, fetch } = setup();
-    const api = createFetchClient<Paths>({ baseUrl: `https://${API}`, fetch });
-    api.use(createAccountMiddleware(client));
+  it('sends the body again when a middleware replaces the request', async () => {
+    const { client } = setup();
+    const api = createFetchClient<Paths>({ baseUrl: `https://${API}`, fetch: client.fetch });
     api.use({
       onRequest: ({ request }) => {
         const headers = new Headers(request.headers);
@@ -94,7 +89,6 @@ describe('openapi-fetch middleware', () => {
       },
     });
 
-    await client.ready();
     const { response, data } = await api.POST('/notices', { body: { title: 'hello' } });
     expect(response.status).toBe(200);
     expect(data).toEqual({ title: 'hello' });
