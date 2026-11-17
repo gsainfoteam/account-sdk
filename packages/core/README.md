@@ -8,7 +8,7 @@
 
 ## 구성
 
-- discovery와 그 결함 보정
+- [discovery 문서](https://api.account.gistory.me/.well-known/openid-configuration) 조회와 그 결함 보정([`normalizeDiscovery`](https://github.com/gsainfoteam/account-sdk/blob/main/packages/core/src/discovery/normalize-discovery.ts))
 - PKCE authorization URL
 - callback 검증
 - 토큰 요청

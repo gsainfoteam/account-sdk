@@ -12,8 +12,8 @@
 pnpm add @infoteam/account-react zod
 ```
 
-- `zod`(4.x)는 peerDependency입니다. SDK가 export 하는 스키마를 앱과 같은 인스턴스로 쓰기 위해서입니다.
-- `axios` 어댑터를 쓸 때만 `axios`를 설치합니다.
+- [`zod`](https://zod.dev)(4.x)는 peerDependency입니다. SDK가 export 하는 스키마를 앱과 같은 인스턴스로 쓰기 위해서입니다.
+- `axios` 어댑터를 쓸 때만 [`axios`](https://github.com/axios/axios)를 설치합니다.
 
 ## 사용
 
@@ -64,7 +64,7 @@ export const account = createAccountClient({
 
 #### TanStack Router
 
-파일 기반이든 `createRoute`든 같습니다.
+[TanStack Router](https://tanstack.com/router)에서는 파일 기반이든 `createRoute`든 같습니다.
 
 ```ts
 // routes/_auth-required/route.tsx
@@ -79,7 +79,7 @@ account.store.subscribe(() => router.invalidate());
 
 #### React Router
 
-data router(v6.4 이상)에서 씁니다.
+[React Router](https://reactrouter.com)의 data router(v6.4 이상)에서 씁니다.
 
 ```ts
 const router = createBrowserRouter([
@@ -154,7 +154,7 @@ const response = await account.fetch(`${API_URL}/me`); // 컴포넌트 안에서
 
 #### OpenAPI 클라이언트
 
-OpenAPI 명세로 만든 클라이언트도 `fetch` 옵션에 `account.fetch`를 넘깁니다. 401 뒤의 재시도도 `account.fetch` 안에서 하므로, `account.fetch`가 body가 있는 요청도 그대로 다시 보냅니다.
+OpenAPI 명세로 만든 클라이언트([openapi-fetch](https://openapi-ts.dev/openapi-fetch/), [hey-api](https://heyapi.dev))도 `fetch` 옵션에 `account.fetch`를 넘깁니다. 401 뒤의 재시도도 `account.fetch` 안에서 하므로, `account.fetch`가 body가 있는 요청도 그대로 다시 보냅니다.
 
 ```ts
 // openapi-fetch
@@ -174,7 +174,7 @@ export const createClientConfig = <T>(config: T) => ({
 
 #### axios
 
-axios는 `fetch` 옵션이 없으므로 어댑터로 interceptor를 붙입니다.
+[axios](https://github.com/axios/axios)는 `fetch` 옵션이 없으므로 어댑터로 interceptor를 붙입니다.
 
 ```ts
 import { attachAccount } from '@infoteam/account-react/axios';

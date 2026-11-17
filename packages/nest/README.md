@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-nest?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-nest)
 
-NestJS 백엔드를 인포팀 계정(IdP)에 붙입니다. 모듈이 [`@infoteam/account-server`](https://github.com/gsainfoteam/account-sdk/tree/main/packages/server)의 IdP 클라이언트를 주입해 주고, 앱이 시작될 때 IdP 등록을 확인합니다.
+[NestJS](https://nestjs.com) 백엔드를 인포팀 계정(IdP)에 붙입니다. 모듈이 [`@infoteam/account-server`](https://github.com/gsainfoteam/account-sdk/tree/main/packages/server)의 IdP 클라이언트를 주입해 주고, 앱이 시작될 때 IdP 등록을 확인합니다.
 
 > **서비스 세션은 직접 구현합니다.** 로그인, 갱신, 로그아웃 endpoint와 guard는 서비스가 [세션 프로토콜](https://github.com/gsainfoteam/account-sdk#세션-프로토콜)에 맞춰 만듭니다.
 
@@ -16,7 +16,7 @@ ESM으로만 배포합니다. CommonJS(`module: commonjs`)로 빌드하는 Nest 
 
 ### jest 설정
 
-jest는 ESM을 `require()` 하지 못하므로, SDK와 그 의존성(jose, oauth4webapi)만 변환하도록 설정합니다.
+[jest](https://jestjs.io)는 ESM을 `require()` 하지 못하므로, SDK와 그 의존성([jose](https://github.com/panva/jose), [oauth4webapi](https://github.com/panva/oauth4webapi))만 변환하도록 설정합니다.
 
 ```js
 // jest 설정
@@ -92,7 +92,7 @@ async login(@Req() req: Request, @Body() body: LoginCodeBody, @Res({ passthrough
 
 ### login body
 
-`@infoteam/account-nest/dto`는 login body를 class-validator와 Swagger 데코레이터가 붙은 클래스로 내보냅니다. `class-validator`와 `@nestjs/swagger`가 설치되어 있어야 하고, 이 경로를 import 하지 않으면 둘 다 필요 없습니다.
+`@infoteam/account-nest/dto`는 login body를 class-validator와 Swagger 데코레이터가 붙은 클래스로 내보냅니다. [`class-validator`](https://github.com/typestack/class-validator)와 [`@nestjs/swagger`](https://docs.nestjs.com/openapi/introduction)가 설치되어 있어야 하고, 이 경로를 import 하지 않으면 둘 다 필요 없습니다.
 
 | 클래스          | 필드                                                                      | 대상 서비스                               |
 | --------------- | ------------------------------------------------------------------------- | ----------------------------------------- |
@@ -112,7 +112,7 @@ class SignupBody extends LoginBody {
 그 밖에 다음 값도 내보냅니다.
 
 - 거절 응답의 형식: `SessionRejectedResponse` 타입, `SESSION_REJECTED` 상수
-- wire 형식의 zod 스키마: `LoginCodeBodySchema`, `LoginTicketBodySchema`, `SessionTokensResponseSchema`
+- wire 형식의 [zod](https://zod.dev) 스키마: `LoginCodeBodySchema`, `LoginTicketBodySchema`, `SessionTokensResponseSchema`
 
 ## scope와 필드 타입
 

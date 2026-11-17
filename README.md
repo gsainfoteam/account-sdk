@@ -18,26 +18,26 @@
 
 **프론트엔드**
 
-| 패키지                                      | 용도                                 | 버전                                                                                                                                   |
-| ------------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| [`@infoteam/account-react`](packages/react) | React 앱. `account-web`을 포함합니다 | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-react?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-react) |
-| [`@infoteam/account-web`](packages/web)     | React를 쓰지 않는 웹 앱              | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-web?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-web)     |
-| [`gsainfoteam_account`](packages/flutter)   | Flutter 앱                           | [![pub](https://img.shields.io/pub/v/gsainfoteam_account?color=0175C2)](https://pub.dev/packages/gsainfoteam_account)                  |
+| 패키지                                      | 용도                                                 | 버전                                                                                                                                   |
+| ------------------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| [`@infoteam/account-react`](packages/react) | React 앱. [`account-web`](packages/web)을 포함합니다 | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-react?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-react) |
+| [`@infoteam/account-web`](packages/web)     | React를 쓰지 않는 웹 앱                              | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-web?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-web)     |
+| [`gsainfoteam_account`](packages/flutter)   | Flutter 앱                                           | [![pub](https://img.shields.io/pub/v/gsainfoteam_account?color=0175C2)](https://pub.dev/packages/gsainfoteam_account)                  |
 
 **백엔드**
 
-| 패키지                                          | 용도                                         | 버전                                                                                                                                       |
-| ----------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| [`@infoteam/account-nest`](packages/nest)       | NestJS 백엔드. `account-server`를 포함합니다 | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-nest?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-nest)       |
-| [`@infoteam/account-server`](packages/server)   | NestJS를 쓰지 않는 Node, Bun 백엔드          | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-server?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-server)   |
-| [`@infoteam/account-testing`](packages/testing) | 서비스 백엔드 테스트용 가짜 IdP              | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-testing?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-testing) |
+| 패키지                                          | 용도                                                            | 버전                                                                                                                                       |
+| ----------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`@infoteam/account-nest`](packages/nest)       | NestJS 백엔드. [`account-server`](packages/server)를 포함합니다 | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-nest?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-nest)       |
+| [`@infoteam/account-server`](packages/server)   | NestJS를 쓰지 않는 Node, Bun 백엔드                             | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-server?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-server)   |
+| [`@infoteam/account-testing`](packages/testing) | 서비스 백엔드 테스트용 가짜 IdP                                 | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-testing?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-testing) |
 
 **공용**
 
-| 패키지                                            | 용도                                                            | 버전                                                                                                                                         |
-| ------------------------------------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`@infoteam/account-core`](packages/core)         | 위 패키지들의 공용 코어. 직접 설치하지 않습니다                 | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-core?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-core)         |
-| [`@infoteam/account-contract`](packages/contract) | IdP와 SDK가 함께 쓰는 값(scope, 거절 사유). account-be도 씁니다 | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-contract?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-contract) |
+| 패키지                                            | 용도                                                                                                         | 버전                                                                                                                                         |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`@infoteam/account-core`](packages/core)         | 위 패키지들의 공용 코어. 직접 설치하지 않습니다                                                              | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-core?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-core)         |
+| [`@infoteam/account-contract`](packages/contract) | IdP와 SDK가 함께 쓰는 값(scope, 거절 사유). [account-be](https://github.com/gsainfoteam/account-be)도 씁니다 | [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-contract?color=CB3837)](https://www.npmjs.com/package/@infoteam/account-contract) |
 
 > [!NOTE]
 > 백엔드 SDK는 사용자 확인까지만 맡습니다. 서비스 세션은 어느 백엔드 SDK를 쓰든 서비스가 직접 구현합니다.
@@ -90,8 +90,8 @@ IdP 로그인이 끝나면 서비스 백엔드가 자기 세션을 발급합니�
 
 #### IdP 토큰 분리 이유
 
-- account-be의 access token에는 대상 client가 없습니다. 그래서 누구나 등록할 수 있는 다른 client의 토큰으로도 우리 서비스에 로그인할 수 있습니다. 백엔드가 직접 교환해 받은 id_token으로는 그럴 수 없습니다.
-- IdP 토큰을 오래 쓰려면 `offline_access`가 필요한데, 이 scope를 요청하면 account-fe가 로그인할 때마다 동의 화면을 띄웁니다.
+- [account-be](https://github.com/gsainfoteam/account-be)의 access token에는 대상 client가 없습니다. 그래서 누구나 등록할 수 있는 다른 client의 토큰으로도 우리 서비스에 로그인할 수 있습니다. 백엔드가 직접 교환해 받은 id_token으로는 그럴 수 없습니다.
+- IdP 토큰을 오래 쓰려면 `offline_access`가 필요한데, 이 scope를 요청하면 [account-fe](https://github.com/gsainfoteam/account-fe)가 로그인할 때마다 동의 화면을 띄웁니다.
 - 서비스에 필요한 값(예: 기기 id)을 토큰에 함께 실을 수 있고, IdP에 잠깐 장애가 나도 이미 로그인한 사용자는 영향을 받지 않습니다.
 
 ### 세션 프로토콜
@@ -148,7 +148,7 @@ ticket으로 온 요청에는 code가 없으므로 `loginWithCode`를 부르지 
 
 ### 로그아웃
 
-로그인 상태는 두 가지 세션으로 이루어집니다. 하나는 서비스 세션이고, 다른 하나는 account-fe에 남아 있는 IdP 로그인 세션입니다.
+로그인 상태는 두 가지 세션으로 이루어집니다. 하나는 서비스 세션이고, 다른 하나는 [account-fe](https://github.com/gsainfoteam/account-fe)에 남아 있는 IdP 로그인 세션입니다.
 
 | 호출                    | 종료 범위             | 사용 상황                              |
 | ----------------------- | --------------------- | -------------------------------------- |
@@ -183,21 +183,21 @@ Flutter 패키지는 `packages/flutter`에서 `flutter analyze`와 `flutter test
 
 ### 코드 구조
 
-- IdP 주소와 경로는 discovery(`/.well-known/openid-configuration`)에서 가져옵니다. account-be의 discovery 문서에 있는 결함은 `normalizeDiscovery` 한 곳에서만 보정합니다.
+- IdP 주소와 경로는 discovery 문서(`/.well-known/openid-configuration`, [운영](https://api.account.gistory.me/.well-known/openid-configuration), [스테이징](https://api.stg.account.gistory.me/.well-known/openid-configuration))에서 가져옵니다. account-be의 discovery 문서에 있는 결함은 [`normalizeDiscovery`](packages/core/src/discovery/normalize-discovery.ts) 한 곳에서만 보정합니다.
 - 여러 언어가 함께 쓰는 값(IdP 주소, 경로, 저장소 키 namespace)은 [`packages/core/src/constants/idp.json`](packages/core/src/constants/idp.json)에 둡니다. Flutter 패키지는 테스트로 이 파일과 값이 같은지 확인합니다.
-- scope와 거절 사유, scope별 사용자 필드(`SCOPE_CLAIMS`)는 [`@infoteam/account-contract`](packages/contract)에 둡니다. account-be와 SDK가 모두 이 패키지를 import 하고, Dart enum은 `pnpm contract:dart`가 여기서 생성합니다.
+- scope와 거절 사유, scope별 사용자 필드([`SCOPE_CLAIMS`](packages/contract/src/claims.ts))는 [`@infoteam/account-contract`](packages/contract)에 둡니다. account-be와 SDK가 모두 이 패키지를 import 하고, Dart enum은 `pnpm contract:dart`가 여기서 생성합니다.
 
 ### 스테이징 로그인 확인
 
-[`examples/web`](examples/web)(Vite, React, TanStack Router)과 [`examples/nest`](examples/nest)(CommonJS로 빌드한 Nest 백엔드)를 함께 실행하면 로그인 흐름 전체를 확인할 수 있습니다.
+[`examples/web`](examples/web)([Vite](https://vite.dev), [React](https://react.dev), [TanStack Router](https://tanstack.com/router))과 [`examples/nest`](examples/nest)(CommonJS로 빌드한 [NestJS](https://nestjs.com) 백엔드)를 함께 실행하면 로그인 흐름 전체를 확인할 수 있습니다.
 
-1. 스테이징 IdP([stg.account.gistory.me](https://stg.account.gistory.me))에 client를 등록하고, redirect URI로 `http://localhost:5173/auth/callback`을 넣습니다. `examples/nest`가 `requiredScopes: ['name']`을 선언하므로 `name`은 필수 scope로 등록합니다.
+1. 스테이징 IdP([stg.account.gistory.me](https://stg.account.gistory.me))에 client를 등록하고, redirect URI로 `http://localhost:5173/auth/callback`을 넣습니다. [`examples/nest`](examples/nest/src)가 `requiredScopes: ['name']`을 선언하므로 `name`은 필수 scope로 등록합니다.
 2. `.env.example`을 `.env`로 복사하고 client id와 secret을 채웁니다. mise가 `.env`를 읽어 각 task에 넣어 줍니다.
 3. `mise run example:api`와 `mise run example:web`을 각각 실행하고 <http://localhost:5173>을 엽니다.
 
 ### 배포
 
-[changesets](https://github.com/changesets/changesets)로 버전을 올립니다. `account-contract`를 뺀 모든 패키지가 같은 버전을 씁니다.
+[changesets](https://github.com/changesets/changesets)로 버전을 올립니다. [`account-contract`](packages/contract)를 뺀 모든 패키지가 같은 버전을 씁니다.
 
 ```bash
 pnpm changeset           # 변경 기록

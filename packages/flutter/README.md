@@ -55,11 +55,13 @@ try {
 | 예외                              | 뜻                                                                                                                              |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | `AccountCancelledException`       | 사용자가 브라우저를 닫았습니다                                                                                                      |
-| `AccountDeniedException`          | IdP가 거절했습니다. 사용자가 취소했거나 필수 정보를 인증하지 않았다(`reason`)                                                       |
-| `AccountSessionRejectedException` | 서비스 백엔드가 실패 응답을 줬다(`statusCode`). 403이면서 ticket이 있으면(`canRetryLogin`) `retryLogin(body)`로 이어 갈 수 있습니다 |
+| `AccountDeniedException`          | IdP가 거절했습니다. 사용자가 취소했거나 필수 정보를 인증하지 않았습니다(`reason`)                                                       |
+| `AccountSessionRejectedException` | 서비스 백엔드가 실패 응답을 줬습니다(`statusCode`). 403이면서 ticket이 있으면(`canRetryLogin`) `retryLogin(body)`로 이어 갈 수 있습니다 |
 | `AccountNetworkException`         | IdP나 서비스 백엔드에 연결하지 못했습니다                                                                                           |
 
 ### API 요청
+
+[dio](https://pub.dev/packages/dio) 클라이언트에 `AccountInterceptor`를 붙입니다.
 
 ```dart
 final dio = Dio(BaseOptions(baseUrl: 'https://api.pot-g.gistory.me'));

@@ -15,12 +15,12 @@ code 교환과 id_token 검증(`loginWithCode`)은 SDK에서 테스트합니다.
 
 이 코드를 실행하려면 `/auth/login`을 거쳐야 하고, `/auth/login`은 IdP와 통신합니다. 가짜 IdP는 이 통신에 실제 IdP처럼 응답하므로, 서비스 코드를 실제 로그인 경로 그대로 실행할 수 있습니다.
 
-| 실제 로그인                                            | 테스트 환경                                     |
-| ------------------------------------------------------ | ----------------------------------------------- |
-| 사용자가 브라우저에서 IdP에 로그인하고 code를 받습니다 | `idp.authorize()`가 그 결과(code 등)를 만듭니다 |
-| 프론트가 code를 `POST /auth/login`으로 보냅니다        | 테스트가 supertest로 보냅니다                   |
-| `loginWithCode`가 code를 교환하고 사용자를 확인합니다  | 가짜 IdP가 응답합니다                           |
-| 서비스 코드가 사용자를 연결하고 세션을 만듭니다        | 실제로 실행된다(서비스 코드, 서비스 DB)         |
+| 실제 로그인                                            | 테스트 환경                                                                |
+| ------------------------------------------------------ | -------------------------------------------------------------------------- |
+| 사용자가 브라우저에서 IdP에 로그인하고 code를 받습니다 | `idp.authorize()`가 그 결과(code 등)를 만듭니다                            |
+| 프론트가 code를 `POST /auth/login`으로 보냅니다        | 테스트가 [supertest](https://github.com/forwardemail/supertest)로 보냅니다 |
+| `loginWithCode`가 code를 교환하고 사용자를 확인합니다  | 가짜 IdP가 응답합니다                                                      |
+| 서비스 코드가 사용자를 연결하고 세션을 만듭니다        | 실제로 실행됩니다(서비스 코드, 서비스 DB)                                  |
 
 > **가짜 IdP로는 실제 IdP와의 연동(client 등록, redirect URI)을 확인하지 못합니다.** 스테이징 IdP로 한 번은 직접 로그인해 봅니다.
 
@@ -32,10 +32,10 @@ pnpm add -D @infoteam/account-testing
 
 ESM으로만 배포합니다.
 
-| 테스트 러너 | 설정                                                                                                                                                              |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| vitest      | 그대로 씁니다. Nest의 생성자 주입은 `emitDecoratorMetadata`가 있어야 동작하므로 `unplugin-swc`를 붙인다(`plugins: [swc.vite()]`)                                  |
-| jest        | [account-nest의 jest 설정](https://github.com/gsainfoteam/account-sdk/tree/main/packages/nest#jest-설정)에 이 패키지와 `@faker-js/faker`도 변환 대상으로 넣습니다 |
+| 테스트 러너                  | 설정                                                                                                                                                                                     |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [vitest](https://vitest.dev) | 그대로 씁니다. Nest의 생성자 주입은 `emitDecoratorMetadata`가 있어야 동작하므로 [`unplugin-swc`](https://github.com/unplugin/unplugin-swc)를 붙입니다(`plugins: [swc.vite()]`)           |
+| [jest](https://jestjs.io)    | [account-nest의 jest 설정](https://github.com/gsainfoteam/account-sdk/tree/main/packages/nest#jest-설정)에 이 패키지와 [`@faker-js/faker`](https://fakerjs.dev)도 변환 대상으로 넣습니다 |
 
 ## 예시
 
