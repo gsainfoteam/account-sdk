@@ -4,7 +4,7 @@
 
 ### Patch Changes
 
-- 3b78aff: The openapi-fetch middleware now resends the request body when it retries after a refresh. It used to throw `TypeError` for requests with a body, because openapi-fetch hands `onResponse` the request it already sent. After `logout()`, a reload no longer restores the session from a refresh cookie that the failed logout request left behind; the next login clears this.
+- 3b78aff: The openapi-fetch middleware now resends the request body when it retries after a refresh. It used to throw `TypeError` for requests with a body, because openapi-fetch hands `onResponse` the request it already sent. After `logout()`, the client no longer uses a refresh cookie that a failed logout request left behind: a reload does not restore the session and a 401 does not trigger a refresh until the next login. A login or refresh that finishes after `logout()` is ignored, and `retryLogin()` then rejects with `unauthenticated` instead of resolving.
 - @infoteam/account-core@0.7.1
 
 ## 0.7.0
