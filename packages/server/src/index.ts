@@ -2,6 +2,7 @@ export {
   createAccountServer,
   type AccountServer,
   type AuthenticationRequirement,
+  type LoginUser,
   type LoginWithCodeParams,
 } from './account-server';
 export { AccountServerOptionsSchema, type AccountServerOptions } from './options';

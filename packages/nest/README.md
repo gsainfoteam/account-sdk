@@ -114,6 +114,18 @@ id_token에 그 필드가 빠져 있으면 SDK가 `missing_claims`로 실패하�
 
 `requiredScopes`에는 client에 **필수로** 등록한 scope만 넣는다. 사용자가 거부할 수 있는 선택 scope를 넣으면, 그 scope를 거부한 사용자는 로그인하지 못한다.
 
+그 사용자를 받는 함수의 인자 타입은 `LoginUser<AccountService>`로 적는다. `UserInfo<'name' | 'email'>`처럼 scope를 다시 적으면
+`requiredScopes`를 바꿀 때 두 곳을 함께 고쳐야 한다.
+
+```ts
+import type { LoginUser } from '@infoteam/account-nest';
+import type { AccountService } from './account';
+
+async upsertByIdp(user: LoginUser<AccountService>) {
+  user.email; // string
+}
+```
+
 scope 구성이 다른 설정이 여러 개 필요하면(예: 사용자 앱과 관리자 웹) `defineAccount`를 여러 번 호출한다. 호출할 때마다 주입 토큰이 따로 생긴다.
 
 ## 다른 사용자 조회

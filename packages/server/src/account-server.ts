@@ -74,6 +74,11 @@ export interface AccountServer<
   verifyRegistration(): Promise<void>;
 }
 
+/** `UserInfo<'name' | 'email'>`처럼 scope를 다시 적으면 `requiredScopes`를 바꿀 때 두 곳이 어긋나므로 서버 타입에서 꺼낸다. */
+export type LoginUser<Account extends Pick<AccountServer, 'loginWithCode'>> = Awaited<
+  ReturnType<Account['loginWithCode']>
+>['user'];
+
 /** @throws {@link AccountError} 옵션이 없거나 비어 있으면 `invalid_request`. */
 export function createAccountServer<
   const RequiredScopes extends readonly ClientScope[] = [],

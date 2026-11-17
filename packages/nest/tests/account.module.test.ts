@@ -6,7 +6,13 @@ import { Inject, Injectable, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { afterEach, describe, expect, expectTypeOf, it } from 'vitest';
 
-import { AccountModule, AccountService, defineAccount } from '../src';
+import {
+  AccountModule,
+  AccountService,
+  defineAccount,
+  type LoginUser,
+  type UserInfo,
+} from '../src';
 
 const idp = await createFakeIdp();
 const options = {
@@ -94,9 +100,7 @@ describe('AccountModule', () => {
     }).compile();
     const account: StudentAccount = moduleRef.get(student.AccountService);
 
-    expectTypeOf<
-      Awaited<ReturnType<StudentAccount['loginWithCode']>>['user']['studentId']
-    >().toEqualTypeOf<string>();
+    expectTypeOf<LoginUser<StudentAccount>>().toEqualTypeOf<UserInfo<'name' | 'student_id'>>();
     await expect(account.loginWithCode(await login())).rejects.toMatchObject({
       code: 'missing_claims',
       description: 'student_id is_student_id_verified',
