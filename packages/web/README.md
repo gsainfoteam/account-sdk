@@ -30,7 +30,8 @@ await account.fetch(`${apiUrl}/me`);
 ```
 
 - 상태는 zustand의 vanilla store(`account.store`)에 있으므로, 어느 프레임워크에서든 구독할 수 있다.
-- API 요청에는 `account.fetch`, `@infoteam/account-web/openapi-fetch`, `@infoteam/account-web/axios` 중 하나를 쓴다.
+- API 요청에는 `account.fetch`를 쓴다. openapi-fetch나 hey-api처럼 `fetch` 옵션이 있는 클라이언트에도 `account.fetch`를 넘긴다. `fetch` 옵션이 없는 axios에만
+  `@infoteam/account-web/axios`를 쓴다. [예시](../react/README.md#5-api-요청)
 - 옵션, guard, 에러 코드, 로그아웃은 React와 같다. [`account-react` README](../react/README.md#사용)를 참고한다.
 
 ## 백엔드 형식이 다를 때

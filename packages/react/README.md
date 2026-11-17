@@ -132,23 +132,34 @@ access token은 메모리에만 두고, refresh token은 서비스 백엔드가 
 const response = await account.fetch(`${API_URL}/me`); // 컴포넌트 안에서는 useAccount().fetch
 ```
 
-openapi-fetch를 쓰면 다음과 같다.
+OpenAPI 명세로 만든 클라이언트도 `fetch` 옵션에 `account.fetch`를 넘긴다. 401 뒤의 재시도도 `account.fetch` 안에서 하므로, body가 있는 요청도 그대로 다시 보낸다.
 
 ```ts
-import { createAccountMiddleware } from '@infoteam/account-react/openapi-fetch';
+// openapi-fetch
+import createClient from 'openapi-fetch';
 
-api.use(createAccountMiddleware(account));
+export const api = createClient<paths>({ baseUrl: API_URL, fetch: account.fetch });
 ```
 
-다른 middleware보다 뒤에 등록한다. 뒤에 등록한 middleware가 요청을 새 `Request`로 바꾸면, body가 있는 요청은 401 뒤에 다시 보내지 못한다.
+```ts
+// hey-api: openapi-ts 설정의 runtimeConfigPath 가 가리키는 파일
+export const createClientConfig = <T>(config: T) => ({
+  ...config,
+  baseUrl: API_URL,
+  fetch: account.fetch,
+});
+```
 
-axios를 쓰면 다음과 같다.
+axios는 `fetch` 옵션이 없으므로 어댑터로 interceptor를 붙인다.
 
 ```ts
 import { attachAccount } from '@infoteam/account-react/axios';
 
 attachAccount(instance, account);
 ```
+
+`@infoteam/account-react/openapi-fetch`의 `createAccountMiddleware`는 deprecated다. middleware는 이미 보낸 request를 받으므로 body를 다시 보내기
+어렵고, 다른 middleware와 등록한 순서에 따라 재시도가 달라진다.
 
 ### 6. 로그아웃
 
