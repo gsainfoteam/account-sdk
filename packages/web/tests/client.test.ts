@@ -539,7 +539,6 @@ describe('logout with the IdP', () => {
 describe('tabs sharing one refresh cookie', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  // 같은 origin의 탭들이 같이 쓰는 LockManager처럼, 같은 이름의 요청을 하나씩 차례로 실행한다.
   function sharedLocks(): LockManager {
     const queues = new Map<string, Promise<unknown>>();
     const request = (name: string, callback: () => Promise<unknown>) => {
@@ -563,7 +562,6 @@ describe('tabs sharing one refresh cookie', () => {
       [`${API}/auth/refresh`]: async () => {
         presented.push(cookie);
         const next = `R${++rotations}`;
-        // 브라우저는 응답이 도착할 때 Set-Cookie를 반영하므로, 응답을 늦추면 쿠키도 늦게 바뀐다.
         await new Promise<void>((resolve) => deliveries.push(resolve));
         cookie = next;
         return Response.json({ access_token: `access-${next}` });

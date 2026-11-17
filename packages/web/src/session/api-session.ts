@@ -74,13 +74,7 @@ export function apiSession(
   };
 }
 
-/**
- * 탭들은 refresh 쿠키 하나를 같이 쓴다. 두 탭이 같은 쿠키로 refresh 하면 서버는 유예 시간 안이라 둘에게 같은 새 토큰을
- * 주는데, 한쪽 응답이 늦게 오면 그 사이 다른 탭이 한 번 더 바꾼 쿠키를 예전 토큰으로 되돌린다. 되돌아간 토큰은 유예
- * 시간이 지난 뒤 재사용으로 처리되어 살아 있는 세션이 끝나므로, 다른 탭의 refresh가 응답을 받은 뒤에 보낸다.
- */
 function acrossTabs<T>(name: string, task: () => Promise<T>): Promise<T> {
-  // secure context가 아니면 Web Locks가 없다. 이때는 서버의 유예 시간에만 기댄다.
   const locks = navigator.locks as LockManager | null | undefined;
   return locks ? locks.request(name, task) : task();
 }

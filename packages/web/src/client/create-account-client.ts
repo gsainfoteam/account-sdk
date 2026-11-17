@@ -143,8 +143,6 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   }));
 
   const refreshMutex = new Mutex();
-  // 세션 복원도 같은 mutex를 거쳐야, 복원 중에 부른 refresh가 쿠키를 한 번 더 쓰지 않고 복원된 토큰을 받는다.
-  // 자동 로그인으로 넘어가면 끝나지 않는 Promise가 남으므로 restoreSession 전체가 아니라 refresh 요청만 감싼다.
   const oneAtATime = async <T>(task: () => Promise<T>): Promise<T> => {
     await refreshMutex.acquire();
     try {
