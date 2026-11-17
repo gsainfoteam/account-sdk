@@ -1,5 +1,11 @@
 # @infoteam/account-server
 
+## 0.7.1
+
+### Patch Changes
+
+- @infoteam/account-core@0.7.1
+
 ## 0.7.0
 
 ### Minor Changes

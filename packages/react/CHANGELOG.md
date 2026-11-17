@@ -1,5 +1,12 @@
 # @infoteam/account-react
 
+## 0.7.1
+
+### Patch Changes
+
+- Updated dependencies [3b78aff]
+  - @infoteam/account-web@0.7.1
+
 ## 0.7.0
 
 ### Patch Changes

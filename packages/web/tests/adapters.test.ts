@@ -1,7 +1,9 @@
+// @vitest-environment node
 import { clearDiscoveryCache } from '@infoteam/account-core';
 import axios, { type AxiosAdapter } from 'axios';
+import { Window } from 'happy-dom';
 import createFetchClient from 'openapi-fetch';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createAccountClient } from '../src';
 import { fakeServers } from './fake-servers';
@@ -13,6 +15,10 @@ const API = 'api.ziggle.gistory.me';
 interface Paths {
   '/notices': {
     get: { responses: { 200: { content: { 'application/json': { id: number }[] } } } };
+    post: {
+      requestBody: { content: { 'application/json': { title: string } } };
+      responses: { 200: { content: { 'application/json': { title: string } } } };
+    };
   };
 }
 
@@ -20,23 +26,39 @@ function setup() {
   let refreshes = 0;
   const servers = fakeServers({
     [`${API}/auth/refresh`]: () => Response.json({ access_token: `token-${++refreshes}` }),
-    [`${API}/notices`]: ({ headers }) =>
-      headers.get('authorization') === 'Bearer token-2'
-        ? Response.json([{ id: 1 }])
-        : new Response(null, { status: 401 }),
+    [`${API}/notices`]: ({ headers, method, body }) =>
+      headers.get('authorization') !== 'Bearer token-2'
+        ? new Response(null, { status: 401 })
+        : method === 'POST'
+          ? new Response(body, { headers: { 'content-type': 'application/json' } })
+          : Response.json([{ id: 1 }]),
   });
+  const fetch: typeof globalThis.fetch = async (input, init) => {
+    const response = await servers.fetch(input, init);
+    if (input instanceof Request && input.body) await input.arrayBuffer();
+    return response;
+  };
   const client = createAccountClient({
     issuer: 'production',
     clientId: 'ziggle',
     api: `https://${API}`,
     scopes: ['name'],
-    fetch: servers.fetch,
+    fetch,
     redirect: vi.fn(),
   });
-  return { ...servers, client, refreshes: () => refreshes };
+  return { ...servers, fetch, client, refreshes: () => refreshes };
 }
 
-afterEach(() => clearDiscoveryCache());
+beforeEach(() => {
+  const window = new Window({ url: 'https://ziggle.gistory.me/' });
+  vi.stubGlobal('window', window);
+  vi.stubGlobal('localStorage', window.localStorage);
+  vi.stubGlobal('sessionStorage', window.sessionStorage);
+});
+afterEach(() => {
+  vi.unstubAllGlobals();
+  clearDiscoveryCache();
+});
 
 describe('openapi-fetch middleware', () => {
   it('sends the service token and retries once after refreshing', async () => {
@@ -47,6 +69,17 @@ describe('openapi-fetch middleware', () => {
     const results = await Promise.all([api.GET('/notices'), api.GET('/notices')]);
     expect(results.map((result) => result.response.status)).toEqual([200, 200]);
     expect(refreshes()).toBe(2);
+  });
+
+  it('sends the body again on the retry', async () => {
+    const { client, fetch } = setup();
+    const api = createFetchClient<Paths>({ baseUrl: `https://${API}`, fetch });
+    api.use(createAccountMiddleware(client));
+
+    await client.ready();
+    const { response, data } = await api.POST('/notices', { body: { title: 'hello' } });
+    expect(response.status).toBe(200);
+    expect(data).toEqual({ title: 'hello' });
   });
 });
 

@@ -153,6 +153,8 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   let rejection: SessionRejection | null = null;
   let initializing: Promise<void> | undefined;
   let settled = false;
+  // 응답을 기다리는 동안 logout하면, 그 전에 보낸 요청의 결과로 다시 로그인하지 않는다.
+  let logouts = 0;
 
   const authenticate = (accessToken: string): void => {
     rejection = null;
@@ -169,8 +171,13 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
     });
   };
 
-  const startSession = async (credential: LoginCredential, body?: unknown): Promise<void> => {
+  const startSession = async (
+    credential: LoginCredential,
+    body?: unknown,
+    started = logouts,
+  ): Promise<void> => {
     const result = await session.start(credential, body);
+    if (logouts !== started) return;
 
     if ('rejected' in result) {
       rejection = result.rejected;
@@ -182,19 +189,24 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   };
 
   const finishCallback = async ({ url, transaction }: Callback): Promise<void> => {
+    const started = logouts;
     try {
       const params = parseCallback(await metadata(), url, { clientId, state: transaction?.state });
       // web은 항상 openid를 요청하므로 nonce가 없는 transaction은 이 탭이 만든 것이 아니다.
       if (!transaction?.nonce) throw new AccountError('state_mismatch');
 
       const { codeVerifier, redirectUri: sentRedirectUri, nonce } = transaction;
-      await startSession({
-        code: params.code,
-        codeVerifier,
-        redirectUri: sentRedirectUri,
-        nonce,
-        iss: params.iss,
-      });
+      await startSession(
+        {
+          code: params.code,
+          codeVerifier,
+          redirectUri: sentRedirectUri,
+          nonce,
+          iss: params.iss,
+        },
+        undefined,
+        started,
+      );
     } catch (error) {
       const accountError = toAccountError(error);
       if (transaction?.silent && SILENT_LOGIN_FAILURES.has(accountError.code)) {
@@ -225,8 +237,13 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   };
 
   const restoreSession = async (): Promise<void> => {
+    // logout이 서버에 닿지 못했으면 refresh 쿠키가 남아 있으므로, 다시 로그인하기 전에는 쓰지 않는다.
+    if (localStorage.getItem(STORAGE_KEYS.loggedOut) !== null) return unauthenticate();
+
     try {
+      const started = logouts;
       const tokens = await session.refresh();
+      if (logouts !== started) return;
       if (tokens) return authenticate(tokens.accessToken);
 
       if (trySilentLogin) {
@@ -278,11 +295,18 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
         throw new AccountError('unauthenticated', { description: 'no login to retry' });
       }
 
+      const started = logouts;
       try {
-        await startSession({ ticket: rejection.ticket }, body);
+        await startSession({ ticket: rejection.ticket }, body, started);
       } catch (error) {
-        unauthenticate(toAccountError(error));
+        if (logouts === started) unauthenticate(toAccountError(error));
         throw error;
+      }
+
+      if (logouts !== started) {
+        throw new AccountError('unauthenticated', {
+          description: 'logged out before the login finished',
+        });
       }
     },
 
@@ -290,6 +314,7 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
       const { accessToken } = store.getState();
 
       rejection = null;
+      logouts += 1;
       localStorage.setItem(STORAGE_KEYS.loggedOut, '1');
       unauthenticate();
 
@@ -315,7 +340,10 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
         const { accessToken } = store.getState();
         if (accessToken && accessToken !== staleToken) return accessToken;
 
-        const tokens = await session.refresh();
+        const started = logouts;
+        const tokens =
+          localStorage.getItem(STORAGE_KEYS.loggedOut) === null && (await session.refresh());
+        if (logouts !== started) return null;
         if (!tokens) {
           unauthenticate();
           return null;

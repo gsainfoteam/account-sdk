@@ -272,6 +272,34 @@ describe('a service that asks for consent before login (house-moving-out)', () =
     });
   });
 
+  it('rejects the retry when a logout happens while it waits', async () => {
+    let respond: (() => void) | undefined;
+    const servers = setup({
+      [`${API}/auth/login`]: async ({ body }) => {
+        if (JSON.parse(body).ticket !== 't-1') {
+          return Response.json({ error: 'session_rejected', ticket: 't-1' }, { status: 403 });
+        }
+        await new Promise<void>((resolve) => (respond = resolve));
+        return Response.json({ access_token: 'service-token' });
+      },
+      [`${API}/auth/logout`]: () => new Response(null, { status: 204 }),
+    });
+    const { returned } = await loginAndReturn(servers);
+    await returned.ready();
+
+    const retry = returned.retryLogin({ agreedToPrivacy: true });
+    await vi.waitFor(() => expect(respond).toBeDefined());
+    await returned.logout();
+    respond!();
+
+    await expect(retry).rejects.toMatchObject({ code: 'unauthenticated' });
+    expect(returned.store.getState()).toMatchObject({
+      status: 'unauthenticated',
+      accessToken: null,
+      error: null,
+    });
+  });
+
   it.each([
     [400, 'unknown'],
     [502, 'server_error'],
@@ -325,6 +353,43 @@ describe('ready', () => {
     expect(client.store.getState()).toMatchObject({
       status: 'authenticated',
       accessToken: 'restored',
+    });
+  });
+
+  it('stays signed out after a logout that never reached the server', async () => {
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }),
+      [`${API}/auth/logout`]: () => {
+        throw new TypeError('offline');
+      },
+    });
+    await servers.client.ready();
+    await servers.client.logout();
+
+    expect(await servers.client.refresh()).toBeNull();
+
+    const reloaded = servers.create();
+    await reloaded.ready();
+    expect(await reloaded.refresh()).toBeNull();
+    expect(reloaded.store.getState()).toMatchObject({ status: 'unauthenticated' });
+    expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1);
+  });
+
+  it('ignores a refresh that finishes after a logout', async () => {
+    let respond = (_: Response) => undefined as void;
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => new Promise<Response>((resolve) => (respond = resolve)),
+      [`${API}/auth/logout`]: () => new Response(null, { status: 204 }),
+    });
+    const restoring = servers.client.ready();
+    await vi.waitFor(() => expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1));
+
+    await servers.client.logout();
+    respond(Response.json({ access_token: 'late' }));
+    await restoring;
+    expect(servers.client.store.getState()).toMatchObject({
+      status: 'unauthenticated',
+      accessToken: null,
     });
   });
 

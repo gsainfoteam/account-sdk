@@ -139,6 +139,8 @@ import { createAccountMiddleware } from '@infoteam/account-react/openapi-fetch';
 api.use(createAccountMiddleware(account));
 ```
 
+다른 middleware보다 뒤에 등록한다. 뒤에 등록한 middleware가 요청을 새 `Request`로 바꾸면, body가 있는 요청은 401 뒤에 다시 보내지 못한다.
+
 axios를 쓰면 다음과 같다.
 
 ```ts
