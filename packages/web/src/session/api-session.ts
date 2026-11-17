@@ -7,7 +7,7 @@ import {
   type Fetch,
   type LoginRequestBody,
 } from '@infoteam/account-core';
-import { attemptAsync, isPlainObject } from 'es-toolkit';
+import { attemptAsync, isPlainObject, trimEnd } from 'es-toolkit';
 import * as z from 'zod/mini';
 
 import { createRequester, readTokens } from './request';
@@ -25,7 +25,7 @@ export function apiSession(
 ): Session {
   const request = createRequester(baseUrl, fetch);
   const { login, refresh, logout } = { ...SESSION_PATHS, ...paths };
-  const refreshLock = `${STORAGE_NAMESPACE}:refresh:${baseUrl}${refresh}`;
+  const refreshLock = `${STORAGE_NAMESPACE}:refresh:${trimEnd(baseUrl, '/')}${refresh}`;
 
   return {
     async start(credential, body) {

@@ -584,6 +584,35 @@ describe('tabs sharing one refresh cookie', () => {
     expect([tabA.getAccessToken(), tabB.getAccessToken()]).toEqual(['access-R1', 'access-R2']);
   });
 
+  it('takes the same lock when the api address differs only by a trailing slash', async () => {
+    vi.spyOn(navigator, 'locks', 'get').mockReturnValue(sharedLocks());
+    const deliveries: (() => void)[] = [];
+    const servers = setup({
+      [`${API}/auth/refresh`]: async () => {
+        await new Promise<void>((resolve) => deliveries.push(resolve));
+        return Response.json({ access_token: 'restored' });
+      },
+    });
+    const tabB = servers.create();
+    const tabC = createAccountClient({
+      issuer: 'production',
+      clientId: 'ziggle',
+      api: `https://${API}/`,
+      scopes: ['name', 'email'],
+      fetch: servers.fetch,
+    });
+
+    const restoring = Promise.all([tabB.ready(), tabC.ready()]);
+    await vi.waitFor(() => expect(deliveries).toHaveLength(1));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1);
+
+    deliveries.shift()!();
+    await vi.waitFor(() => expect(deliveries).toHaveLength(1));
+    deliveries.shift()!();
+    await restoring;
+  });
+
   it('lets the next tab refresh after one fails', async () => {
     vi.spyOn(navigator, 'locks', 'get').mockReturnValue(sharedLocks());
     let refreshes = 0;
