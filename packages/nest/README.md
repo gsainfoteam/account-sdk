@@ -138,6 +138,9 @@ findUser(sub: string) {
 }
 ```
 
+조회한 사용자의 타입은 `LookupUser<AccountService>`다. `null`은 빠져 있고, `clientCredentialsScopes` 중 `requiredScopes`에도 있는 scope의 필드만 필수 타입이라서
+`LoginUser`보다 보장되는 필드가 적다.
+
 메서드 목록은 [`@infoteam/account-server` README](../server/README.md)에 있다.
 
 ## 에러

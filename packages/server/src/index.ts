@@ -4,6 +4,7 @@ export {
   type AuthenticationRequirement,
   type LoginUser,
   type LoginWithCodeParams,
+  type LookupUser,
 } from './account-server';
 export { AccountServerOptionsSchema, type AccountServerOptions } from './options';
 export {

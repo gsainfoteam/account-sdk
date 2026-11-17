@@ -3,7 +3,12 @@ import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import production from '../../core/tests/fixtures/discovery.production.json' with { type: 'json' };
 import { createSigner } from '../../core/tests/helpers';
-import { AccountServerOptionsSchema, createAccountServer } from '../src';
+import {
+  AccountServerOptionsSchema,
+  createAccountServer,
+  type LookupUser,
+  type UserInfo,
+} from '../src';
 
 type Route = (request: {
   url: URL;
@@ -229,8 +234,8 @@ describe('getUserInfoBySub', () => {
 
     const user = await server.getUserInfoBySub('u-1');
     expect(user).toEqual({ sub: 'u-1', name: 'n' });
-    expectTypeOf<NonNullable<typeof user>['name']>().toEqualTypeOf<string>();
-    expectTypeOf<NonNullable<typeof user>['email']>().toEqualTypeOf<string | undefined>();
+    expectTypeOf<NonNullable<typeof user>>().toEqualTypeOf<LookupUser<typeof server>>();
+    expectTypeOf<LookupUser<typeof server>>().toEqualTypeOf<UserInfo<'name'>>();
   });
 
   it('fails with missing_claims when a required scope is missing', async () => {

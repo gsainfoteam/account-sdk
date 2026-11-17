@@ -78,6 +78,10 @@ export type LoginUser<Account extends Pick<AccountServer, 'loginWithCode'>> = Aw
   ReturnType<Account['loginWithCode']>
 >['user'];
 
+export type LookupUser<Account extends Pick<AccountServer, 'getUserInfoBySub'>> = NonNullable<
+  Awaited<ReturnType<Account['getUserInfoBySub']>>
+>;
+
 /** @throws {@link AccountError} 옵션이 없거나 비어 있으면 `invalid_request`. */
 export function createAccountServer<
   const RequiredScopes extends readonly ClientScope[] = [],
