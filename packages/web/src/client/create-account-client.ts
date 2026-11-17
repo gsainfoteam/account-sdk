@@ -171,8 +171,11 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
     });
   };
 
-  const startSession = async (credential: LoginCredential, body?: unknown): Promise<void> => {
-    const started = logouts;
+  const startSession = async (
+    credential: LoginCredential,
+    body?: unknown,
+    started = logouts,
+  ): Promise<void> => {
     const result = await session.start(credential, body);
     if (logouts !== started) return;
 
@@ -186,19 +189,24 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   };
 
   const finishCallback = async ({ url, transaction }: Callback): Promise<void> => {
+    const started = logouts;
     try {
       const params = parseCallback(await metadata(), url, { clientId, state: transaction?.state });
       // web은 항상 openid를 요청하므로 nonce가 없는 transaction은 이 탭이 만든 것이 아니다.
       if (!transaction?.nonce) throw new AccountError('state_mismatch');
 
       const { codeVerifier, redirectUri: sentRedirectUri, nonce } = transaction;
-      await startSession({
-        code: params.code,
-        codeVerifier,
-        redirectUri: sentRedirectUri,
-        nonce,
-        iss: params.iss,
-      });
+      await startSession(
+        {
+          code: params.code,
+          codeVerifier,
+          redirectUri: sentRedirectUri,
+          nonce,
+          iss: params.iss,
+        },
+        undefined,
+        started,
+      );
     } catch (error) {
       const accountError = toAccountError(error);
       if (transaction?.silent && SILENT_LOGIN_FAILURES.has(accountError.code)) {
