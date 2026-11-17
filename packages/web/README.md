@@ -34,7 +34,7 @@ await account.fetch(`${apiUrl}/me`);
 ```
 
 - 상태는 zustand의 vanilla store(`account.store`)에 있으므로, 어느 프레임워크에서든 구독할 수 있습니다.
-- API 요청에는 `account.fetch`, `@infoteam/account-web/openapi-fetch`, `@infoteam/account-web/axios` 중 하나를 씁니다. [예시](https://github.com/gsainfoteam/account-sdk/tree/main/packages/react#5-api-요청)를 참고합니다.
+- API 요청에는 `account.fetch`를 씁니다. openapi-fetch나 hey-api처럼 `fetch` 옵션이 있는 클라이언트에도 `account.fetch`를 넘깁니다. `fetch` 옵션이 없는 axios에만 `@infoteam/account-web/axios`를 씁니다. [예시](https://github.com/gsainfoteam/account-sdk/tree/main/packages/react#5-api-요청)를 참고합니다.
 - 옵션, guard, 에러 코드, 로그아웃은 React와 같습니다. [`account-react` README](https://github.com/gsainfoteam/account-sdk/tree/main/packages/react#사용)를 참고합니다.
 
 ## `session` 옵션

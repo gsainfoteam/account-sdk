@@ -13,7 +13,7 @@ pnpm add @infoteam/account-react zod
 ```
 
 - `zod`(4.x)는 peerDependency입니다. SDK가 export 하는 스키마를 앱과 같은 인스턴스로 쓰기 위해서입니다.
-- `openapi-fetch`나 `axios` 어댑터를 쓸 때만 그 라이브러리를 설치합니다.
+- `axios` 어댑터를 쓸 때만 `axios`를 설치합니다.
 
 ## 사용
 
@@ -113,15 +113,20 @@ account.store.subscribe(() => router.revalidate());
 ### 4. 상태와 로그인
 
 ```tsx
-const { status, error, login, logout, retryLogin, fetch } = useAccount();
+const { isLoading, isAuthenticated, error, login, logout, retryLogin, fetch } = useAccount();
 
-if (status === 'unauthenticated') return <button onClick={() => login()}>로그인</button>;
+if (isLoading) return <Loading />;
+if (!isAuthenticated) return <button onClick={() => login()}>로그인</button>;
 ```
 
-| 값       | 뜻                                                                 |
-| -------- | ------------------------------------------------------------------ |
-| `status` | `loading`, `authenticated`, `unauthenticated` 중 하나              |
-| `error`  | IdP에서 돌아온 로그인이나 세션 복구가 실패했을 때의 `AccountError` |
+| 값                | 뜻                                                                 |
+| ----------------- | ------------------------------------------------------------------ |
+| `status`          | `loading`, `authenticated`, `unauthenticated` 중 하나              |
+| `isLoading`       | `status`가 `loading`인지 나타냅니다                                |
+| `isAuthenticated` | `status`가 `authenticated`인지 나타냅니다                          |
+| `error`           | IdP에서 돌아온 로그인이나 세션 복구가 실패했을 때의 `AccountError` |
+
+세션을 복구하는 동안에는 `isAuthenticated`도 `false`이므로, 비로그인 화면은 `isLoading`을 먼저 확인한 뒤 보여 줍니다.
 
 `login()` 호출 자체가 실패하면(예: IdP에 연결하지 못함) 그 Promise가 reject 되므로 버튼에서도 에러를 처리합니다. 자주 보는 `error.code`는 다음과 같습니다.
 
@@ -147,19 +152,29 @@ if (status === 'unauthenticated') return <button onClick={() => login()}>로그�
 const response = await account.fetch(`${API_URL}/me`); // 컴포넌트 안에서는 useAccount().fetch
 ```
 
-#### openapi-fetch
+#### OpenAPI 클라이언트
+
+OpenAPI 명세로 만든 클라이언트도 `fetch` 옵션에 `account.fetch`를 넘깁니다. 401 뒤의 재시도도 `account.fetch` 안에서 하므로, `account.fetch`가 body가 있는 요청도 그대로 다시 보냅니다.
 
 ```ts
-import { createAccountMiddleware } from '@infoteam/account-react/openapi-fetch';
+// openapi-fetch
+import createClient from 'openapi-fetch';
 
-api.use(createAccountMiddleware(account));
+export const api = createClient<paths>({ baseUrl: API_URL, fetch: account.fetch });
 ```
 
-다른 middleware보다 뒤에 등록합니다. 뒤에 등록한 middleware가 요청을 새 `Request`로 바꾸면, body가 있는 요청은 401 뒤에 다시 보내지 못합니다.
+```ts
+// hey-api: openapi-ts 설정의 runtimeConfigPath 가 가리키는 파일
+export const createClientConfig = <T>(config: T) => ({
+  ...config,
+  baseUrl: API_URL,
+  fetch: account.fetch,
+});
+```
 
 #### axios
 
-axios에는 어댑터로 interceptor를 붙입니다.
+axios는 `fetch` 옵션이 없으므로 어댑터로 interceptor를 붙입니다.
 
 ```ts
 import { attachAccount } from '@infoteam/account-react/axios';
