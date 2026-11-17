@@ -519,3 +519,71 @@ describe('logout with the IdP', () => {
     expect(servers.client.store.getState().status).toBe('unauthenticated');
   });
 });
+
+describe('tabs sharing one refresh cookie', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  // 같은 origin의 탭들이 같이 쓰는 LockManager처럼, 같은 이름의 요청을 하나씩 차례로 실행한다.
+  function sharedLocks(): LockManager {
+    const queues = new Map<string, Promise<unknown>>();
+    const request = (name: string, callback: () => Promise<unknown>) => {
+      const run = (queues.get(name) ?? Promise.resolve()).then(callback);
+      queues.set(
+        name,
+        run.catch(() => undefined),
+      );
+      return run;
+    };
+    return { request, query: async () => ({}) } as unknown as LockManager;
+  }
+
+  it('sends the next refresh only after the previous one has rotated the cookie', async () => {
+    vi.spyOn(navigator, 'locks', 'get').mockReturnValue(sharedLocks());
+    let cookie = 'R0';
+    let rotations = 0;
+    const presented: string[] = [];
+    const deliveries: (() => void)[] = [];
+    const servers = setup({
+      [`${API}/auth/refresh`]: async () => {
+        presented.push(cookie);
+        const next = `R${++rotations}`;
+        // 브라우저는 응답이 도착할 때 Set-Cookie를 반영하므로, 응답을 늦추면 쿠키도 늦게 바뀐다.
+        await new Promise<void>((resolve) => deliveries.push(resolve));
+        cookie = next;
+        return Response.json({ access_token: `access-${next}` });
+      },
+    });
+    const tabA = servers.client;
+    const tabB = servers.create();
+
+    const restoring = Promise.all([tabA.ready(), tabB.ready()]);
+    await vi.waitFor(() => expect(deliveries).toHaveLength(1));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(presented).toEqual(['R0']);
+
+    deliveries.shift()!();
+    await vi.waitFor(() => expect(deliveries).toHaveLength(1));
+    deliveries.shift()!();
+    await restoring;
+
+    expect(presented).toEqual(['R0', 'R1']);
+    expect([tabA.getAccessToken(), tabB.getAccessToken()]).toEqual(['access-R1', 'access-R2']);
+  });
+
+  it('lets the next tab refresh after one fails', async () => {
+    vi.spyOn(navigator, 'locks', 'get').mockReturnValue(sharedLocks());
+    let refreshes = 0;
+    const servers = setup({
+      [`${API}/auth/refresh`]: () =>
+        ++refreshes === 1
+          ? new Response(null, { status: 503 })
+          : Response.json({ access_token: 'restored' }),
+    });
+    const tabB = servers.create();
+
+    await Promise.all([servers.client.ready(), tabB.ready()]);
+
+    expect(servers.client.store.getState()).toMatchObject({ error: { code: 'server_error' } });
+    expect(tabB.getAccessToken()).toBe('restored');
+  });
+});
