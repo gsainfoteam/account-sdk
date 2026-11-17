@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-contract)](https://www.npmjs.com/package/@infoteam/account-contract)
 
-인포팀 계정 IdP(account-be, account-fe)와 SDK가 함께 쓰는 값이다. IdP가 받는 scope와 account-fe의 거절 사유를 담는다.
+인포팀 계정 IdP(account-be, account-fe)와 SDK가 함께 쓰는 값을 모아 둔 패키지다. IdP가 받는 scope와 account-fe의 거절 사유를 담는다.
 
 | 사용처     | 사용 방식                                                                  |
 | ---------- | -------------------------------------------------------------------------- |
