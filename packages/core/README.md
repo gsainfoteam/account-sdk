@@ -8,11 +8,13 @@
 
 ## 구성
 
-- [discovery 문서](https://api.account.gistory.me/.well-known/openid-configuration) 조회와 그 결함 보정([`normalizeDiscovery`](https://github.com/gsainfoteam/account-sdk/blob/main/packages/core/src/discovery/normalize-discovery.ts))
-- PKCE authorization URL
+- [discovery 문서](https://api.account.gistory.me/.well-known/openid-configuration) 조회와 검증([`normalizeDiscovery`](https://github.com/gsainfoteam/account-sdk/blob/main/packages/core/src/discovery/normalize-discovery.ts))
+- client 등록 정보 조회
+- PKCE authorization URL과 로그아웃 URL
 - callback 검증
-- 토큰 요청
+- 토큰 요청(code 교환, client credentials, 폐기)
 - id_token과 userinfo 검증
+- 세션 프로토콜의 요청과 응답 스키마
 - 에러 타입
 
-프로토콜 처리는 [oauth4webapi](https://github.com/panva/oauth4webapi)와 [jose](https://github.com/panva/jose)에 맡기고, 이 패키지는 IdP 고유의 규칙만 맞춥니다.
+프로토콜 처리는 [oauth4webapi](https://github.com/panva/oauth4webapi)와 [jose](https://github.com/panva/jose)에 맡기고, 이 패키지는 IdP 고유의 규칙만 맞춥니다. [zod](https://zod.dev)(4.x)는 peerDependency입니다.

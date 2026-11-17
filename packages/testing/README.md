@@ -32,10 +32,10 @@ pnpm add -D @infoteam/account-testing
 
 ESM으로만 배포합니다.
 
-| 테스트 러너                  | 설정                                                                                                                                                                                     |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [vitest](https://vitest.dev) | 그대로 씁니다. Nest의 생성자 주입은 `emitDecoratorMetadata`가 있어야 동작하므로 [`unplugin-swc`](https://github.com/unplugin/unplugin-swc)를 붙입니다(`plugins: [swc.vite()]`)           |
-| [jest](https://jestjs.io)    | [account-nest의 jest 설정](https://github.com/gsainfoteam/account-sdk/tree/main/packages/nest#jest-설정)에 이 패키지와 [`@faker-js/faker`](https://fakerjs.dev)도 변환 대상으로 넣습니다 |
+| 테스트 러너                  | 설정                                                                                                                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [vitest](https://vitest.dev) | 그대로 씁니다. Nest의 생성자 주입은 `emitDecoratorMetadata`가 있어야 동작하므로 [`unplugin-swc`](https://github.com/unplugin/unplugin-swc)를 붙입니다(`plugins: [swc.vite()]`) |
+| [jest](https://jestjs.io)    | [account-nest의 jest 설정](https://github.com/gsainfoteam/account-sdk/tree/main/packages/nest#jest-설정)을 그대로 씁니다. 이 패키지는 `@infoteam` 패턴으로 함께 변환됩니다     |
 
 ## 예시
 
@@ -87,33 +87,34 @@ it('로그인해야 내 정보를 볼 수 있다', async () => {
 });
 ```
 
-`prisma`, `/me`, `uuid` 필드는 서비스마다 다릅니다. 서비스 env의 `ACCOUNT_CLIENT_ID`와 `ACCOUNT_CLIENT_SECRET`에는 아무 값이나 넣어도 됩니다.
+`prisma`, `/me`, `uuid` 필드는 서비스마다 다릅니다. `clients`를 넘기지 않으면 서비스 env의 `ACCOUNT_CLIENT_ID`와 `ACCOUNT_CLIENT_SECRET`에는 비어 있지 않은 아무 값이나 넣어도 됩니다.
 
 ## API
 
 ### `createFakeIdp(options?)`
 
-| 옵션      | 설명                                                                                                                                                  |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `clients` | 등록된 client 목록(`clientId`, `clientSecret`, `scopes`, `optionalScopes`). 생략하면 어떤 client든 허용하고, 모든 scope를 필수로 등록한 것으로 봅니다 |
-| `users`   | client credentials로 조회(`getUserInfoBySub`)할 수 있는 사용자. `authorize()`로 로그인한 사용자는 자동으로 추가됩니다                                 |
+| 옵션      | 설명                                                                                                                                                                                                                                          |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `clients` | 등록된 client 목록(`clientId`, `clientSecret`, `scopes`, `optionalScopes`, `tokenEndpointAuthMethod`). 생략하면 어떤 client든 허용하고, 모든 scope를 필수로 등록한 것으로 봅니다. `clientSecret`을 생략한 client는 secret을 확인하지 않습니다 |
+| `users`   | client credentials로 조회(`getUserInfoBySub`)할 수 있는 사용자. `authorize()`로 로그인한 사용자는 자동으로 추가됩니다                                                                                                                         |
 
-`clients`를 넘기면 서버가 시작할 때 하는 등록 점검(`requiredScopes`가 필수 scope로 등록됐는가)까지 시험할 수 있습니다.
+`clients`를 넘기면 서버가 시작할 때 하는 [등록 확인](https://github.com/gsainfoteam/account-sdk/tree/main/packages/nest#등록-확인)(scope 등록과 인증 방식)까지 시험할 수 있습니다. 목록에 없는 client id는 `invalid_client`를 받습니다.
 
 ### `idp.authorize(options)`
 
 사용자가 IdP에서 로그인하고 돌아온 상태를 만듭니다. 서비스 `/auth/login`에 보낼 `body`(`code`, `code_verifier`, `redirect_uri`, `nonce`)와 로그인한 `user`를 돌려줍니다. code는 한 번만 쓸 수 있습니다.
 
-| 옵션              | 설명                                                                                            |
-| ----------------- | ----------------------------------------------------------------------------------------------- |
-| `clientId`        | 필수. 서비스가 쓰는 client id와 같아야 합니다                                                   |
-| `user`            | 로그인할 사용자. 생략하면 `fakeUser()`                                                          |
-| `scopes`          | 사용자가 동의한 scope. 생략하면 client에 등록된 전부. 선택 scope를 거절한 경우를 만들 때 씁니다 |
-| `authTime`, `amr` | 로그인 시각(초)과 방식. 기본값은 현재 시각과 비밀번호(`['pwd']`)                                |
+| 옵션              | 설명                                                                                                  |
+| ----------------- | ----------------------------------------------------------------------------------------------------- |
+| `clientId`        | 필수. 서비스가 쓰는 client id와 같아야 합니다                                                         |
+| `user`            | 로그인할 사용자. 생략하면 `fakeUser()`                                                                |
+| `scopes`          | 사용자가 동의한 scope. 생략하면 client에 등록된 전부. 선택 scope를 거절한 경우를 만들 때 씁니다       |
+| `redirectUri`     | 기본값은 `https://service.example/auth/callback`. 서비스가 다른 값으로 교환하면 `invalid_grant`입니다 |
+| `authTime`, `amr` | 로그인 시각(초)과 방식. 기본값은 현재 시각과 비밀번호(`['pwd']`)                                      |
 
 ### `fakeUser(overrides?)`
 
-모든 필드(이름, 이메일, 학번, 전화번호 등)가 무작위로 채워진 IdP 사용자입니다. `sub`처럼 고정할 값만 넘깁니다.
+이름, 이메일, 학번, 전화번호 같은 필드가 무작위로 채워진 IdP 사용자입니다. 학번과 전화번호의 인증 여부는 `true`로 고정되어 있으므로, 인증하지 않은 사용자는 `overrides`로 만듭니다. `sub`처럼 고정할 값만 넘깁니다.
 
 ### `idp.fetch`
 

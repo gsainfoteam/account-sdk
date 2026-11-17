@@ -34,6 +34,7 @@ import { defineAccount } from '@infoteam/account-nest';
 
 export const { AccountModule, AccountService } = defineAccount({
   requiredScopes: ['name', 'email'], // client 에 필수로 등록한 scope
+  clientCredentialsScopes: ['name'], // getUserInfoBySub 로 조회할 scope. 쓰지 않으면 생략한다
 });
 export type AccountService = InstanceType<typeof AccountService>;
 ```
@@ -53,9 +54,26 @@ AccountModule.forRootAsync({
 
 > **`export type AccountService` 줄은 반드시 함께 씁니다.** 이 줄이 있어야 구조 분해로 받은 클래스를 타입으로 쓸 수 있고, `@Inject` 없이 생성자 타입만으로 주입됩니다.
 
-- scope 없이 쓸 때는 `defineAccount` 대신 패키지가 내보내는 `AccountModule`, `AccountService`를 바로 써도 됩니다.
-- 앱이 시작될 때 IdP에 등록한 client 정보를 읽어 `requiredScopes`, `clientCredentialsScopes`, 인증 방식(`client_secret_post`)이 맞는지 확인합니다. 맞지 않으면 앱이 시작되지 않습니다.
-- `verifyRegistration: 'warn'`이면 로그만 남깁니다. IdP에 연결하지 못했을 때도 로그만 남깁니다.
+- scope 없이 쓸 때는 `defineAccount` 대신 패키지가 내보내는 `AccountModule`, `AccountService`를 바로 써도 됩니다. 이때는 `clientCredentialsScopes`가 없으므로 `getUserInfoBySub`를 쓸 수 없습니다.
+- `forRoot`가 받는 값은 `issuer`, `clientId`, `clientSecret?`, `fetch?`, `verifyRegistration?`, `isGlobal?`입니다. 값이 비어 있거나 틀리면 모듈을 만들 때 `invalid_request`를 던집니다.
+
+### 등록 확인
+
+앱이 시작될 때 IdP에 등록한 client 정보를 읽어 아래 항목을 확인합니다.
+
+- `requiredScopes`가 필수 scope로 등록되어 있는지 확인합니다. 선택 scope로 등록되어 있으면 실패합니다.
+- `clientCredentialsScopes`는 필수 scope나 선택 scope 중 어느 쪽으로든 등록되어 있으면 됩니다.
+- `clientSecret`을 줬으면 인증 방식이 `client_secret_post`인지 확인합니다.
+
+`verifyRegistration`으로 확인에 실패했을 때의 동작을 정합니다.
+
+| 값                | 동작                                                                                   |
+| ----------------- | -------------------------------------------------------------------------------------- |
+| `'error'`(기본값) | 등록이 맞지 않거나 IdP가 모르는 client id이면(`invalid_client`) 앱이 시작되지 않습니다 |
+| `'warn'`          | 로그만 남깁니다                                                                        |
+| `'off'`           | 확인하지 않습니다                                                                      |
+
+IdP에 연결하지 못하는 등 `invalid_client`가 아닌 실패는 `'error'`에서도 로그만 남깁니다.
 
 ## 로그인 endpoint
 
@@ -109,8 +127,11 @@ class SignupBody extends LoginBody {
 }
 ```
 
-그 밖에 다음 값도 내보냅니다.
+### 다시 내보내는 값
 
+`@infoteam/account-nest`는 [`@infoteam/account-server`](https://github.com/gsainfoteam/account-sdk/tree/main/packages/server)의 export를 모두 다시 내보냅니다. 그래서 아래 값도 `/dto`가 아니라 `@infoteam/account-nest`에서 import 합니다.
+
+- 에러 타입: `AccountError`
 - 거절 응답의 형식: `SessionRejectedResponse` 타입, `SESSION_REJECTED` 상수
 - wire 형식의 [zod](https://zod.dev) 스키마: `LoginCodeBodySchema`, `LoginTicketBodySchema`, `SessionTokensResponseSchema`
 
@@ -136,7 +157,7 @@ findUser(sub: string) {
 
 ## 에러
 
-SDK는 실패하면 `AccountError`를 던집니다. `toHttpException`이 `code`에 따라 아래 표의 HTTP 예외로 바꿔 던지고, `AccountError`가 아니면 그대로 던집니다. 403은 [거절](https://github.com/gsainfoteam/account-sdk#거절과-ticket) 전용이므로 쓰지 않습니다.
+SDK는 실패하면 `AccountError`를 던집니다. `toHttpException`이 `code`에 따라 아래 표의 HTTP 예외로 바꿔 던지고, `AccountError`가 아니면 그대로 던집니다. 응답 body는 `{ error: code, error_description }`입니다. 403은 [거절](https://github.com/gsainfoteam/account-sdk#거절과-ticket) 전용이므로 쓰지 않습니다.
 
 | `code`                                                                         | 상태 | 의미                                       |
 | ------------------------------------------------------------------------------ | ---- | ------------------------------------------ |
@@ -144,6 +165,8 @@ SDK는 실패하면 `AccountError`를 던집니다. `toHttpException`이 `code`�
 | `network_error`, `server_error`, `discovery_failed`, `temporarily_unavailable` | 502  | IdP에 연결하지 못했거나 IdP가 실패했습니다 |
 | `invalid_client`, `unauthorized_client`, `invalid_scope`, `missing_claims`     | 500  | client 등록이나 서버 설정이 틀렸습니다     |
 | 그 밖의 code (`invalid_grant`, `invalid_id_token` 등)                          | 401  | 만료되거나 이미 쓴 code, 검증 실패         |
+
+401 중 `insufficient_authentication`은 `maxAge`나 `amr` 조건을 채우지 못한 경우입니다. 프론트는 `login({ prompt: 'login' })`으로 사용자를 다시 로그인시킵니다.
 
 ## 테스트
 
