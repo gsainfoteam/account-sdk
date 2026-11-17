@@ -1,11 +1,18 @@
 # @infoteam/account-contract
 
-인포팀 계정 IdP(account-be, account-fe)와 SDK가 함께 쓰는 값. IdP가 받는 scope와 account-fe의 거절 사유를 담는다.
+[![npm](https://img.shields.io/npm/v/%40infoteam%2Faccount-contract)](https://www.npmjs.com/package/@infoteam/account-contract)
 
-- account-be는 이 패키지의 scope 목록으로 요청을 검증하고, 같은 목록을 discovery에 싣는다.
-- SDK의 TypeScript 타입은 이 패키지에서 import 하고, Dart enum은 `pnpm contract:dart`가 이 패키지에서 생성한다.
+인포팀 계정 IdP(account-be, account-fe)와 SDK가 함께 쓰는 값이다. IdP가 받는 scope와 account-fe의 거절 사유를 담는다.
+
+| 사용처     | 사용 방식                                                                  |
+| ---------- | -------------------------------------------------------------------------- |
+| account-be | 이 패키지의 scope 목록으로 요청을 검증하고, 같은 목록을 discovery에 싣는다 |
+| SDK (TS)   | TypeScript 타입을 이 패키지에서 import 한다                                |
+| SDK (Dart) | `pnpm contract:dart`가 이 패키지에서 Dart enum을 생성한다                  |
 
 CommonJS로 빌드하는 account-be에서도 쓸 수 있도록 ESM과 CommonJS를 함께 배포한다.
+
+## 사용
 
 ```ts
 import { CLIENT_SCOPES, type Scope } from '@infoteam/account-contract';

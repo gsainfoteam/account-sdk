@@ -1,8 +1,10 @@
 # gsainfoteam_account
 
+[![pub](https://img.shields.io/pub/v/gsainfoteam_account)](https://pub.dev/packages/gsainfoteam_account)
+
 인포팀 계정(IdP) 로그인을 Flutter 앱에 붙인다. 시스템 브라우저로 IdP에 로그인하고, 서비스 백엔드가 발급한 세션을 보안 저장소에 둔다.
 
-서비스 백엔드는 [세션 프로토콜](../../README.md#세션-프로토콜)의 로그인, 갱신, 로그아웃 endpoint를 구현해야 한다. 이 패키지는 그 endpoint를 `transport: 'body'`로 호출한다.
+> **서비스 백엔드가 [세션 프로토콜](https://github.com/gsainfoteam/account-sdk#세션-프로토콜)의 로그인, 갱신, 로그아웃 endpoint를 구현해야 한다.** 이 패키지는 그 endpoint를 `transport: 'body'`로 호출한다.
 
 ## 설치
 
@@ -10,8 +12,8 @@
 flutter pub add gsainfoteam_account
 ```
 
-iOS와 Android에서 redirect URI의 scheme을 받도록 [flutter_web_auth_2 설정](https://pub.dev/packages/flutter_web_auth_2#setup)을 따른다.
-IdP에도 같은 redirect URI(`pot-g://callback` 같은 형태)를 등록한다.
+1. iOS와 Android에서 redirect URI의 scheme을 받도록 [flutter_web_auth_2 설정](https://pub.dev/packages/flutter_web_auth_2#setup)을 따른다.
+2. IdP에도 같은 redirect URI(`pot-g://callback` 같은 형태)를 등록한다.
 
 ## 사용
 
@@ -32,7 +34,7 @@ account.states.listen((state) => print(state.status)); // loading, authenticated
 
 - `scopes`를 생략하면 IdP에 등록한 필수 scope와 선택 scope를 모두 요청한다. `openid`는 항상 함께 요청한다.
 - 백엔드 경로가 기본값(`/auth/login`, `/auth/refresh`, `/auth/logout`)과 다르면 `paths: SessionPaths(...)`로 준다.
-- 로그인 흐름은 웹과 같다. 다만 앱에는 쿠키가 없으므로 refresh token을 body로 주고받는다.
+- 로그인 흐름은 웹과 같다. 앱에는 쿠키가 없으므로 refresh token을 body로 주고받는다.
 
 ### 로그인
 
@@ -50,12 +52,12 @@ try {
 
 실패하면 sealed class인 `AccountException`의 하위 타입을 던지므로, `switch`로 경우를 모두 처리할 수 있다.
 
-| 예외                              | 뜻                                                                               |
-| --------------------------------- | -------------------------------------------------------------------------------- |
-| `AccountCancelledException`       | 사용자가 브라우저를 닫았다                                                       |
-| `AccountDeniedException`          | IdP가 거절했다. 사용자가 취소했거나 필수 정보를 인증하지 않았다(`reason`)        |
+| 예외                              | 뜻                                                                                                                              |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `AccountCancelledException`       | 사용자가 브라우저를 닫았다                                                                                                      |
+| `AccountDeniedException`          | IdP가 거절했다. 사용자가 취소했거나 필수 정보를 인증하지 않았다(`reason`)                                                       |
 | `AccountSessionRejectedException` | 서비스 백엔드가 실패 응답을 줬다(`statusCode`). 403이면서 ticket이 있으면(`canRetryLogin`) `retryLogin(body)`로 이어 갈 수 있다 |
-| `AccountNetworkException`         | IdP나 서비스 백엔드에 연결하지 못했다                                            |
+| `AccountNetworkException`         | IdP나 서비스 백엔드에 연결하지 못했다                                                                                           |
 
 ### API 요청
 
@@ -74,4 +76,5 @@ await account.logout(); // 서비스 세션만 끝낸다
 await account.logout(idp: true); // 브라우저에서 IdP 로그인 세션까지 끝낸다
 ```
 
-둘의 차이는 [로그아웃](../../README.md#로그아웃)에 있다. `idp: true`이면 로그아웃이 끝난 뒤 `redirectUri`로 돌아온다.
+- 둘의 차이는 [로그아웃](https://github.com/gsainfoteam/account-sdk#로그아웃)에 있다.
+- `idp: true`이면 로그아웃이 끝난 뒤 `redirectUri`로 돌아온다.
