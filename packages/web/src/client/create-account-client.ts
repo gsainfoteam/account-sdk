@@ -143,6 +143,15 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   }));
 
   const refreshMutex = new Mutex();
+  const oneAtATime = async <T>(task: () => Promise<T>): Promise<T> => {
+    await refreshMutex.acquire();
+    try {
+      return await task();
+    } finally {
+      refreshMutex.release();
+    }
+  };
+
   const callback = takeCallback(redirectUri(), transactions);
   const trySilentLogin =
     options.silentLogin === true &&
@@ -242,7 +251,7 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
 
     try {
       const started = logouts;
-      const tokens = await session.refresh();
+      const tokens = await oneAtATime(() => session.refresh());
       if (logouts !== started) return;
       if (tokens) return authenticate(tokens.accessToken);
 
@@ -334,29 +343,28 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
       redirect(logout.url);
     },
 
-    async refresh(staleToken = store.getState().accessToken) {
-      await refreshMutex.acquire();
-      try {
-        const { accessToken } = store.getState();
-        if (accessToken && accessToken !== staleToken) return accessToken;
+    refresh(staleToken = store.getState().accessToken) {
+      return oneAtATime(async () => {
+        try {
+          const { accessToken } = store.getState();
+          if (accessToken && accessToken !== staleToken) return accessToken;
 
-        const started = logouts;
-        const tokens =
-          localStorage.getItem(STORAGE_KEYS.loggedOut) === null && (await session.refresh());
-        if (logouts !== started) return null;
-        if (!tokens) {
-          unauthenticate();
+          const started = logouts;
+          const tokens =
+            localStorage.getItem(STORAGE_KEYS.loggedOut) === null && (await session.refresh());
+          if (logouts !== started) return null;
+          if (!tokens) {
+            unauthenticate();
+            return null;
+          }
+
+          authenticate(tokens.accessToken);
+          return tokens.accessToken;
+        } catch (error) {
+          unauthenticate(toAccountError(error));
           return null;
         }
-
-        authenticate(tokens.accessToken);
-        return tokens.accessToken;
-      } catch (error) {
-        unauthenticate(toAccountError(error));
-        return null;
-      } finally {
-        refreshMutex.release();
-      }
+      });
     },
 
     async fetch(input, init) {

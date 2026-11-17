@@ -393,6 +393,22 @@ describe('ready', () => {
     });
   });
 
+  it('hands the restored token to a refresh called while restoring, without a second request', async () => {
+    let respond = (_: Response) => undefined as void;
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => new Promise<Response>((resolve) => (respond = resolve)),
+    });
+    const restoring = servers.client.ready();
+    await vi.waitFor(() => expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1));
+
+    const refreshing = servers.client.refresh();
+    respond(Response.json({ access_token: 'restored' }));
+    await restoring;
+
+    expect(await refreshing).toBe('restored');
+    expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1);
+  });
+
   it('settles as signed out without a cookie', async () => {
     const { client } = setup({
       [`${API}/auth/refresh`]: () => new Response(null, { status: 401 }),
@@ -517,5 +533,100 @@ describe('logout with the IdP', () => {
 
     expect(servers.redirect).not.toHaveBeenCalled();
     expect(servers.client.store.getState().status).toBe('unauthenticated');
+  });
+});
+
+describe('tabs sharing one refresh cookie', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  function sharedLocks(): LockManager {
+    const queues = new Map<string, Promise<unknown>>();
+    const request = (name: string, callback: () => Promise<unknown>) => {
+      const run = (queues.get(name) ?? Promise.resolve()).then(callback);
+      queues.set(
+        name,
+        run.catch(() => undefined),
+      );
+      return run;
+    };
+    return { request, query: async () => ({}) } as unknown as LockManager;
+  }
+
+  it('sends the next refresh only after the previous one has rotated the cookie', async () => {
+    vi.spyOn(navigator, 'locks', 'get').mockReturnValue(sharedLocks());
+    let cookie = 'R0';
+    let rotations = 0;
+    const presented: string[] = [];
+    const deliveries: (() => void)[] = [];
+    const servers = setup({
+      [`${API}/auth/refresh`]: async () => {
+        presented.push(cookie);
+        const next = `R${++rotations}`;
+        await new Promise<void>((resolve) => deliveries.push(resolve));
+        cookie = next;
+        return Response.json({ access_token: `access-${next}` });
+      },
+    });
+    const tabA = servers.client;
+    const tabB = servers.create();
+
+    const restoring = Promise.all([tabA.ready(), tabB.ready()]);
+    await vi.waitFor(() => expect(deliveries).toHaveLength(1));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(presented).toEqual(['R0']);
+
+    deliveries.shift()!();
+    await vi.waitFor(() => expect(deliveries).toHaveLength(1));
+    deliveries.shift()!();
+    await restoring;
+
+    expect(presented).toEqual(['R0', 'R1']);
+    expect([tabA.getAccessToken(), tabB.getAccessToken()]).toEqual(['access-R1', 'access-R2']);
+  });
+
+  it('takes the same lock when the api address differs only by a trailing slash', async () => {
+    vi.spyOn(navigator, 'locks', 'get').mockReturnValue(sharedLocks());
+    const deliveries: (() => void)[] = [];
+    const servers = setup({
+      [`${API}/auth/refresh`]: async () => {
+        await new Promise<void>((resolve) => deliveries.push(resolve));
+        return Response.json({ access_token: 'restored' });
+      },
+    });
+    const tabB = servers.create();
+    const tabC = createAccountClient({
+      issuer: 'production',
+      clientId: 'ziggle',
+      api: `https://${API}/`,
+      scopes: ['name', 'email'],
+      fetch: servers.fetch,
+    });
+
+    const restoring = Promise.all([tabB.ready(), tabC.ready()]);
+    await vi.waitFor(() => expect(deliveries).toHaveLength(1));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1);
+
+    deliveries.shift()!();
+    await vi.waitFor(() => expect(deliveries).toHaveLength(1));
+    deliveries.shift()!();
+    await restoring;
+  });
+
+  it('lets the next tab refresh after one fails', async () => {
+    vi.spyOn(navigator, 'locks', 'get').mockReturnValue(sharedLocks());
+    let refreshes = 0;
+    const servers = setup({
+      [`${API}/auth/refresh`]: () =>
+        ++refreshes === 1
+          ? new Response(null, { status: 503 })
+          : Response.json({ access_token: 'restored' }),
+    });
+    const tabB = servers.create();
+
+    await Promise.all([servers.client.ready(), tabB.ready()]);
+
+    expect(servers.client.store.getState()).toMatchObject({ error: { code: 'server_error' } });
+    expect(tabB.getAccessToken()).toBe('restored');
   });
 });

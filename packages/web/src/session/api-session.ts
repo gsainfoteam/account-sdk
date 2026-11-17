@@ -3,10 +3,11 @@ import {
   isAuthFailure,
   SESSION_PATHS,
   SESSION_REJECTED,
+  STORAGE_NAMESPACE,
   type Fetch,
   type LoginRequestBody,
 } from '@infoteam/account-core';
-import { attemptAsync, isPlainObject } from 'es-toolkit';
+import { attemptAsync, isPlainObject, trimEnd } from 'es-toolkit';
 import * as z from 'zod/mini';
 
 import { createRequester, readTokens } from './request';
@@ -24,6 +25,7 @@ export function apiSession(
 ): Session {
   const request = createRequester(baseUrl, fetch);
   const { login, refresh, logout } = { ...SESSION_PATHS, ...paths };
+  const refreshLock = `${STORAGE_NAMESPACE}:refresh:${trimEnd(baseUrl, '/')}${refresh}`;
 
   return {
     async start(credential, body) {
@@ -57,15 +59,22 @@ export function apiSession(
       return { rejected: { error, ticket: rejection.success ? rejection.data.ticket : undefined } };
     },
 
-    async refresh() {
-      const response = await request({ path: refresh });
-      if (isAuthFailure(response.status)) return null;
+    refresh() {
+      return acrossTabs(refreshLock, async () => {
+        const response = await request({ path: refresh });
+        if (isAuthFailure(response.status)) return null;
 
-      return readTokens(response, refresh);
+        return readTokens(response, refresh);
+      });
     },
 
     async end(accessToken) {
       await request({ path: logout, accessToken: accessToken ?? undefined });
     },
   };
+}
+
+function acrossTabs<T>(name: string, task: () => Promise<T>): Promise<T> {
+  const locks = navigator.locks as LockManager | null | undefined;
+  return locks ? locks.request(name, task) : task();
 }
