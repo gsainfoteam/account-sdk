@@ -3,6 +3,8 @@ export {
   type AccountServer,
   type AuthenticationRequirement,
   type LoginWithCodeParams,
+  type LoggedInUser,
+  type LookedUpUser,
 } from './account-server';
 export { AccountServerOptionsSchema, type AccountServerOptions } from './options';
 export {

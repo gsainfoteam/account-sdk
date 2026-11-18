@@ -139,6 +139,19 @@ class SignupBody extends LoginBody {
 
 `requiredScopes`에 넣은 scope의 필드는 `loginWithCode`가 돌려주는 사용자에서 필수 타입이 됩니다. 예를 들어 `email`을 넣으면 `user.email`은 `string`입니다. id_token에 그 필드가 빠져 있으면 SDK가 `missing_claims`로 실패하므로, `undefined`가 서비스 코드까지 전달되지 않습니다. 다만 `profile`과 `picture`는 사용자가 비워 둘 수 있어서 필수 scope여도 `undefined`일 수 있습니다.
 
+사용자를 다른 함수에 넘길 때는 scope를 다시 적지 않고 `AccountService`에서 타입을 꺼냅니다. 로그인한 사용자와 조회한 사용자는 채워지는 필드가 달라서 타입도 따로 둡니다.
+
+```ts
+import { defineAccount, type LoggedInUser, type LookedUpUser } from '@infoteam/account-nest';
+
+export const { AccountModule, AccountService } = defineAccount({
+  requiredScopes: ['name', 'email'],
+});
+export type AccountService = InstanceType<typeof AccountService>;
+export type AccountUser = LoggedInUser<AccountService>;
+export type FoundUser = LookedUpUser<AccountService>;
+```
+
 > **`requiredScopes`에는 client에 필수로 등록한 scope만 넣습니다.** 사용자가 거부할 수 있는 선택 scope를 넣으면, 그 scope를 거부한 사용자는 로그인하지 못합니다.
 
 scope 구성이 다른 설정이 여러 개 필요하면(예: 사용자 앱과 관리자 웹) `defineAccount`를 여러 번 호출합니다. 호출할 때마다 주입 토큰이 따로 생깁니다.
