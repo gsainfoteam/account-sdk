@@ -74,12 +74,12 @@ export interface AccountServer<
   verifyRegistration(): Promise<void>;
 }
 
-/** `loginWithCode`가 돌려주는 사용자다. `requiredScopes`를 다시 적지 않고 `A`(`AccountServer`나 `AccountService`)에서 꺼낸다. */
+/** `loginWithCode`가 돌려주는 사용자다. `A`에는 `AccountServer`나 nest의 `AccountService`를 넣는다. */
 export type LoggedInUser<A extends Pick<AccountServer, 'loginWithCode'>> = Awaited<
   ReturnType<A['loginWithCode']>
 >['user'];
 
-/** `getUserInfoBySub`로 찾은 사용자다. 로그인 사용자와 달리 `clientCredentialsScopes`와 `requiredScopes`에 모두 있는 scope의 필드만 채워진다. */
+/** `getUserInfoBySub`가 찾은 사용자다(`null` 제외). `clientCredentialsScopes`와 `requiredScopes`에 모두 있는 scope의 필드만 필수다. */
 export type LookedUpUser<A extends Pick<AccountServer, 'getUserInfoBySub'>> = NonNullable<
   Awaited<ReturnType<A['getUserInfoBySub']>>
 >;

@@ -148,8 +148,8 @@ export const { AccountModule, AccountService } = defineAccount({
   requiredScopes: ['name', 'email'],
 });
 export type AccountService = InstanceType<typeof AccountService>;
-export type AccountUser = LoggedInUser<AccountService>; // loginWithCode 의 user
-export type FoundUser = LookedUpUser<AccountService>; // getUserInfoBySub 가 찾은 사용자 (null 제외)
+export type AccountUser = LoggedInUser<AccountService>;
+export type FoundUser = LookedUpUser<AccountService>;
 ```
 
 > **`requiredScopes`에는 client에 필수로 등록한 scope만 넣습니다.** 사용자가 거부할 수 있는 선택 scope를 넣으면, 그 scope를 거부한 사용자는 로그인하지 못합니다.
