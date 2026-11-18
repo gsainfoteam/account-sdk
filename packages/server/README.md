@@ -42,6 +42,7 @@ user.studentId; // string | undefined
 
 - `requiredScopes`의 필드는 `loginWithCode` 결과에서 필수 타입이 됩니다. id_token에 필드가 빠져 있으면 `missing_claims`로 실패합니다. `profile`과 `picture`는 사용자가 비워 둘 수 있어서 예외입니다.
 - `getUserInfoBySub` 결과에서는 `clientCredentialsScopes` 중 `requiredScopes`에도 있는 필드만 필수 타입입니다. 선택 scope는 사용자가 거절했을 수 있어서, 그 필드는 `undefined`일 수 있습니다. 필수 타입인 필드가 응답에 없으면 `missing_claims`로 실패합니다.
+- 두 결과의 타입은 `LoggedInUser<typeof account>`와 `LookedUpUser<typeof account>`로 꺼냅니다. scope를 `UserInfo<'name' | 'email'>`처럼 다시 적지 않아도 됩니다.
 
 > **`requiredScopes`에는 client에 필수로 등록한 scope만 넣습니다.** 선택 scope를 넣으면 그 scope를 거부한 사용자는 로그인하지 못합니다.
 

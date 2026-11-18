@@ -6,7 +6,13 @@ import { Inject, Injectable, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { afterEach, describe, expect, expectTypeOf, it } from 'vitest';
 
-import { AccountModule, AccountService, defineAccount } from '../src';
+import {
+  AccountModule,
+  AccountService,
+  defineAccount,
+  type LoggedInUser,
+  type LookedUpUser,
+} from '../src';
 
 const idp = await createFakeIdp();
 const options = {
@@ -94,13 +100,24 @@ describe('AccountModule', () => {
     }).compile();
     const account: StudentAccount = moduleRef.get(student.AccountService);
 
-    expectTypeOf<
-      Awaited<ReturnType<StudentAccount['loginWithCode']>>['user']['studentId']
-    >().toEqualTypeOf<string>();
+    expectTypeOf<LoggedInUser<StudentAccount>['studentId']>().toEqualTypeOf<string>();
     await expect(account.loginWithCode(await login())).rejects.toMatchObject({
       code: 'missing_claims',
       description: 'student_id is_student_id_verified',
     });
+  });
+
+  it('types a logged-in user and a looked-up user apart', () => {
+    const _account = defineAccount({
+      requiredScopes: ['name', 'email'],
+      clientCredentialsScopes: ['name', 'student_id'],
+    });
+    type Account = InstanceType<typeof _account.AccountService>;
+
+    expectTypeOf<LoggedInUser<Account>['email']>().toEqualTypeOf<string>();
+    expectTypeOf<LookedUpUser<Account>['name']>().toEqualTypeOf<string>();
+    expectTypeOf<LookedUpUser<Account>['email']>().toEqualTypeOf<string | undefined>();
+    expectTypeOf<LookedUpUser<Account>['studentId']>().toEqualTypeOf<string | undefined>();
   });
 
   it('keeps accounts defined with different scopes apart in one app', async () => {
