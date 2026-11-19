@@ -8,7 +8,8 @@ export const API_URL = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:4000'
  */
 export const account = createAccountClient({
   issuer: import.meta.env.PUBLIC_ACCOUNT_ISSUER ?? 'staging',
-  clientId: import.meta.env.PUBLIC_ACCOUNT_CLIENT_ID ?? 'set-PUBLIC_ACCOUNT_CLIENT_ID',
+  // dev 스크립트는 .env에 client id가 없으면 빈 문자열을 넘기므로 `??`가 아니라 `||`로 받는다.
+  clientId: import.meta.env.PUBLIC_ACCOUNT_CLIENT_ID || 'set-PUBLIC_ACCOUNT_CLIENT_ID',
   api: API_URL,
   callbackNavigation: 'document',
 });
