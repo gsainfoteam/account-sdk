@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from 'v
 
 import production from '../../core/tests/fixtures/discovery.production.json' with { type: 'json' };
 import {
+  AccountError,
   createAccountClient,
   type AccountClient,
   type AccountClientOptions,
@@ -399,6 +400,24 @@ describe('a service that asks for consent before login (house-moving-out)', () =
     expectTypeOf(createAccountClient<Consent>).returns.toEqualTypeOf<AccountClient<Consent>>();
     expectTypeOf<AccountClient<Consent>['retryLogin']>().parameter(0).toEqualTypeOf<Consent>();
     expectTypeOf<AccountClient['retryLogin']>().parameter(0).toBeUnknown();
+  });
+
+  it('rejects the retry with the same AccountError it keeps in the store', async () => {
+    const offline = new TypeError('offline');
+    const session = customSession({
+      start: vi.fn<Session['start']>(async (credential) => {
+        if ('ticket' in credential) throw offline;
+        return { rejected: { error: new AccountError('session_rejected'), ticket: 't-1' } };
+      }),
+    });
+    const servers = setup({}, { api: undefined, session });
+    const { returned } = await loginAndReturn(servers);
+    await returned.ready();
+
+    const failure = await returned.retryLogin({}).catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({ code: 'unknown', cause: offline });
+    expect(returned.store.getState().error).toBe(failure);
   });
 
   it('rejects the retry when a logout happens while it waits', async () => {

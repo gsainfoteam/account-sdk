@@ -16,11 +16,12 @@ export async function retryLogin(context: AccountContext, body: unknown): Promis
   try {
     await startSession(context, { ticket: account.rejection.ticket }, body, loggedOutMeanwhile);
   } catch (error) {
+    const accountError = toAccountError(error);
     if (!loggedOutMeanwhile()) {
-      if (error instanceof AccountError.Expired) account.rejection = null;
-      account.unauthenticate(toAccountError(error));
+      if (accountError instanceof AccountError.Expired) account.rejection = null;
+      account.unauthenticate(accountError);
     }
-    throw error;
+    throw accountError;
   }
 
   if (loggedOutMeanwhile()) {
