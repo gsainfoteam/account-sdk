@@ -30,7 +30,7 @@ import {
   type Session,
   type SessionRejection,
 } from '../session/session-adapter';
-import { browserStorage } from '../storage/browser-storage';
+import { browserStorage, isMemoryStorage } from '../storage/browser-storage';
 import { STORAGE_KEYS } from '../storage/keys';
 import { saveTransaction, takeTransaction, type StoredTransaction } from '../storage/transactions';
 
@@ -121,6 +121,8 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   const session = options.session ?? sessionFromApi(options.api!, fetch);
   const transactions = options.transactionStorage ?? browserStorage('sessionStorage');
   const flags = browserStorage('localStorage');
+  // storage가 막히면 IdP에 다녀오는 동안 로그인 진행 정보를 잃어서, 돌아와도 `state_mismatch`로 끝난다.
+  const canRoundTrip = !isMemoryStorage(transactions);
   const redirect: Redirect =
     options.redirect ??
     ((url, { replace = false } = {}) =>
@@ -170,6 +172,7 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   const callback = takeCallback({ redirectUri: redirectUri(), transactions, navigation, redirect });
   const trySilentLogin =
     options.silentLogin === true &&
+    canRoundTrip &&
     callback === null &&
     transactions.getItem(STORAGE_KEYS.silentLoginTried) === null &&
     flags.getItem(STORAGE_KEYS.loggedOut) === null;
@@ -181,6 +184,11 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   let logouts = 0;
   // `true`로 끝나면 IdP 로그아웃으로 떠나는 중이다.
   let pendingLogout: Promise<boolean> | undefined;
+
+  // IdP 로그아웃 화면에서 뒤로 가기로 돌아와 bfcache가 이 페이지를 되살리면, 떠나던 로그아웃은 이미 끝난 것이다.
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) pendingLogout = undefined;
+  });
 
   const authenticate = (accessToken: string): void => {
     rejection = null;
@@ -314,7 +322,7 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
     returnTo: string,
   ): Promise<boolean> => {
     await session.end(accessToken).catch(() => undefined);
-    if (!idp) return false;
+    if (!idp || !canRoundTrip) return false;
 
     const logout = createLogoutUrl(await metadata(), {
       clientId,
@@ -360,6 +368,11 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
       if (pendingLogout && (await pendingLogout)) return;
 
       try {
+        if (!canRoundTrip) {
+          throw new AccountError('unknown', {
+            description: 'site storage is blocked, so the login cannot come back to this page',
+          });
+        }
         await authorize(returnTo, prompt, false);
       } catch (error) {
         const accountError = toAccountError(error);
@@ -565,7 +578,8 @@ function sameOriginPath(value: string): string | undefined {
   const [, url] = attempt(() => new URL(value, window.location.origin));
   if (url?.origin !== window.location.origin) return undefined;
 
-  return url.pathname + url.search + url.hash;
+  // `//evil.com/x`는 scheme-relative URL이라 문서 이동에서 다른 origin으로 간다.
+  return url.pathname.replace(/^\/{2,}/, '/') + url.search + url.hash;
 }
 
 function toAccountError(error: unknown): AccountError {

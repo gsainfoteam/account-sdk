@@ -274,6 +274,20 @@ describe('the callback page', () => {
       expect(returned.store.getState().status).toBe('unauthenticated');
     });
 
+    it('keeps a returnTo with a doubled slash on this site', async () => {
+      const servers = setup(routes, document);
+      await servers.client.login({ returnTo: `${window.location.origin}//evil.example/x?y=1#z` });
+      const state = new URL(servers.redirect.mock.calls.at(-1)![0]).searchParams.get('state')!;
+      window.history.replaceState(null, '', `/auth/callback?code=code-1&state=${state}`);
+
+      void servers.create().ready();
+      await vi.waitFor(() =>
+        expect(servers.redirect).toHaveBeenLastCalledWith('/evil.example/x?y=1#z', {
+          replace: true,
+        }),
+      );
+    });
+
     it('stays for an IdP logout that started while the login was finishing', async () => {
       let respond = () => undefined as void;
       const servers = setup(
@@ -517,13 +531,17 @@ describe('ready', () => {
     expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1);
   });
 
-  it('still logs in when the browser blocks site storage', async () => {
-    const blocked = () => {
-      throw new DOMException('The operation is insecure.', 'SecurityError');
-    };
-    vi.spyOn(window, 'localStorage', 'get').mockImplementation(blocked);
-    vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(blocked);
-    try {
+  describe('when the browser blocks site storage', () => {
+    beforeEach(() => {
+      const blocked = () => {
+        throw new DOMException('The operation is insecure.', 'SecurityError');
+      };
+      vi.spyOn(window, 'localStorage', 'get').mockImplementation(blocked);
+      vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(blocked);
+    });
+    afterEach(() => vi.restoreAllMocks());
+
+    it('still restores and ends the session', async () => {
       const servers = setup({
         [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }),
         [`${API}/auth/logout`]: () => new Response(null, { status: 204 }),
@@ -531,13 +549,42 @@ describe('ready', () => {
       await servers.client.ready();
       expect(servers.client.getAccessToken()).toBe('restored');
 
-      await servers.client.logout();
+      await servers.client.logout({ idp: true });
       expect(servers.client.store.getState().status).toBe('unauthenticated');
-      await servers.client.login();
-      expect(servers.redirect).toHaveBeenCalledOnce();
-    } finally {
-      vi.restoreAllMocks();
-    }
+      expect(servers.redirect).not.toHaveBeenCalled();
+    });
+
+    it('refuses to start a login that could not come back, instead of failing at the callback', async () => {
+      const servers = setup({ [`${API}/auth/refresh`]: () => new Response(null, { status: 401 }) });
+      await servers.client.ready();
+
+      await expect(servers.client.login()).rejects.toMatchObject({
+        code: 'unknown',
+        message: expect.stringContaining('storage is blocked'),
+      });
+      expect(servers.client.store.getState().error).toMatchObject({ code: 'unknown' });
+      expect(servers.redirect).not.toHaveBeenCalled();
+    });
+
+    it('does not try a silent login', async () => {
+      const servers = setup(
+        { [`${API}/auth/refresh`]: () => new Response(null, { status: 401 }) },
+        { silentLogin: true },
+      );
+      await servers.client.ready();
+
+      expect(servers.redirect).not.toHaveBeenCalled();
+      expect(servers.client.store.getState().status).toBe('unauthenticated');
+    });
+
+    it('reports a callback that arrives anyway as state_mismatch', async () => {
+      window.history.replaceState(null, '', '/auth/callback?code=code-1&state=s-1');
+      const servers = setup({});
+      await servers.client.ready();
+
+      expect(servers.client.store.getState().error).toMatchObject({ code: 'state_mismatch' });
+      expect(servers.callsTo(`${API}/auth/login`)).toHaveLength(0);
+    });
   });
 
   it('settles as signed out without a cookie', async () => {
@@ -781,6 +828,18 @@ describe('logout with the IdP', () => {
 
     expect(servers.redirect).toHaveBeenCalledOnce();
     expect(new URL(servers.redirect.mock.calls[0]![0]).pathname).toBe('/logout');
+  });
+
+  it('lets the user log in again after coming back from the IdP logout page', async () => {
+    const servers = setup(routes);
+    await servers.client.logout({ idp: true });
+    expect(new URL(servers.redirect.mock.calls[0]![0]).pathname).toBe('/logout');
+
+    window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }));
+    await servers.client.login();
+
+    expect(servers.redirect).toHaveBeenCalledTimes(2);
+    expect(new URL(servers.redirect.mock.calls[1]![0]).pathname).toBe('/authorize');
   });
 
   it('only ends the service session when the IdP does not advertise logout', async () => {
