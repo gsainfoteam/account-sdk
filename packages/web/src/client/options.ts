@@ -37,7 +37,11 @@ export const AccountClientOptionsSchema = z
     /** 백엔드가 세션 프로토콜과 다른 형식이면 백엔드 호출을 직접 구현해서 준다. `api`와 함께 줄 수 없다. */
     session: z.optional(z.custom<Session>(isSession)),
     redirectUri: z.optional(nonEmpty()),
-    callbackNavigation: z.optional(z.enum(['history', 'document'])),
+    /**
+     * 기본값 `'spa'`는 callback 주소를 로그인 전 위치로 바꾸기만 하고 라우터가 그 화면을 그린다. Astro처럼 페이지마다
+     * 문서를 새로 받는 앱은 `'mpa'`를 주면 로그인을 마친 뒤 로그인 전 위치를 새로 불러온다.
+     */
+    app: z.optional(z.enum(['spa', 'mpa'])),
     /** `account.fetch`는 `api` origin(`session`을 주면 페이지 origin)과 이 origin에만 토큰을 붙인다. */
     tokenOrigins: z.optional(z.array(nonEmpty())),
     /**
@@ -62,3 +66,4 @@ export const AccountClientOptionsSchema = z
 
 export type AccountClientOptions = z.input<typeof AccountClientOptionsSchema>;
 export type ParsedAccountClientOptions = z.output<typeof AccountClientOptionsSchema>;
+export type AppKind = NonNullable<ParsedAccountClientOptions['app']>;

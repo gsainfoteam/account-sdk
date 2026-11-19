@@ -54,20 +54,20 @@ await account.fetch(`${apiUrl}/me`);
 
 ## MPA
 
-[Astro](https://astro.build)처럼 페이지마다 문서를 새로 받는 앱은 `callbackNavigation: 'document'`를 줍니다.
+[Astro](https://astro.build)처럼 페이지마다 문서를 새로 받는 앱은 `app: 'mpa'`를 줍니다.
 
 ```ts
 export const account = createAccountClient({
   issuer: 'production',
   clientId,
   api: apiUrl,
-  callbackNavigation: 'document',
+  app: 'mpa',
 });
 ```
 
 - `redirectUri`(기본값 `/auth/callback`)에 페이지를 만들고 client를 import 합니다. 로그인을 마치면 client가 로그인 전 위치를 새로 불러오므로 이 페이지는 잠깐만 보입니다.
 - 로그인이 실패하면 callback 페이지에 머뭅니다. 여기서 `error`를 보여 주고 다시 로그인할 버튼을 둡니다.
-- 기본값 `'history'`는 주소만 바꾸므로 callback 페이지가 그대로 남습니다. SPA 라우터가 있을 때만 씁니다.
+- 기본값 `'spa'`는 주소만 바꾸므로 callback 페이지가 그대로 남습니다. SPA 라우터가 있을 때만 씁니다.
 - 정적 호스팅이 `/auth/callback`을 `/auth/callback/`으로 바꿔도 같은 주소로 봅니다.
 
 [`examples/astro`](https://github.com/gsainfoteam/account-sdk/tree/main/examples/astro)에 React island로 만든 예제가 있습니다.

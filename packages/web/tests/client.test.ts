@@ -54,6 +54,17 @@ describe('createAccountClient', () => {
     );
   });
 
+  it('names the app kind spa or mpa', () => {
+    expect(() =>
+      createAccountClient({
+        issuer: 'production',
+        clientId: 'ziggle',
+        api: '/api',
+        app: 'document' as 'mpa',
+      }),
+    ).toThrow(expect.objectContaining({ code: 'invalid_request' }));
+  });
+
   it.each([
     ['neither', {}],
     ['both', { api: '/api', session: customSession() }],
@@ -259,10 +270,10 @@ describe('the callback page', () => {
   });
 
   describe('in an app that loads a document per page', () => {
-    const document = { callbackNavigation: 'document' } as const;
+    const mpa = { app: 'mpa' } as const;
 
     it('stays on the callback page until the login is done, then loads where the user was', async () => {
-      const servers = setup(routes, document);
+      const servers = setup(routes, mpa);
       const { returned } = await loginAndReturn(servers);
 
       expect(window.location.pathname + window.location.search).toBe('/auth/callback');
@@ -277,7 +288,7 @@ describe('the callback page', () => {
     });
 
     it('stays on the callback page to show a failed login', async () => {
-      const servers = setup(routes, document);
+      const servers = setup(routes, mpa);
       const { returned } = await loginAndReturn(servers, (state) => `code=bad&state=${state}`);
       servers.redirect.mockClear();
       await returned.ready();
@@ -288,7 +299,7 @@ describe('the callback page', () => {
     });
 
     it('keeps a returnTo with a doubled slash on this site', async () => {
-      const servers = setup(routes, document);
+      const servers = setup(routes, mpa);
       await servers.client.login({ returnTo: `${window.location.origin}//evil.example/x?y=1#z` });
       const state = new URL(servers.redirect.mock.calls.at(-1)![0]).searchParams.get('state')!;
       window.history.replaceState(null, '', `/auth/callback?code=code-1&state=${state}`);
@@ -311,7 +322,7 @@ describe('the callback page', () => {
             }),
           [`${API}/auth/logout`]: () => new Response(null, { status: 204 }),
         },
-        document,
+        mpa,
       );
       const { returned } = await loginAndReturn(servers);
       servers.redirect.mockClear();

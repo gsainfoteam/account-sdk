@@ -7,7 +7,7 @@ import {
 } from '@infoteam/account-core';
 import { Mutex } from 'es-toolkit';
 
-import { type ParsedAccountClientOptions, type Redirect } from './options';
+import { type AppKind, type ParsedAccountClientOptions, type Redirect } from './options';
 import { onRestoredFromBackForwardCache } from '../internal/back-forward-cache';
 import { takeCallback, type Callback } from '../login/callback';
 import { createLogoutGate, type LogoutGate } from '../logout/logout-gate';
@@ -24,7 +24,7 @@ export interface AccountContext {
   readonly flags: Storage;
   readonly canRoundTrip: boolean;
   readonly redirect: Redirect;
-  readonly navigation: 'history' | 'document';
+  readonly app: AppKind;
   readonly account: AccountStore;
   readonly refreshMutex: Mutex;
   readonly callback: Callback | null;
@@ -55,7 +55,7 @@ export function createContext(options: ParsedAccountClientOptions): AccountConte
     account.leavePage();
     navigate(url, navigateOptions);
   };
-  const navigation = options.callbackNavigation ?? 'history';
+  const app = options.app ?? 'spa';
 
   const metadata = () => discover(options.issuer, { fetch });
   const redirectUri = (): string =>
@@ -77,7 +77,7 @@ export function createContext(options: ParsedAccountClientOptions): AccountConte
 
   const refreshMutex = new Mutex();
 
-  const callback = takeCallback({ redirectUri: redirectUri(), transactions, navigation, redirect });
+  const callback = takeCallback({ redirectUri: redirectUri(), transactions, app, redirect });
   const trySilentLogin =
     options.silentLogin === true &&
     canRoundTrip &&
@@ -95,7 +95,7 @@ export function createContext(options: ParsedAccountClientOptions): AccountConte
     flags,
     canRoundTrip,
     redirect,
-    navigation,
+    app,
     account,
     refreshMutex,
     callback,
