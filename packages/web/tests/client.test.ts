@@ -587,6 +587,40 @@ describe('ready', () => {
     });
   });
 
+  describe('when the browser blocks only localStorage', () => {
+    beforeEach(() => {
+      vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
+        throw new DOMException('The operation is insecure.', 'SecurityError');
+      });
+    });
+    afterEach(() => vi.restoreAllMocks());
+
+    it('stays signed out after a reload when the logout never reached the server', async () => {
+      const servers = setup({
+        [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }),
+        [`${API}/auth/logout`]: () => new Response(null, { status: 503 }),
+      });
+      await servers.client.ready();
+      await servers.client.logout();
+
+      const reloaded = servers.create();
+      await reloaded.ready();
+
+      expect(reloaded.store.getState().status).toBe('unauthenticated');
+      expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1);
+    });
+
+    it('does not try a silent login, which a new tab could not tell from a logout', async () => {
+      const servers = setup(
+        { [`${API}/auth/refresh`]: () => new Response(null, { status: 401 }) },
+        { silentLogin: true },
+      );
+      await servers.client.ready();
+
+      expect(servers.redirect).not.toHaveBeenCalled();
+    });
+  });
+
   it('settles as signed out without a cookie', async () => {
     const { client } = setup({
       [`${API}/auth/refresh`]: () => new Response(null, { status: 401 }),
@@ -656,6 +690,40 @@ describe('fetch', () => {
       false,
     );
     expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1);
+  });
+
+  it('judges a relative URL by the base the request is sent to', async () => {
+    const base = document.createElement('base');
+    base.href = 'https://bucket.example.com/';
+    document.head.append(base);
+    try {
+      const servers = setup({
+        [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }),
+        'bucket.example.com/upload': () => new Response(null, { status: 204 }),
+      });
+      await servers.client.ready();
+
+      await servers.client.fetch('upload', { method: 'PUT' });
+
+      const [sent] = servers.callsTo('bucket.example.com/upload');
+      expect(sent!.headers.has('authorization')).toBe(false);
+    } finally {
+      base.remove();
+    }
+  });
+
+  it('sends a read Request with the body given in init', async () => {
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }),
+      [`${API}/upload`]: () => new Response(null, { status: 204 }),
+    });
+    await servers.client.ready();
+    const request = new Request(`https://${API}/upload`, { method: 'POST', body: 'original' });
+    await request.text();
+
+    await servers.client.fetch(request, { body: 'replacement' });
+
+    expect(servers.callsTo(`${API}/upload`)[0]!.body).toBe('replacement');
   });
 
   it('does not retry a request whose stream body is already spent', async () => {
@@ -798,6 +866,36 @@ describe('logout with the IdP', () => {
     respond();
     await logout;
     await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(servers.redirect).toHaveBeenCalledOnce();
+    expect(new URL(servers.redirect.mock.calls[0]![0]).pathname).toBe('/logout');
+  });
+
+  it('drops a login that was fetching scopes when the IdP logout started', async () => {
+    let register = () => undefined as void;
+    const servers = setup(
+      {
+        ...routes,
+        [REGISTRATION]: () =>
+          new Promise<Response>((resolve) => {
+            register = () =>
+              resolve(
+                Response.json({
+                  scopes: ['name'],
+                  optionalScopes: [],
+                  tokenEndpointAuthMethod: 'none',
+                }),
+              );
+          }),
+      },
+      { scopes: undefined },
+    );
+
+    const login = servers.client.login();
+    await vi.waitFor(() => expect(servers.callsTo(REGISTRATION)).toHaveLength(1));
+    await servers.client.logout({ idp: true });
+    register();
+    await login;
 
     expect(servers.redirect).toHaveBeenCalledOnce();
     expect(new URL(servers.redirect.mock.calls[0]![0]).pathname).toBe('/logout');

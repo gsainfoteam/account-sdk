@@ -40,7 +40,9 @@ await account.fetch(`${apiUrl}/me`);
 - 상태는 [zustand](https://github.com/pmndrs/zustand)의 vanilla store(`account.store`)에 있으므로, 어느 프레임워크에서든 구독할 수 있습니다.
 - API 요청에는 `account.fetch`를 씁니다. [openapi-fetch](https://openapi-ts.dev/openapi-fetch/)나 [hey-api](https://heyapi.dev)처럼 `fetch` 옵션이 있는 클라이언트에도 `account.fetch`를 넘깁니다. `fetch` 옵션이 없는 [axios](https://github.com/axios/axios)에만 `@infoteam/account-web/axios`를 씁니다. [예시](https://github.com/gsainfoteam/account-sdk/tree/main/packages/react#5-api-요청)를 참고합니다.
 - 옵션, guard, 에러 코드, 로그아웃은 React와 같습니다. [`account-react` README](https://github.com/gsainfoteam/account-sdk/tree/main/packages/react#사용)를 참고합니다.
-- 브라우저가 `localStorage`나 `sessionStorage`를 막으면(쿠키 차단 설정, sandbox iframe) 메모리에 둡니다. 이때는 IdP에 다녀오는 동안 로그인 진행 정보를 잃으므로, `login()`과 `requireAuth()`가 IdP로 보내지 않고 `unknown`으로 reject 하고 자동 로그인과 IdP 로그아웃은 건너뜁니다. 이미 있는 세션의 복구와 로그아웃은 그대로 됩니다.
+- 브라우저가 storage를 막아도(쿠키 차단 설정, sandbox iframe) 이미 있는 세션의 복구와 로그아웃은 그대로 됩니다.
+  - `sessionStorage`가 막히면 IdP에 다녀오는 동안 로그인 진행 정보를 잃습니다. 그래서 `login()`과 `requireAuth()`는 IdP로 보내지 않고 `unknown`으로 reject 하고, 자동 로그인과 IdP 로그아웃은 건너뜁니다.
+  - `localStorage`만 막히면 로그아웃 표시를 `sessionStorage`에 둡니다. 같은 탭은 새로고침해도 로그아웃 상태가 유지되지만, 새 탭은 이 표시를 모릅니다. 그래서 서버 로그아웃 요청이 실패해 refresh 쿠키가 남았다면 새 탭에서 세션이 복구될 수 있습니다. 자동 로그인은 건너뜁니다.
 
 ## 서버 렌더링
 

@@ -12,8 +12,14 @@ export function authorizedFetch(context: AuthorizedFetchContext): Fetch {
   const base = context.fetch ?? ((input, init) => globalThis.fetch(input, init));
 
   return async (input, init) => {
-    const url = new URL(input instanceof Request ? input.url : String(input), window.location.href);
-    if (!context.tokenOrigins.has(url.origin)) return base(input, init);
+    // fetch는 상대 URL을 `<base href>` 기준으로 보내므로 같은 기준으로 origin을 판정한다.
+    const url = new URL(
+      input instanceof Request ? input.url : String(input),
+      window.document.baseURI,
+    );
+    if (!context.tokenOrigins.has(url.origin)) {
+      return base(input instanceof Request ? input : url.href, init);
+    }
 
     await context.ready();
 
@@ -23,7 +29,9 @@ export function authorizedFetch(context: AuthorizedFetchContext): Fetch {
       );
       if (token) headers.set(AUTHORIZATION_HEADER, bearer(token));
 
-      const request = input instanceof Request ? input.clone() : input;
+      // 이미 읽은 Request는 clone()이 throw 하지만, init.body가 본문을 대신하면 그대로 보낼 수 있다.
+      const request =
+        input instanceof Request ? (init?.body == null ? input.clone() : input) : url.href;
       return base(request, { ...init, headers });
     };
 

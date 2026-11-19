@@ -50,7 +50,9 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   const { clientId, fetch } = options;
   const session = options.session ?? sessionFromApi(options.api!, fetch);
   const transactions = options.transactionStorage ?? browserStorage('sessionStorage');
-  const flags = browserStorage('localStorage');
+  const persistent = browserStorage('localStorage');
+  // localStorage만 막혀도 로그아웃 표식이 새로고침에 사라지지 않게 탭에라도 남긴다.
+  const flags = isMemoryStorage(persistent) ? browserStorage('sessionStorage') : persistent;
   // 메모리에 둔 로그인 진행 정보는 IdP에 다녀오는 동안 사라져서, 돌아와도 `state_mismatch`로 끝난다.
   const canRoundTrip = !isMemoryStorage(transactions);
   const redirect: Redirect =
@@ -98,6 +100,8 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   const trySilentLogin =
     options.silentLogin === true &&
     canRoundTrip &&
+    // 탭에 남긴 로그아웃 표식은 새 탭에 없어서, 로그아웃한 사용자를 IdP 세션으로 다시 로그인시킨다.
+    !isMemoryStorage(persistent) &&
     callback === null &&
     transactions.getItem(STORAGE_KEYS.silentLoginTried) === null &&
     flags.getItem(STORAGE_KEYS.loggedOut) === null;
@@ -198,6 +202,8 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
       scopes: [OPENID_SCOPE, ...(await scopes())],
       prompt: prompt ?? (loggedOut ? 'login' : undefined),
     });
+    // scope를 받아 오는 동안 IdP 로그아웃이 시작됐으면, 지금 이동하면 그 이동을 덮어쓴다.
+    if (await logoutGate.isLeaving()) return;
 
     saveTransaction(transactions, transaction, { returnTo: sameOriginPath(returnTo), silent });
     redirect(url);
@@ -356,7 +362,7 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
     fetch: authorizedFetch({
       tokenOrigins: new Set(
         [apiOrigin(options.api), ...(options.tokenOrigins ?? [])].map(
-          (origin) => new URL(origin, window.location.href).origin,
+          (origin) => new URL(origin, window.document.baseURI).origin,
         ),
       ),
       fetch,
