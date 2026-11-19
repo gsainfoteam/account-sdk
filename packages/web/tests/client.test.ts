@@ -726,6 +726,29 @@ describe('fetch', () => {
     expect(servers.callsTo(`${API}/upload`)[0]!.body).toBe('replacement');
   });
 
+  it('sends a Request whose body is a stream again after a refresh', async () => {
+    let first = true;
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }),
+      [`${API}/upload`]: () => {
+        const status = first ? 401 : 204;
+        first = false;
+        return new Response(null, { status });
+      },
+    });
+    await servers.client.ready();
+    const request = new Request(`https://${API}/upload`, {
+      method: 'POST',
+      body: new Blob(['chunk']).stream(),
+      duplex: 'half',
+    } as RequestInit);
+
+    const response = await servers.client.fetch(request);
+
+    expect(response.status).toBe(204);
+    expect(servers.callsTo(`${API}/upload`).map((call) => call.body)).toEqual(['chunk', 'chunk']);
+  });
+
   it('does not retry a request whose stream body is already spent', async () => {
     const servers = setup({
       [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }),

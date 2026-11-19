@@ -37,7 +37,7 @@ export function authorizedFetch(context: AuthorizedFetchContext): Fetch {
 
     const token = context.getAccessToken();
     const response = await send(token);
-    // 토큰 없이 받은 401은 refresh로 바뀌지 않고, stream body는 한 번 읽으면 다시 보낼 수 없다.
+    // 토큰 없이 받은 401은 refresh로 바뀌지 않고, init.body로 받은 stream은 한 번 읽으면 다시 보낼 수 없다.
     const retryable = token !== null && !(init?.body instanceof ReadableStream);
     if (!retryable || !isUnauthorized(response.status)) return response;
 
