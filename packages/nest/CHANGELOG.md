@@ -1,5 +1,15 @@
 # @infoteam/account-nest
 
+## 0.9.0
+
+### Patch Changes
+
+- c3a54d9: Add `LoggedInUser<A>` and `LookedUpUser<A>`, the user types of `loginWithCode` and `getUserInfoBySub`, read from an `AccountServer` or a `defineAccount` service. Code that takes the user no longer writes the scopes again, as in `UserInfo<'name' | 'email'>`.
+- Updated dependencies
+- Updated dependencies [c3a54d9]
+  - @infoteam/account-core@0.9.0
+  - @infoteam/account-server@0.9.0
+
 ## 0.8.0
 
 ### Patch Changes

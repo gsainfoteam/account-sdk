@@ -1,5 +1,17 @@
 # @infoteam/account-web
 
+## 0.9.0
+
+### Minor Changes
+
+- Add `AccountError.kind`, which groups error codes into `cancelled`, `verification`, `rejected`, `expired`, `network` and `unknown` so screens branch on a few cases. A rejected login now carries the top-level `reason` of the 403 body as `error.reason`, a backend failure body with a known `error` code keeps that code, and the new `invalid_ticket` code reports an expired ticket.
+- `account.fetch` now sends the access token only to the `api` origin; add other backends with `tokenOrigins`. `createAccountClient` returns an inert client on the server, `callbackNavigation: 'document'` lets MPAs such as Astro reload the page the user was on after the callback, and the callback path ignores a trailing slash. Blocked `localStorage` or `sessionStorage` falls back to memory, a failed `login()` stays in `error`, stream bodies are not retried, and the axios adapter no longer retries a persistent 401 forever.
+
+### Patch Changes
+
+- Updated dependencies
+  - @infoteam/account-core@0.9.0
+
 ## 0.8.0
 
 ### Minor Changes

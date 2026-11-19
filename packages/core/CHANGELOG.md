@@ -1,5 +1,11 @@
 # @infoteam/account-core
 
+## 0.9.0
+
+### Minor Changes
+
+- Add `AccountError.kind`, which groups error codes into `cancelled`, `verification`, `rejected`, `expired`, `network` and `unknown` so screens branch on a few cases. A rejected login now carries the top-level `reason` of the 403 body as `error.reason`, a backend failure body with a known `error` code keeps that code, and the new `invalid_ticket` code reports an expired ticket.
+
 ## 0.8.0
 
 No changes in this release.
