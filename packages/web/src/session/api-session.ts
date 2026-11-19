@@ -15,6 +15,7 @@ import { type Session, type SessionPaths } from './session-adapter';
 
 const RejectionSchema = z.looseObject({
   ticket: z.optional(z.string()),
+  reason: z.optional(z.string()),
   details: z.optional(z.unknown()),
 });
 
@@ -53,6 +54,7 @@ export function apiSession(
       const error = new AccountError(SESSION_REJECTED, {
         description: `POST ${login}`,
         status: response.status,
+        reason: rejection.success ? rejection.data.reason : undefined,
         details: rejection.success ? rejection.data.details : raw,
       });
 
@@ -69,7 +71,7 @@ export function apiSession(
     },
 
     async end(accessToken) {
-      await request({ path: logout, accessToken: accessToken ?? undefined });
+      await request({ path: logout, accessToken: accessToken ?? undefined, keepalive: true });
     },
   };
 }

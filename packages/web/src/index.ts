@@ -17,6 +17,7 @@ export {
 export {
   AccountError,
   type AccountErrorCode,
+  type AccountErrorKind,
   type ClientScope,
   type Environment,
   type IssuerInput,
