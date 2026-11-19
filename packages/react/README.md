@@ -168,33 +168,54 @@ if (!isAuthenticated) return <button onClick={() => login()}>로그인</button>;
 
 세션을 복구하는 동안에는 `isAuthenticated`도 `false`이므로, 비로그인 화면은 `isLoading`을 먼저 확인한 뒤 보여 줍니다.
 
-화면에서는 `error.kind`로 경우를 나눕니다. `error.code`보다 가짓수가 적어서, 새 코드가 생겨도 화면 분기를 고치지 않아도 됩니다.
+`AccountError`는 Dart의 sealed class처럼 여섯 종류 중 하나입니다. 화면에서는 종류로 경우를 나눕니다. `error.code`보다 가짓수가 적어서, 새 코드가 생겨도 화면 분기를 고치지 않아도 됩니다.
 
-| `error.kind`   | 뜻                                                                                     | 해당 `error.code`                                                              |
-| -------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `cancelled`    | 사용자가 로그인을 그만뒀습니다. 보통 에러 화면 없이 로그인 버튼만 다시 보여 줍니다     | `user_cancelled`, `access_denied`                                              |
-| `verification` | 서비스가 필수로 요구한 정보를 사용자가 IdP에서 인증해야 합니다                         | `verification_required`                                                        |
-| `rejected`     | 서비스 백엔드가 로그인을 거절했습니다. `error.reason`으로 어떤 입력을 받을지 고릅니다  | `session_rejected`                                                             |
-| `expired`      | 로그인을 이어 가던 ticket이 만료됐습니다. `login()`으로 처음부터 다시 합니다           | `invalid_ticket`                                                               |
-| `network`      | IdP나 서비스 백엔드에 연결하지 못했거나 서버가 잠시 응답하지 못합니다. 다시 시도합니다 | `network_error`, `discovery_failed`, `temporarily_unavailable`, `server_error` |
-| `unknown`      | 그 밖의 실패                                                                           | `state_mismatch`, `unknown` 등                                                 |
+| 종류                        | `error.kind`   | 뜻                                                                                     | 해당 `error.code`                                                              |
+| --------------------------- | -------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `AccountError.Cancelled`    | `cancelled`    | 사용자가 로그인을 그만뒀습니다. 보통 에러 화면 없이 로그인 버튼만 다시 보여 줍니다     | `user_cancelled`, `access_denied`                                              |
+| `AccountError.Verification` | `verification` | 서비스가 필수로 요구한 정보를 사용자가 IdP에서 인증해야 합니다                         | `verification_required`                                                        |
+| `AccountError.Rejected`     | `rejected`     | 서비스 백엔드가 로그인을 거절했습니다. `reason`으로 어떤 입력을 받을지 고릅니다        | `session_rejected`                                                             |
+| `AccountError.Expired`      | `expired`      | 로그인을 이어 가던 ticket이 만료됐습니다. `login()`으로 처음부터 다시 합니다           | `invalid_ticket`                                                               |
+| `AccountError.Network`      | `network`      | IdP나 서비스 백엔드에 연결하지 못했거나 서버가 잠시 응답하지 못합니다. 다시 시도합니다 | `network_error`, `discovery_failed`, `temporarily_unavailable`, `server_error` |
+| `AccountError.Unknown`      | `unknown`      | 그 밖의 실패                                                                           | `state_mismatch`, `unknown` 등                                                 |
+
+`instanceof`로 한 종류를 확인하거나, `switch (error.kind)`로 모든 종류를 나눕니다. 어느 쪽이든 그 종류의 타입으로 좁혀집니다. `reason`과 `details`는 `AccountError.Rejected`에만 있습니다.
+
+```ts
+if (error instanceof AccountError.Rejected && error.reason === 'terms_required') {
+  return <Terms details={error.details} />;
+}
+
+switch (error.kind) {
+  case 'cancelled':
+    return <SignInButton />;
+  case 'rejected':
+    return <Rejected reason={error.reason} />;
+  // ...
+  default:
+    return error satisfies never; // 빠진 종류가 있으면 컴파일 에러가 납니다
+}
+```
+
+- `instanceof`는 prototype이 아니라 에러의 모양을 보므로, 번들에 SDK가 두 번 들어가도 맞게 동작합니다.
+- 하위 종류는 확인용입니다. 에러를 만들 때는 `new AccountError(code, options)`를 쓰고, 코드에 맞는 종류가 만들어집니다.
 
 자주 보는 `error.code`는 다음과 같습니다.
 
-| `error.code`            | 뜻                                                                                                                 |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `user_cancelled`        | 사용자가 IdP 화면에서 취소했습니다                                                                                 |
-| `verification_required` | 서비스가 필수로 요구한 정보(예: 학번)를 사용자가 IdP에서 아직 인증하지 않았습니다                                  |
-| `session_rejected`      | 서비스 백엔드가 403으로 로그인을 거절했습니다. 거절 이유는 `error.reason`과 `error.details`에 있습니다             |
-| `invalid_ticket`        | `retryLogin`에 쓴 ticket이 만료됐거나 검증에 실패했습니다(백엔드가 `401 { error: 'invalid_ticket' }`로 응답)       |
-| `server_error`          | 서비스 백엔드가 5xx로 응답했거나, 성공 응답이 토큰 응답 형식이 아니었습니다                                        |
-| `network_error`         | IdP나 서비스 백엔드에 연결하지 못했습니다                                                                          |
-| `state_mismatch`        | callback에 맞는 로그인 진행 정보가 없습니다. IdP에서 10분 넘게 머물렀거나 다른 탭에서 callback이 열린 경우입니다   |
-| `unknown`               | 서비스 백엔드가 SDK가 모르는 `error`로 4xx 응답을 했거나, `session` 옵션이 `AccountError`가 아닌 에러를 던졌습니다 |
+| `error.code`            | 뜻                                                                                                                   |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `user_cancelled`        | 사용자가 IdP 화면에서 취소했습니다                                                                                   |
+| `verification_required` | 서비스가 필수로 요구한 정보(예: 학번)를 사용자가 IdP에서 아직 인증하지 않았습니다                                    |
+| `session_rejected`      | 서비스 백엔드가 403으로 로그인을 거절했습니다. 거절 이유는 `AccountError.Rejected`의 `reason`과 `details`에 있습니다 |
+| `invalid_ticket`        | `retryLogin`에 쓴 ticket이 만료됐거나 검증에 실패했습니다(백엔드가 `401 { error: 'invalid_ticket' }`로 응답)         |
+| `server_error`          | 서비스 백엔드가 5xx로 응답했거나, 성공 응답이 토큰 응답 형식이 아니었습니다                                          |
+| `network_error`         | IdP나 서비스 백엔드에 연결하지 못했습니다                                                                            |
+| `state_mismatch`        | callback에 맞는 로그인 진행 정보가 없습니다. IdP에서 10분 넘게 머물렀거나 다른 탭에서 callback이 열린 경우입니다     |
+| `unknown`               | 서비스 백엔드가 SDK가 모르는 `error`로 4xx 응답을 했거나, `session` 옵션이 `AccountError`가 아닌 에러를 던졌습니다   |
 
 서비스 백엔드의 실패 응답 body에 SDK가 아는 `error` 코드(예: `{ error: 'invalid_request' }`)가 있으면 그 코드를 씁니다.
 
-`session_rejected`는 약관 동의처럼 로그인 전에 추가 입력이 필요할 때 씁니다. 백엔드가 준 `error.reason`(예: `terms_required`)으로 어떤 입력 화면을 보여 줄지 고릅니다. `canRetryLogin`이 `true`이면(거절 응답에 ticket이 있으면) 사용자에게 입력을 받은 뒤 `retryLogin(body)`로 보내 IdP를 다시 거치지 않고 로그인을 마칩니다. `body`는 plain object로 주고, login 요청 body에 펼쳐서 보냅니다. `retryLogin`이 실패하면 reject 하고, 이어 갈 로그인이 없으면 `unauthenticated`로 reject 합니다. 백엔드 쪽은 [거절과 ticket](https://github.com/gsainfoteam/account-sdk#거절과-ticket) 규칙을 참고합니다.
+`session_rejected`는 약관 동의처럼 로그인 전에 추가 입력이 필요할 때 씁니다. 백엔드가 준 `reason`(예: `terms_required`)으로 어떤 입력 화면을 보여 줄지 고릅니다. `canRetryLogin`이 `true`이면(거절 응답에 ticket이 있으면) 사용자에게 입력을 받은 뒤 `retryLogin(body)`로 보내 IdP를 다시 거치지 않고 로그인을 마칩니다. `body`는 plain object로 주고, login 요청 body에 펼쳐서 보냅니다. `retryLogin`이 실패하면 reject 하고, 이어 갈 로그인이 없으면 `unauthenticated`로 reject 합니다. 백엔드 쪽은 [거절과 ticket](https://github.com/gsainfoteam/account-sdk#거절과-ticket) 규칙을 참고합니다.
 
 ### 5. API 요청
 

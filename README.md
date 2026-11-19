@@ -135,7 +135,7 @@ ticket으로 온 요청에는 code가 없으므로 `loginWithCode`를 부르지 
 
 약관 동의처럼 로그인 전에 사용자 입력이 더 필요하면 `403 { error: 'session_rejected', ticket, reason?, details? }`로 거절합니다. code는 한 번만 교환할 수 있으므로, `ticket`에는 백엔드가 이미 확인한 사용자를 담습니다.
 
-- `reason`은 프론트가 어떤 입력 화면을 보여 줄지 고르는 짧은 문자열(예: `terms_required`)입니다. 웹에서는 `error.reason`이 됩니다.
+- `reason`은 프론트가 어떤 입력 화면을 보여 줄지 고르는 짧은 문자열(예: `terms_required`)입니다. 웹에서는 `AccountError.Rejected`의 `reason`이 됩니다.
 - `details`에는 화면을 그리는 데 필요한 값(예: 동의할 약관 목록)을 담습니다.
 
 1. 백엔드가 짧은 수명의 ticket을 담아 403으로 거절합니다. ticket은 서명이나 MAC, 또는 인증된 암호화(AEAD)로 무결성과 출처를 반드시 확인할 수 있어야 합니다.

@@ -129,4 +129,4 @@ const account = createAccountClient({ issuer: 'production', clientId, session })
 
 에러는 `AccountError`로 던져야 `error.code`와 `error.kind`로 경우를 나눌 수 있습니다. 다른 에러는 `unknown`이 됩니다.
 
-로그인 전에 추가 입력을 받으려면 `start`가 `{ rejected: { error, ticket } }`를 돌려줍니다. `error`는 보통 `new AccountError('session_rejected', { reason, details })`이고, `ticket`이 없으면 `canRetryLogin`이 `false`입니다. 그러면 `retryLogin(body)`가 `start({ ticket }, body)`를 호출합니다.
+로그인 전에 추가 입력을 받으려면 `start`가 `{ rejected: { error, ticket } }`를 돌려줍니다. `error`는 보통 `new AccountError('session_rejected', { reason, details })`이고(`AccountError.Rejected`가 만들어집니다), `ticket`이 없으면 `canRetryLogin`이 `false`입니다. 그러면 `retryLogin(body)`가 `start({ ticket }, body)`를 호출합니다.
