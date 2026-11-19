@@ -283,7 +283,7 @@ export const account = createAccountClient({
 });
 ```
 
-- `redirectUri`(기본값 `/auth/callback`)에 페이지를 만들고 client를 import 합니다. 로그인을 마치면 client가 로그인 전 위치를 새로 불러오므로 이 페이지는 잠깐만 보입니다. 그동안 `redirecting`은 `true`입니다.
+- `redirectUri`(기본값 `/auth/callback`)에 페이지를 만들고, client를 import 한 뒤 `account.ready()`를 호출합니다. client를 만들기만 하면 주소만 정리되고, 백엔드 로그인과 로그인 전 위치로의 이동은 `ready()`가 시작합니다. React island에서는 `AccountProvider`가 `ready()`를 호출하므로 따로 부르지 않습니다. 로그인을 마치면 client가 로그인 전 위치를 새로 불러오므로 이 페이지는 잠깐만 보입니다. 그동안 `redirecting`은 `true`입니다.
 - 로그인이 실패하면 callback 페이지에 머뭅니다. 여기서 `error`를 보여 주고 다시 로그인할 버튼을 둡니다.
 - 정적 호스팅이 `/auth/callback`을 `/auth/callback/`으로 바꿔도 같은 주소로 봅니다.
 
