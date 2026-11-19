@@ -53,7 +53,7 @@ export async function readTokens(response: Response, path: string): Promise<Sess
     throw new AccountError(failureCode(response.status, body), {
       description: `POST ${path}`,
       status: response.status,
-      details: body,
+      cause: body,
     });
   }
 

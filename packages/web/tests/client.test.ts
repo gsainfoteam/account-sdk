@@ -364,7 +364,7 @@ describe('a service that asks for consent before login (house-moving-out)', () =
     expect(returned.store.getState()).toMatchObject({
       status: 'unauthenticated',
       canRetryLogin: false,
-      error: { code, status, details },
+      error: { code, status, cause: details },
     });
   });
 
