@@ -15,7 +15,7 @@ export interface AccountProviderProps<RetryBody = unknown> {
   children?: ReactNode;
 }
 
-export function AccountProvider<RetryBody>({
+export function AccountProvider<RetryBody = unknown>({
   client,
   fallback = null,
   children,

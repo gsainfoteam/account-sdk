@@ -3,7 +3,9 @@ import { createStore } from 'zustand/vanilla';
 
 import { type AccountClient, type AccountState } from './types';
 
-export function createServerClient<RetryBody>(fetch: Fetch | undefined): AccountClient<RetryBody> {
+export function createServerClient<RetryBody = unknown>(
+  fetch: Fetch | undefined,
+): AccountClient<RetryBody> {
   const store = createStore<AccountState>(() => ({
     status: 'loading',
     accessToken: null,
