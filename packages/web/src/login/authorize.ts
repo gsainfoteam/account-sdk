@@ -9,6 +9,7 @@ import { type AccountContext } from '../client/context';
 import { type LoginOptions } from '../client/types';
 import { toAccountError } from '../internal/to-account-error';
 import { sameOriginPath } from '../internal/urls';
+import { isLoggedOut } from '../logout/logout';
 import { STORAGE_KEYS } from '../storage/keys';
 import { saveTransaction } from '../storage/transactions';
 
@@ -44,12 +45,11 @@ async function authorize(
   prompt: Prompt | undefined,
   silent: boolean,
 ): Promise<void> {
-  const loggedOut = context.flags.getItem(STORAGE_KEYS.loggedOut) !== null;
   const { url, transaction } = await createAuthorization(await context.metadata(), {
     clientId: context.clientId,
     redirectUri: context.redirectUri(),
     scopes: [OPENID_SCOPE, ...(await context.scopes())],
-    prompt: prompt ?? (loggedOut ? 'login' : undefined),
+    prompt: prompt ?? (isLoggedOut(context) ? 'login' : undefined),
   });
   if (await context.logoutGate.isLeaving()) return;
 

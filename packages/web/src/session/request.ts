@@ -15,7 +15,6 @@ interface Request {
   path: string;
   accessToken?: string;
   body?: unknown;
-  /** 페이지를 떠나는 중에도 요청이 끝까지 가게 한다. 로그아웃 직후 IdP로 이동하는 경우에 쓴다. */
   keepalive?: boolean;
 }
 
@@ -72,6 +71,5 @@ function failureCode(status: number, body: unknown): AccountErrorCode {
   const known = ErrorBodySchema.safeParse(body);
   if (known.success) return known.data.error;
 
-  // `network_error`는 응답을 받지 못한 경우만 뜻하므로 응답한 5xx와 구분한다.
   return status >= 500 ? 'server_error' : 'unknown';
 }

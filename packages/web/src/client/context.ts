@@ -29,7 +29,6 @@ export interface AccountContext {
   readonly callback: Callback | null;
   readonly trySilentLogin: boolean;
   readonly logoutGate: LogoutGate;
-  // logout 전에 보낸 요청의 응답이 늦게 와도 그 결과로 다시 로그인하지 않게 한다.
   logouts: number;
   metadata(): Promise<AccountMetadata>;
   redirectUri(): string;
@@ -41,9 +40,8 @@ export function createContext(options: ParsedAccountClientOptions): AccountConte
   const session = options.session ?? sessionFromApi(options.api!, fetch);
   const transactions = options.transactionStorage ?? browserStorage('sessionStorage');
   const persistent = browserStorage('localStorage');
-  // localStorage만 막혀도 로그아웃 표식이 새로고침에 사라지지 않게 탭에라도 남긴다.
   const flags = isMemoryStorage(persistent) ? browserStorage('sessionStorage') : persistent;
-  // 메모리에 둔 로그인 진행 정보는 IdP에 다녀오는 동안 사라져서, 돌아와도 `state_mismatch`로 끝난다.
+  const flagsReachOtherTabs = flags === persistent;
   const canRoundTrip = !isMemoryStorage(transactions);
   const redirect: Redirect =
     options.redirect ??
@@ -76,8 +74,7 @@ export function createContext(options: ParsedAccountClientOptions): AccountConte
   const trySilentLogin =
     options.silentLogin === true &&
     canRoundTrip &&
-    // 탭에 남긴 로그아웃 표식은 새 탭에 없어서, 로그아웃한 사용자를 IdP 세션으로 다시 로그인시킨다.
-    !isMemoryStorage(persistent) &&
+    flagsReachOtherTabs &&
     callback === null &&
     transactions.getItem(STORAGE_KEYS.silentLoginTried) === null &&
     flags.getItem(STORAGE_KEYS.loggedOut) === null;

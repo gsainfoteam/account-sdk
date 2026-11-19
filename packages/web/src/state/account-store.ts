@@ -31,7 +31,6 @@ export function createAccountStore(): AccountStore {
       store.setState({ status: 'authenticated', accessToken, error: null, canRetryLogin: false });
     },
 
-    /** 바뀐 것이 없을 때도 알리면 store를 구독해 guard를 다시 돌리는 라우터가 같은 상태로 계속 돈다. */
     unauthenticate(error) {
       const current = store.getState();
       const next: AccountState = {

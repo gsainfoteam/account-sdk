@@ -1,23 +1,20 @@
 import { type AccountContext } from '../client/context';
 import { toAccountError } from '../internal/to-account-error';
 import { silentLogin } from '../login/authorize';
-import { STORAGE_KEYS } from '../storage/keys';
+import { isLoggedOut, watchLogout } from '../logout/logout';
 
 export async function restoreSession(context: AccountContext): Promise<void> {
   const { account } = context;
-  // logout이 서버에 닿지 못했으면 refresh 쿠키가 남아 있으므로, 다시 로그인하기 전에는 쓰지 않는다.
-  if (context.flags.getItem(STORAGE_KEYS.loggedOut) !== null) return account.unauthenticate();
+  if (isLoggedOut(context)) return account.unauthenticate();
 
   try {
-    const started = context.logouts;
+    const loggedOutMeanwhile = watchLogout(context);
     const tokens = await oneAtATime(context, () => context.session.refresh());
-    if (context.logouts !== started) return;
+    if (loggedOutMeanwhile()) return;
     if (tokens) return account.authenticate(tokens.accessToken);
+    if (!context.trySilentLogin) return account.unauthenticate();
 
-    // await를 빼면 IdP로 떠나기 전의 실패가 catch를 지나쳐 store가 `loading`에 남는다.
-    if (context.trySilentLogin) return await silentLogin(context);
-
-    account.unauthenticate();
+    await silentLogin(context);
   } catch (error) {
     account.unauthenticate(toAccountError(error));
   }
@@ -33,10 +30,9 @@ export function refreshSession(
       const { accessToken } = account.store.getState();
       if (accessToken && accessToken !== staleToken) return accessToken;
 
-      const started = context.logouts;
-      const tokens =
-        context.flags.getItem(STORAGE_KEYS.loggedOut) === null && (await context.session.refresh());
-      if (context.logouts !== started) return null;
+      const loggedOutMeanwhile = watchLogout(context);
+      const tokens = !isLoggedOut(context) && (await context.session.refresh());
+      if (loggedOutMeanwhile()) return null;
       if (!tokens) {
         account.unauthenticate();
         return null;

@@ -55,7 +55,6 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
     async requireAuth({ returnTo } = {}) {
       await client.ready();
       if (store.getState().status === 'authenticated') return;
-      // 다시 IdP로 보내면 취소한 사용자가 IdP 화면에서 빠져나갈 수 없다.
       if (context.account.callbackError) throw context.account.callbackError;
 
       await client.login({ returnTo });

@@ -5,6 +5,15 @@ import { type LogoutOptions } from '../client/types';
 import { sameOriginPath } from '../internal/urls';
 import { STORAGE_KEYS } from '../storage/keys';
 
+export function isLoggedOut({ flags }: AccountContext): boolean {
+  return flags.getItem(STORAGE_KEYS.loggedOut) !== null;
+}
+
+export function watchLogout(context: AccountContext): () => boolean {
+  const before = context.logouts;
+  return () => context.logouts !== before;
+}
+
 export async function logout(
   context: AccountContext,
   { idp = false, returnTo = '/' }: LogoutOptions = {},
@@ -17,7 +26,6 @@ export async function logout(
   context.flags.setItem(STORAGE_KEYS.loggedOut, '1');
 
   const ending = endSession(context, accessToken, idp, returnTo);
-  // store 구독자가 바뀐 상태를 받자마자 login()을 불러도 기다리도록 상태를 바꾸기 전에 등록한다.
   context.logoutGate.track(ending);
   account.unauthenticate(null);
   await ending;

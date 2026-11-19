@@ -1,4 +1,5 @@
 import { type AccountContext } from '../client/context';
+import { watchLogout } from '../logout/logout';
 import { type LoginCredential } from '../session/session-adapter';
 import { STORAGE_KEYS } from '../storage/keys';
 
@@ -6,10 +7,10 @@ export async function startSession(
   context: AccountContext,
   credential: LoginCredential,
   body?: unknown,
-  started = context.logouts,
+  loggedOutMeanwhile = watchLogout(context),
 ): Promise<void> {
   const result = await context.session.start(credential, body);
-  if (context.logouts !== started) return;
+  if (loggedOutMeanwhile()) return;
 
   if ('rejected' in result) {
     context.account.rejection = result.rejected;
