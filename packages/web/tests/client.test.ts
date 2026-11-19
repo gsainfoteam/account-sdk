@@ -1,8 +1,13 @@
 import { clearDiscoveryCache } from '@infoteam/account-core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import production from '../../core/tests/fixtures/discovery.production.json' with { type: 'json' };
-import { createAccountClient, type AccountClientOptions, type Session } from '../src';
+import {
+  createAccountClient,
+  type AccountClient,
+  type AccountClientOptions,
+  type Session,
+} from '../src';
 import { fakeServers, type Route } from './fake-servers';
 
 const API = 'api.ziggle.gistory.me';
@@ -384,6 +389,16 @@ describe('a service that asks for consent before login (house-moving-out)', () =
       ticket: 't-1',
       transport: 'cookie',
     });
+  });
+
+  it('types the retry body given to createAccountClient and keeps unknown by default', () => {
+    interface Consent {
+      agreedToPrivacy: boolean;
+    }
+
+    expectTypeOf(createAccountClient<Consent>).returns.toEqualTypeOf<AccountClient<Consent>>();
+    expectTypeOf<AccountClient<Consent>['retryLogin']>().parameter(0).toEqualTypeOf<Consent>();
+    expectTypeOf<AccountClient['retryLogin']>().parameter(0).toBeUnknown();
   });
 
   it('rejects the retry when a logout happens while it waits', async () => {

@@ -31,7 +31,7 @@ export interface RequireAuthOptions {
   returnTo?: string;
 }
 
-export interface AccountClient {
+export interface AccountClient<RetryBody = unknown> {
   readonly store: StoreApi<AccountState>;
   getAccessToken(): string | null;
   ready(): Promise<void>;
@@ -39,7 +39,7 @@ export interface AccountClient {
   isHandlingRedirect(): boolean;
   requireAuth(options?: RequireAuthOptions): Promise<void>;
   login(options?: LoginOptions): Promise<void>;
-  retryLogin(body: unknown): Promise<void>;
+  retryLogin(body: RetryBody): Promise<void>;
   logout(options?: LogoutOptions): Promise<void>;
   refresh(staleToken?: string | null): Promise<string | null>;
   fetch: Fetch;
