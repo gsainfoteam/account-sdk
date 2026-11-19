@@ -82,7 +82,7 @@ export const account = createAccountClient({
 createAccountClient({ ..., api: 'https://api.ziggle.gistory.me', tokenOrigins: ['https://upload.ziggle.gistory.me'] });
 ```
 
-body가 `ReadableStream`인 요청은 한 번 보내면 다시 읽을 수 없으므로 401을 받아도 다시 보내지 않고 그 응답을 돌려줍니다.
+`init.body`로 넘긴 `ReadableStream`은 한 번 보내면 다시 읽을 수 없으므로 401을 받아도 다시 보내지 않고 그 응답을 돌려줍니다. `Request`에 담긴 본문은 `clone()`으로 남겨 두므로 stream이어도 다시 보냅니다.
 
 ## `session` 옵션
 

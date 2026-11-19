@@ -225,7 +225,7 @@ switch (error.kind) {
 - `fetch`는 전역 `fetch`와 사용법이 같습니다.
 - access token은 `api`의 origin으로 가는 요청에만 붙이고, 다른 origin은 토큰 없이 그대로 보냅니다. 토큰을 받아야 하는 백엔드가 더 있으면 `tokenOrigins`에 더합니다.
 - 상대 경로는 `api` 기준이 아니라 현재 페이지 기준이므로 백엔드 주소를 붙여 씁니다.
-- body가 `ReadableStream`인 요청은 401을 받아도 다시 보내지 않습니다.
+- `init.body`로 넘긴 `ReadableStream`은 401을 받아도 다시 보내지 않습니다. `Request`에 담긴 본문은 stream이어도 다시 보냅니다.
 
 ```ts
 const response = await account.fetch(`${API_URL}/me`); // 컴포넌트 안에서는 useAccount().fetch
