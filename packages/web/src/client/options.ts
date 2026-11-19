@@ -38,7 +38,7 @@ export const AccountClientOptionsSchema = z
     session: z.optional(z.custom<Session>(isSession)),
     redirectUri: z.optional(nonEmpty()),
     callbackNavigation: z.optional(z.enum(['history', 'document'])),
-    /** `api`의 origin에 더해 `account.fetch`가 토큰을 붙일 origin이다. 그 밖의 URL에는 토큰을 붙이지 않는다. */
+    /** `account.fetch`는 `api` origin(`session`을 주면 페이지 origin)과 이 origin에만 토큰을 붙인다. */
     tokenOrigins: z.optional(z.array(nonEmpty())),
     /**
      * 생략하면 IdP에 등록한 필수 scope와 선택 scope를 모두 요청한다. `openid`는 서비스 백엔드가 id_token으로

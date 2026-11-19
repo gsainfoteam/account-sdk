@@ -3,10 +3,7 @@ import { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } 
 
 import { type AccountClient } from '../client/account-client';
 
-/**
- * axios는 다시 보낼 때 config를 새 객체로 합치므로 객체가 아니라 config 안에 표시한다. 그래야 refresh 뒤에도 401이면
- * 끝없이 다시 보내지 않는다.
- */
+// axios는 다시 보낼 때 config를 새 객체로 합치므로, 재시도 표시를 config 속성으로 둬야 401이 반복돼도 한 번만 다시 보낸다.
 const RETRIED = 'accountRetried';
 
 type RetriedConfig = InternalAxiosRequestConfig & { [RETRIED]?: boolean };

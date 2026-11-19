@@ -202,7 +202,6 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
       scopes: [OPENID_SCOPE, ...(await scopes())],
       prompt: prompt ?? (loggedOut ? 'login' : undefined),
     });
-    // scope를 받아 오는 동안 IdP 로그아웃이 시작됐으면, 지금 이동하면 그 이동을 덮어쓴다.
     if (await logoutGate.isLeaving()) return;
 
     saveTransaction(transactions, transaction, { returnTo: sameOriginPath(returnTo), silent });
