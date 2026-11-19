@@ -6,6 +6,8 @@ import { type Session } from '../session/session-adapter';
 
 const nonEmpty = () => z.string().check(z.minLength(1));
 
+export type Redirect = (url: string, options?: { replace?: boolean }) => void;
+
 const SessionPathsSchema = z.object({
   login: z.optional(nonEmpty()),
   refresh: z.optional(nonEmpty()),
@@ -34,8 +36,10 @@ export const AccountClientOptionsSchema = z
     ),
     /** 백엔드가 세션 프로토콜과 다른 형식이면 백엔드 호출을 직접 구현해서 준다. `api`와 함께 줄 수 없다. */
     session: z.optional(z.custom<Session>(isSession)),
-    /** 기본값은 `/auth/callback`이다. client가 이 URL을 라우터보다 먼저 처리하므로 라우트를 만들지 않는다. */
     redirectUri: z.optional(nonEmpty()),
+    callbackNavigation: z.optional(z.enum(['history', 'document'])),
+    /** `account.fetch`는 `api` origin(`session`을 주면 페이지 origin)과 이 origin에만 토큰을 붙인다. */
+    tokenOrigins: z.optional(z.array(nonEmpty())),
     /**
      * 생략하면 IdP에 등록한 필수 scope와 선택 scope를 모두 요청한다. `openid`는 서비스 백엔드가 id_token으로
      * 사용자를 확인하므로 항상 함께 요청한다.
@@ -48,7 +52,7 @@ export const AccountClientOptionsSchema = z
     silentLogin: z.optional(z.boolean()),
     fetch: z.optional(z.custom<Fetch>(isFunction)),
     transactionStorage: z.optional(z.custom<Storage>()),
-    redirect: z.optional(z.custom<(url: string) => void>(isFunction)),
+    redirect: z.optional(z.custom<Redirect>(isFunction)),
   })
   .check(
     z.refine((options) => (options.api === undefined) !== (options.session === undefined), {

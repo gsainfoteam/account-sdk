@@ -1,13 +1,11 @@
 import { useEffect, type ReactNode } from 'react';
 
-import { useStore } from 'zustand';
-
 import { useAccountClient } from '../context/account-context';
+import { useAccount, type UseAccountResult } from '../hooks/use-account';
 
 export interface RequireAuthProps {
   children?: ReactNode;
-  /** 로그인이 실패했을 때도 보여 준다. 실패 이유는 `useAccount().error`에서 볼 수 있다. */
-  fallback?: ReactNode;
+  fallback?: ReactNode | ((account: UseAccountResult) => ReactNode);
   redirect?: boolean;
 }
 
@@ -17,11 +15,14 @@ export function RequireAuth({
   redirect = true,
 }: RequireAuthProps): ReactNode {
   const client = useAccountClient();
-  const status = useStore(client.store, (state) => state.status);
+  const account = useAccount();
+  const { status } = account;
 
   useEffect(() => {
     if (status === 'unauthenticated' && redirect) void client.requireAuth().catch(() => undefined);
   }, [client, redirect, status]);
 
-  return status === 'authenticated' ? children : fallback;
+  if (account.isAuthenticated) return children;
+
+  return typeof fallback === 'function' ? fallback(account) : fallback;
 }

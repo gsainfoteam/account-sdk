@@ -133,16 +133,20 @@ ticket으로 온 요청에는 code가 없으므로 `loginWithCode`를 부르지 
 
 #### 거절과 ticket
 
-약관 동의처럼 로그인 전에 사용자 입력이 더 필요하면 `403 { error: 'session_rejected', ticket, details }`로 거절합니다. code는 한 번만 교환할 수 있으므로, `ticket`에는 백엔드가 이미 확인한 사용자를 담습니다.
+약관 동의처럼 로그인 전에 사용자 입력이 더 필요하면 `403 { error: 'session_rejected', ticket, reason?, details? }`로 거절합니다. code는 한 번만 교환할 수 있으므로, `ticket`에는 백엔드가 이미 확인한 사용자를 담습니다.
+
+- `reason`은 프론트가 어떤 입력 화면을 보여 줄지 고르는 짧은 문자열(예: `terms_required`)입니다. 웹에서는 `AccountError.Rejected`의 `reason`이 됩니다.
+- `details`에는 화면을 그리는 데 필요한 값(예: 동의할 약관 목록)을 담습니다.
 
 1. 백엔드가 짧은 수명의 ticket을 담아 403으로 거절합니다. ticket은 서명이나 MAC, 또는 인증된 암호화(AEAD)로 무결성과 출처를 반드시 확인할 수 있어야 합니다.
 2. 클라이언트가 `{ ticket, ...추가 입력 }`으로 login을 다시 호출합니다.
 3. 백엔드가 다시 403으로 거절할 때는 ticket을 소비하지 않고 응답에 ticket을 다시 담습니다. 클라이언트는 마지막 거절 응답의 ticket으로 재시도합니다.
 4. 백엔드가 세션을 발급할 때 ticket을 원자적으로 소비해서(사용한 ticket을 기록) 다시 쓰지 못하게 합니다.
+5. ticket이 만료됐거나 검증에 실패하면 `401 { error: 'invalid_ticket' }`로 응답합니다. 클라이언트는 IdP 로그인부터 다시 합니다.
 
 ticket이 없는 403도 거절이지만, 클라이언트가 이어서 재시도할 수는 없습니다. 403이 아닌 실패(400, 401, 5xx)를 다루는 방식은 클라이언트마다 다릅니다.
 
-- **웹:** 거절이 아니라 오류(`server_error`, `unknown`)로 처리합니다.
+- **웹:** 거절이 아니라 오류로 처리합니다. body의 `error`가 SDK가 아는 코드(`invalid_ticket`, `invalid_request` 등)이면 그 코드를 쓰고, 아니면 5xx는 `server_error`, 나머지는 `unknown`이 됩니다.
 - **앱:** 모든 실패를 `AccountSessionRejectedException`으로 던지고, ticket이 있는 403일 때만 `canRetryLogin`이 `true`가 됩니다.
 
 #### CORS와 CSRF
@@ -160,7 +164,7 @@ ticket이 없는 403도 거절이지만, 클라이언트가 이어서 재시도�
 | `logout({ idp: true })` | 서비스 세션, IdP 세션 | 공용 PC처럼 계정을 남기면 안 되는 경우 |
 
 - **`logout()`:** 로그인 상태를 바로 지우고 백엔드에 로그아웃을 요청합니다. 이 요청이 실패해도 에러를 던지지 않습니다.
-  - 웹은 요청이 실패하면 서버 세션과 refresh 쿠키가 남습니다. 그래도 SDK는 다음에 로그인할 때까지 이 쿠키로 세션을 복구하지 않으므로, 페이지를 다시 열어도 로그아웃 상태가 유지됩니다. 이 표시는 `localStorage`에 두므로 같은 origin의 다른 탭도 다음 refresh부터 로그아웃 상태가 됩니다.
+  - 웹은 요청이 실패하면 서버 세션과 refresh 쿠키가 남습니다. 그래도 SDK는 다음에 로그인할 때까지 이 쿠키로 세션을 복구하지 않으므로, 페이지를 다시 열어도 로그아웃 상태가 유지됩니다. 이 표시는 `localStorage`에 두므로 같은 origin의 다른 탭도 다음 refresh부터 로그아웃 상태가 됩니다. 브라우저가 `localStorage`를 막으면 `sessionStorage`에 두므로 같은 탭에서만 유지됩니다.
   - 앱은 요청하기 전에 저장해 둔 토큰을 지웁니다. 요청이 실패하면 서버 세션만 남습니다.
   - 다음 로그인에서는 IdP 로그인 화면을 다시 띄워서, 같은 기기에서 다른 계정으로 바꿀 수 있게 합니다.
 - **`logout({ idp: true })`:** IdP 로그인 세션까지 끝냅니다. 이미 로그인한 다른 서비스의 세션은 그대로 남고, 그 뒤에 새로 로그인하는 서비스는 IdP 로그인을 다시 거칩니다. IdP가 로그아웃 endpoint를 제공하지 않거나, 앱에서 사용자가 로그아웃 브라우저를 닫으면 서비스 세션만 끝납니다. IdP 세션을 끝내려고 discovery 문서를 읽다 실패하면, 서비스 세션은 이미 끝난 상태에서 에러를 던집니다.
@@ -202,6 +206,8 @@ Flutter 패키지는 `packages/flutter`에서 `flutter analyze`와 `flutter test
 2. `.env.example`을 `.env`로 복사하고 client id와 secret을 채웁니다. mise가 `.env`를 읽어 각 task에 넣어 줍니다.
 3. `pnpm build`로 패키지를 빌드합니다. examples는 각 패키지의 `dist`를 읽습니다.
 4. `mise run example:api`와 `mise run example:web`을 각각 실행하고 <http://localhost:5173>을 엽니다.
+
+[`examples/astro`](examples/astro)는 같은 흐름을 [Astro](https://astro.build)와 React island로 만든 MPA 예제입니다. redirect URI로 `http://localhost:5174/auth/callback`을 등록하고 `mise run example:web` 대신 `mise run example:astro`를 실행한 뒤 <http://localhost:5174>를 엽니다. `examples/nest`는 `WEB_ORIGIN`의 origin만 허용하므로 `.env`에 `WEB_ORIGIN=http://localhost:5174`도 넣습니다.
 
 ### 배포
 

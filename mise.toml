@@ -21,3 +21,7 @@ run = "pnpm --filter @infoteam/account-example-nest build && pnpm --filter @info
 [tasks."example:web"]
 description = "examples/web 개발 서버를 띄운다. example:api 와 함께 쓴다"
 run = "pnpm --filter @infoteam/account-example-web dev"
+
+[tasks."example:astro"]
+description = "examples/astro 개발 서버를 띄운다. example:api 와 함께 쓴다"
+run = "pnpm --filter @infoteam/account-example-astro dev"

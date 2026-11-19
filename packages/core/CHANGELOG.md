@@ -1,5 +1,11 @@
 # @infoteam/account-core
 
+## 0.9.0
+
+### Minor Changes
+
+- Seal `AccountError` into six kinds, like a Dart sealed class: `AccountError.Cancelled`, `Verification`, `Rejected`, `Expired`, `Network` and `Unknown`. The `AccountError` type is their union, so `switch (error.kind)` is checked for missing cases, and `instanceof AccountError.Rejected` narrows to the kind and works across duplicate copies of the module. `new AccountError(code, options)` builds the kind that matches the code. `reason` and `details` now live only on `AccountError.Rejected`; a non-rejection failure keeps the response body in `cause`. A rejected login carries the top-level `reason` of the 403 body, a backend failure body with a known `error` code keeps that code, and the new `invalid_ticket` code reports an expired ticket.
+
 ## 0.8.0
 
 No changes in this release.

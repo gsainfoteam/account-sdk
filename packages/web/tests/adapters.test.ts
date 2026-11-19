@@ -31,6 +31,7 @@ function setup() {
         : method === 'POST'
           ? new Response(body, { headers: { 'content-type': 'application/json' } })
           : Response.json([{ id: 1 }]),
+    [`${API}/always-401`]: () => new Response(null, { status: 401 }),
   });
   const fetch: typeof globalThis.fetch = async (input, init) => {
     const response = await servers.fetch(input, init);
@@ -96,9 +97,9 @@ describe('account.fetch as the fetch of openapi-fetch', () => {
 });
 
 describe('axios interceptors', () => {
-  it('sends the service token and retries once after refreshing', async () => {
-    const { client, fetch, refreshes } = setup();
-    const adapter: AxiosAdapter = async (config) => {
+  const fetchAdapter =
+    (fetch: typeof globalThis.fetch): AxiosAdapter =>
+    async (config) => {
       const response = await fetch(`${config.baseURL}${config.url}`, {
         headers: Object.fromEntries(
           Object.entries(config.headers.toJSON()).map(([k, v]) => [k, String(v)]),
@@ -116,7 +117,10 @@ describe('axios interceptors', () => {
       }
       return result;
     };
-    const instance = axios.create({ baseURL: `https://${API}`, adapter });
+
+  it('sends the service token and retries once after refreshing', async () => {
+    const { client, fetch, refreshes } = setup();
+    const instance = axios.create({ baseURL: `https://${API}`, adapter: fetchAdapter(fetch) });
     const detach = attachAccount(instance, client);
 
     await expect(instance.get('/notices')).resolves.toMatchObject({
@@ -127,5 +131,17 @@ describe('axios interceptors', () => {
 
     detach();
     await expect(instance.get('/notices')).rejects.toMatchObject({ response: { status: 401 } });
+  });
+
+  it('gives up after one retry when the endpoint keeps answering 401', async () => {
+    const { client, fetch, refreshes, callsTo } = setup();
+    const instance = axios.create({ baseURL: `https://${API}`, adapter: fetchAdapter(fetch) });
+    attachAccount(instance, client);
+
+    await expect(instance.get('/always-401')).rejects.toMatchObject({
+      response: { status: 401 },
+    });
+    expect(callsTo(`${API}/always-401`)).toHaveLength(2);
+    expect(refreshes()).toBe(2);
   });
 });

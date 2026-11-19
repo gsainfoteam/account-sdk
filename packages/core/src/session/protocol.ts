@@ -33,5 +33,8 @@ export const SESSION_REJECTED = 'session_rejected' satisfies SdkErrorCode;
 export interface SessionRejectedResponse {
   error: typeof SESSION_REJECTED;
   ticket: string;
-  details: unknown;
+  reason?: string;
+  details?: unknown;
 }
+
+export const INVALID_TICKET = 'invalid_ticket' satisfies SdkErrorCode;

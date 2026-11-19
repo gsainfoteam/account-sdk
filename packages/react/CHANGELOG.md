@@ -1,5 +1,17 @@
 # @infoteam/account-react
 
+## 0.9.0
+
+### Minor Changes
+
+- `RequireAuth`'s `fallback` accepts a function that receives `useAccount()`, so it can tell restoring apart from a failed login. Export `useAccountClient`.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @infoteam/account-web@0.9.0
+
 ## 0.8.0
 
 ### Minor Changes

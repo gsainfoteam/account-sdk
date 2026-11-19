@@ -7,14 +7,16 @@ import {
   type Fetch,
   type LoginRequestBody,
 } from '@infoteam/account-core';
-import { attemptAsync, isPlainObject, trimEnd } from 'es-toolkit';
+import { attemptAsync, isPlainObject, isString, trimEnd } from 'es-toolkit';
 import * as z from 'zod/mini';
 
 import { createRequester, readTokens } from './request';
 import { type Session, type SessionPaths } from './session-adapter';
+import { type AccountClientOptions } from '../client/options';
 
 const RejectionSchema = z.looseObject({
   ticket: z.optional(z.string()),
+  reason: z.optional(z.string()),
   details: z.optional(z.unknown()),
 });
 
@@ -53,6 +55,7 @@ export function apiSession(
       const error = new AccountError(SESSION_REJECTED, {
         description: `POST ${login}`,
         status: response.status,
+        reason: rejection.success ? rejection.data.reason : undefined,
         details: rejection.success ? rejection.data.details : raw,
       });
 
@@ -69,7 +72,7 @@ export function apiSession(
     },
 
     async end(accessToken) {
-      await request({ path: logout, accessToken: accessToken ?? undefined });
+      await request({ path: logout, accessToken: accessToken ?? undefined, keepalive: true });
     },
   };
 }
@@ -77,4 +80,12 @@ export function apiSession(
 function acrossTabs<T>(name: string, task: () => Promise<T>): Promise<T> {
   const locks = navigator.locks as LockManager | null | undefined;
   return locks ? locks.request(name, task) : task();
+}
+
+export function sessionFromApi(
+  api: NonNullable<AccountClientOptions['api']>,
+  fetch: Fetch | undefined,
+): Session {
+  const { baseUrl, paths = {} } = isString(api) ? { baseUrl: api } : api;
+  return apiSession(baseUrl, paths, fetch);
 }

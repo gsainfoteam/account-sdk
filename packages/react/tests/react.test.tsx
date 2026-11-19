@@ -102,6 +102,24 @@ describe('RequireAuth', () => {
     expect(screen.getByText('please sign in')).toBeTruthy();
     expect(redirect).not.toHaveBeenCalled();
   });
+
+  it('lets a fallback function tell restoring apart from a failed login', async () => {
+    const { client } = setup({
+      [`${API}/auth/refresh`]: () => new Response(null, { status: 503 }),
+    });
+    render(
+      <AccountProvider client={client}>
+        <RequireAuth
+          redirect={false}
+          fallback={({ isLoading, error }) => <p>{isLoading ? 'restoring' : error?.kind}</p>}
+        >
+          <p>secret</p>
+        </RequireAuth>
+      </AccountProvider>,
+    );
+    expect(screen.getByText('restoring')).toBeTruthy();
+    await screen.findByText('network');
+  });
 });
 
 describe('AccountProvider on the callback page', () => {

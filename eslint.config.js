@@ -45,6 +45,7 @@ export default defineConfig(
         { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
       ],
       '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-namespace': 'off',
       'import/order': [
         'error',
         {

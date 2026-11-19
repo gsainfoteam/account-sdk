@@ -1,0 +1,23 @@
+{
+  "name": "@infoteam/account-example-astro",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "env ${ACCOUNT_TEST_CLIENT_ID:+PUBLIC_ACCOUNT_CLIENT_ID=${PUBLIC_ACCOUNT_CLIENT_ID:-$ACCOUNT_TEST_CLIENT_ID}} astro dev",
+    "build": "astro check && astro build",
+    "typecheck": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/react": "^7.1.2",
+    "@infoteam/account-react": "workspace:^",
+    "astro": "^7.4.5",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "~6.0.3"
+  }
+}

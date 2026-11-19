@@ -101,7 +101,7 @@ describe('a backend with its own session format', () => {
             status: headers.get('authorization') === 'Bearer refreshed-token' ? 200 : 401,
           }),
       },
-      { api: undefined, session },
+      { api: undefined, session, tokenOrigins: [`https://${API}`] },
     );
     const { authorize, returned } = await loginAndReturn(servers);
     await returned.ready();
@@ -164,6 +164,15 @@ describe('login', () => {
     expect(authorize.searchParams.get('prompt')).toBe('login');
   });
 
+  it('keeps the reason in the store when the IdP cannot be reached', async () => {
+    const servers = setup({});
+    servers.fetch.mockRejectedValue(new TypeError('offline'));
+
+    await expect(servers.client.login()).rejects.toMatchObject({ kind: 'network' });
+    expect(servers.client.store.getState().error).toMatchObject({ code: 'network_error' });
+    expect(servers.redirect).not.toHaveBeenCalled();
+  });
+
   it.each(['https://evil.example/steal', '//evil.example/steal'])(
     'never returns to another origin (%s)',
     async (returnTo) => {
@@ -223,6 +232,87 @@ describe('the callback page', () => {
       error: { code: 'state_mismatch' },
     });
     expect(servers.callsTo(`${API}/auth/login`)).toHaveLength(0);
+  });
+
+  it('finishes a callback that the host redirected to a trailing slash', async () => {
+    const servers = setup(routes);
+    const { state } = await startLogin(servers);
+    window.history.replaceState(null, '', `/auth/callback/?code=code-1&state=${state}`);
+    const returned = servers.create();
+    await returned.ready();
+
+    expect(window.location.pathname).toBe('/notices/1');
+    expect(returned.store.getState().status).toBe('authenticated');
+  });
+
+  describe('in an app that loads a document per page', () => {
+    const document = { callbackNavigation: 'document' } as const;
+
+    it('stays on the callback page until the login is done, then loads where the user was', async () => {
+      const servers = setup(routes, document);
+      const { returned } = await loginAndReturn(servers);
+
+      expect(window.location.pathname + window.location.search).toBe('/auth/callback');
+      expect(returned.isHandlingRedirect()).toBe(true);
+
+      void returned.ready();
+      await vi.waitFor(() =>
+        expect(servers.redirect).toHaveBeenLastCalledWith('/notices/1', { replace: true }),
+      );
+      expect(returned.store.getState().status).toBe('authenticated');
+      expect(returned.isHandlingRedirect()).toBe(true);
+    });
+
+    it('stays on the callback page to show a failed login', async () => {
+      const servers = setup(routes, document);
+      const { returned } = await loginAndReturn(servers, (state) => `code=bad&state=${state}`);
+      servers.redirect.mockClear();
+      await returned.ready();
+
+      expect(servers.redirect).not.toHaveBeenCalled();
+      expect(returned.isHandlingRedirect()).toBe(false);
+      expect(returned.store.getState().status).toBe('unauthenticated');
+    });
+
+    it('keeps a returnTo with a doubled slash on this site', async () => {
+      const servers = setup(routes, document);
+      await servers.client.login({ returnTo: `${window.location.origin}//evil.example/x?y=1#z` });
+      const state = new URL(servers.redirect.mock.calls.at(-1)![0]).searchParams.get('state')!;
+      window.history.replaceState(null, '', `/auth/callback?code=code-1&state=${state}`);
+
+      void servers.create().ready();
+      await vi.waitFor(() =>
+        expect(servers.redirect).toHaveBeenLastCalledWith('/evil.example/x?y=1#z', {
+          replace: true,
+        }),
+      );
+    });
+
+    it('stays for an IdP logout that started while the login was finishing', async () => {
+      let respond = () => undefined as void;
+      const servers = setup(
+        {
+          [`${API}/auth/login`]: () =>
+            new Promise<Response>((resolve) => {
+              respond = () => resolve(Response.json({ access_token: 'service-token' }));
+            }),
+          [`${API}/auth/logout`]: () => new Response(null, { status: 204 }),
+        },
+        document,
+      );
+      const { returned } = await loginAndReturn(servers);
+      servers.redirect.mockClear();
+
+      const ready = returned.ready();
+      await vi.waitFor(() => expect(servers.callsTo(`${API}/auth/login`)).toHaveLength(1));
+      await returned.logout({ idp: true });
+      respond();
+      await ready;
+
+      expect(servers.redirect).toHaveBeenCalledOnce();
+      expect(new URL(servers.redirect.mock.calls[0]![0]).pathname).toBe('/logout');
+      expect(returned.store.getState().status).toBe('unauthenticated');
+    });
   });
 
   it('stops requireAuth with the reason instead of sending the user back to the IdP', async () => {
@@ -301,11 +391,12 @@ describe('a service that asks for consent before login (house-moving-out)', () =
   });
 
   it.each([
-    [400, 'unknown'],
-    [502, 'server_error'],
-  ])('does not treat a %i login failure as a rejection', async (status, code) => {
+    [400, { error: 'invalid_request' }, 'invalid_request'],
+    [400, { message: 'Bad Request' }, 'unknown'],
+    [502, { message: 'Bad Gateway' }, 'server_error'],
+  ])('does not treat a %i login failure (%o) as a rejection', async (status, details, code) => {
     const servers = setup({
-      [`${API}/auth/login`]: () => Response.json({ error: 'invalid_request' }, { status }),
+      [`${API}/auth/login`]: () => Response.json(details, { status }),
     });
     const { returned } = await loginAndReturn(servers);
     await returned.ready();
@@ -313,7 +404,38 @@ describe('a service that asks for consent before login (house-moving-out)', () =
     expect(returned.store.getState()).toMatchObject({
       status: 'unauthenticated',
       canRetryLogin: false,
-      error: { code, status, details: { error: 'invalid_request' } },
+      error: { code, status, cause: details },
+    });
+  });
+
+  it('tells the screen why the login was rejected and when the ticket ran out', async () => {
+    const servers = setup({
+      [`${API}/auth/login`]: ({ body }) =>
+        JSON.parse(body).ticket === 't-1'
+          ? Response.json({ error: 'invalid_ticket' }, { status: 401 })
+          : Response.json(
+              { error: 'session_rejected', ticket: 't-1', reason: 'terms_required' },
+              { status: 403 },
+            ),
+    });
+    const { returned } = await loginAndReturn(servers);
+    await returned.ready();
+
+    expect(returned.store.getState().error).toMatchObject({
+      code: 'session_rejected',
+      kind: 'rejected',
+      reason: 'terms_required',
+    });
+    await expect(returned.retryLogin({ nickname: 'zig' })).rejects.toMatchObject({
+      code: 'invalid_ticket',
+      kind: 'expired',
+    });
+    expect(returned.store.getState()).toMatchObject({
+      canRetryLogin: false,
+      error: { kind: 'expired' },
+    });
+    await expect(returned.retryLogin({ nickname: 'zig' })).rejects.toMatchObject({
+      code: 'unauthenticated',
     });
   });
 });
@@ -409,6 +531,96 @@ describe('ready', () => {
     expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1);
   });
 
+  describe('when the browser blocks site storage', () => {
+    beforeEach(() => {
+      const blocked = () => {
+        throw new DOMException('The operation is insecure.', 'SecurityError');
+      };
+      vi.spyOn(window, 'localStorage', 'get').mockImplementation(blocked);
+      vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(blocked);
+    });
+    afterEach(() => vi.restoreAllMocks());
+
+    it('still restores and ends the session', async () => {
+      const servers = setup({
+        [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }),
+        [`${API}/auth/logout`]: () => new Response(null, { status: 204 }),
+      });
+      await servers.client.ready();
+      expect(servers.client.getAccessToken()).toBe('restored');
+
+      await servers.client.logout({ idp: true });
+      expect(servers.client.store.getState().status).toBe('unauthenticated');
+      expect(servers.redirect).not.toHaveBeenCalled();
+    });
+
+    it('refuses to start a login that could not come back, instead of failing at the callback', async () => {
+      const servers = setup({ [`${API}/auth/refresh`]: () => new Response(null, { status: 401 }) });
+      await servers.client.ready();
+
+      await expect(servers.client.login()).rejects.toMatchObject({
+        code: 'unknown',
+        message: expect.stringContaining('storage is blocked'),
+      });
+      expect(servers.client.store.getState().error).toMatchObject({ code: 'unknown' });
+      expect(servers.redirect).not.toHaveBeenCalled();
+    });
+
+    it('does not try a silent login', async () => {
+      const servers = setup(
+        { [`${API}/auth/refresh`]: () => new Response(null, { status: 401 }) },
+        { silentLogin: true },
+      );
+      await servers.client.ready();
+
+      expect(servers.redirect).not.toHaveBeenCalled();
+      expect(servers.client.store.getState().status).toBe('unauthenticated');
+    });
+
+    it('reports a callback that arrives anyway as state_mismatch', async () => {
+      window.history.replaceState(null, '', '/auth/callback?code=code-1&state=s-1');
+      const servers = setup({});
+      await servers.client.ready();
+
+      expect(servers.client.store.getState().error).toMatchObject({ code: 'state_mismatch' });
+      expect(servers.callsTo(`${API}/auth/login`)).toHaveLength(0);
+    });
+  });
+
+  describe('when the browser blocks only localStorage', () => {
+    beforeEach(() => {
+      vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
+        throw new DOMException('The operation is insecure.', 'SecurityError');
+      });
+    });
+    afterEach(() => vi.restoreAllMocks());
+
+    it('stays signed out after a reload when the logout never reached the server', async () => {
+      const servers = setup({
+        [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }),
+        [`${API}/auth/logout`]: () => new Response(null, { status: 503 }),
+      });
+      await servers.client.ready();
+      await servers.client.logout();
+
+      const reloaded = servers.create();
+      await reloaded.ready();
+
+      expect(reloaded.store.getState().status).toBe('unauthenticated');
+      expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1);
+    });
+
+    it('does not try a silent login, which a new tab could not tell from a logout', async () => {
+      const servers = setup(
+        { [`${API}/auth/refresh`]: () => new Response(null, { status: 401 }) },
+        { silentLogin: true },
+      );
+      await servers.client.ready();
+
+      expect(servers.redirect).not.toHaveBeenCalled();
+    });
+  });
+
   it('settles as signed out without a cookie', async () => {
     const { client } = setup({
       [`${API}/auth/refresh`]: () => new Response(null, { status: 401 }),
@@ -447,6 +659,112 @@ describe('fetch', () => {
     );
     expect(responses.map((response) => response.status)).toEqual([200, 200, 200]);
     expect(refreshes).toBe(2);
+  });
+
+  it('leaves a 401 sent without a token alone, so a guard watching the store does not loop', async () => {
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => new Response(null, { status: 401 }),
+      [`${API}/me`]: () => new Response(null, { status: 401 }),
+    });
+    await servers.client.ready();
+    const listener = vi.fn();
+    servers.client.store.subscribe(listener);
+
+    expect((await servers.client.fetch(`https://${API}/me`)).status).toBe(401);
+    await servers.client.refresh();
+
+    expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(2);
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it('sends no token to another origin and does not refresh for its 401', async () => {
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }),
+      'bucket.example.com/upload': () => new Response(null, { status: 401 }),
+    });
+    await servers.client.ready();
+
+    await servers.client.fetch('https://bucket.example.com/upload', { method: 'PUT' });
+
+    expect(servers.callsTo('bucket.example.com/upload')[0]!.headers.has('authorization')).toBe(
+      false,
+    );
+    expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1);
+  });
+
+  it('judges a relative URL by the base the request is sent to', async () => {
+    const base = document.createElement('base');
+    base.href = 'https://bucket.example.com/';
+    document.head.append(base);
+    try {
+      const servers = setup({
+        [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }),
+        'bucket.example.com/upload': () => new Response(null, { status: 204 }),
+      });
+      await servers.client.ready();
+
+      await servers.client.fetch('upload', { method: 'PUT' });
+
+      const [sent] = servers.callsTo('bucket.example.com/upload');
+      expect(sent!.headers.has('authorization')).toBe(false);
+    } finally {
+      base.remove();
+    }
+  });
+
+  it('sends a read Request with the body given in init', async () => {
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }),
+      [`${API}/upload`]: () => new Response(null, { status: 204 }),
+    });
+    await servers.client.ready();
+    const request = new Request(`https://${API}/upload`, { method: 'POST', body: 'original' });
+    await request.text();
+
+    await servers.client.fetch(request, { body: 'replacement' });
+
+    expect(servers.callsTo(`${API}/upload`)[0]!.body).toBe('replacement');
+  });
+
+  it('sends a Request whose body is a stream again after a refresh', async () => {
+    let first = true;
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }),
+      [`${API}/upload`]: () => {
+        const status = first ? 401 : 204;
+        first = false;
+        return new Response(null, { status });
+      },
+    });
+    await servers.client.ready();
+    const request = new Request(`https://${API}/upload`, {
+      method: 'POST',
+      body: new Blob(['chunk']).stream(),
+      duplex: 'half',
+    } as RequestInit);
+
+    const response = await servers.client.fetch(request);
+
+    expect(response.status).toBe(204);
+    expect(servers.callsTo(`${API}/upload`).map((call) => call.body)).toEqual(['chunk', 'chunk']);
+  });
+
+  it('does not retry a request whose stream body is already spent', async () => {
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }),
+      [`${API}/upload`]: () => new Response(null, { status: 401 }),
+    });
+    await servers.client.ready();
+
+    const body = new Blob(['chunk']).stream();
+    const response = await servers.client.fetch(`https://${API}/upload`, {
+      method: 'POST',
+      body,
+      duplex: 'half',
+    } as RequestInit);
+
+    expect(response.status).toBe(401);
+    expect(servers.callsTo(`${API}/upload`)).toHaveLength(1);
   });
 });
 
@@ -524,6 +842,179 @@ describe('logout with the IdP', () => {
     const returned = servers.create();
     expect(window.location.pathname).toBe('/bye');
     expect(returned.isHandlingRedirect()).toBe(false);
+  });
+
+  it('keeps a guarded page from sending the user to the IdP login while logging out', async () => {
+    let respond = () => undefined as void;
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => Response.json({ access_token: 't' }),
+      [`${API}/auth/logout`]: () =>
+        new Promise<Response>((resolve) => {
+          respond = () => resolve(new Response(null, { status: 204 }));
+        }),
+    });
+    await servers.client.ready();
+
+    const logout = servers.client.logout({ idp: true });
+    void servers.client.requireAuth();
+    await vi.waitFor(() => expect(servers.callsTo(`${API}/auth/logout`)).toHaveLength(1));
+    expect(servers.redirect).not.toHaveBeenCalled();
+
+    respond();
+    await logout;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(servers.redirect).toHaveBeenCalledOnce();
+    expect(new URL(servers.redirect.mock.calls[0]![0]).pathname).toBe('/logout');
+  });
+
+  it('makes a login called from a store subscriber wait for the logout', async () => {
+    let respond = () => undefined as void;
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => Response.json({ access_token: 't' }),
+      [`${API}/auth/logout`]: () =>
+        new Promise<Response>((resolve) => {
+          respond = () => resolve(new Response(null, { status: 204 }));
+        }),
+    });
+    await servers.client.ready();
+    servers.client.store.subscribe((state) => {
+      if (state.status === 'unauthenticated') void servers.client.login();
+    });
+
+    const logout = servers.client.logout({ idp: true });
+    await vi.waitFor(() => expect(servers.callsTo(`${API}/auth/logout`)).toHaveLength(1));
+    expect(servers.redirect).not.toHaveBeenCalled();
+
+    respond();
+    await logout;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(servers.redirect).toHaveBeenCalledOnce();
+    expect(new URL(servers.redirect.mock.calls[0]![0]).pathname).toBe('/logout');
+  });
+
+  it('drops a login that was fetching scopes when the IdP logout started', async () => {
+    let register = () => undefined as void;
+    const servers = setup(
+      {
+        ...routes,
+        [REGISTRATION]: () =>
+          new Promise<Response>((resolve) => {
+            register = () =>
+              resolve(
+                Response.json({
+                  scopes: ['name'],
+                  optionalScopes: [],
+                  tokenEndpointAuthMethod: 'none',
+                }),
+              );
+          }),
+      },
+      { scopes: undefined },
+    );
+
+    const login = servers.client.login();
+    await vi.waitFor(() => expect(servers.callsTo(REGISTRATION)).toHaveLength(1));
+    await servers.client.logout({ idp: true });
+    register();
+    await login;
+
+    expect(servers.redirect).toHaveBeenCalledOnce();
+    expect(new URL(servers.redirect.mock.calls[0]![0]).pathname).toBe('/logout');
+  });
+
+  it('keeps waiting for an IdP logout that a later logout finished before', async () => {
+    const pending: (() => void)[] = [];
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => Response.json({ access_token: 't' }),
+      [`${API}/auth/logout`]: () =>
+        pending.length === 0
+          ? new Promise<Response>((resolve) => {
+              pending.push(() => resolve(new Response(null, { status: 204 })));
+            })
+          : new Response(null, { status: 204 }),
+    });
+    await servers.client.ready();
+
+    const first = servers.client.logout({ idp: true });
+    await vi.waitFor(() => expect(pending).toHaveLength(1));
+    await servers.client.logout();
+    const login = servers.client.login();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(servers.redirect).not.toHaveBeenCalled();
+
+    pending[0]!();
+    await Promise.all([first, login]);
+
+    expect(servers.redirect).toHaveBeenCalledOnce();
+    expect(new URL(servers.redirect.mock.calls[0]![0]).pathname).toBe('/logout');
+  });
+
+  it('keeps a login that waited for a logout from overtaking an IdP logout started meanwhile', async () => {
+    const pending: (() => void)[] = [];
+    let register = () => undefined as void;
+    const servers = setup(
+      {
+        [`${API}/auth/refresh`]: () => Response.json({ access_token: 't' }),
+        [`${API}/auth/logout`]: () =>
+          pending.length === 0
+            ? new Promise<Response>((resolve) => {
+                pending.push(() => resolve(new Response(null, { status: 204 })));
+              })
+            : new Response(null, { status: 204 }),
+        [REGISTRATION]: () =>
+          new Promise<Response>((resolve) => {
+            register = () =>
+              resolve(
+                Response.json({
+                  scopes: ['name'],
+                  optionalScopes: [],
+                  tokenEndpointAuthMethod: 'none',
+                }),
+              );
+          }),
+      },
+      { scopes: undefined },
+    );
+    await servers.client.ready();
+    const digest = crypto.subtle.digest.bind(crypto.subtle);
+    let challenged: Promise<unknown> = new Promise(() => undefined);
+    const spy = vi.spyOn(crypto.subtle, 'digest').mockImplementation((...args) => {
+      const result = digest(...args);
+      challenged = result;
+      return result;
+    });
+
+    const login = servers.client.login();
+    await vi.waitFor(() => expect(servers.callsTo(REGISTRATION)).toHaveLength(1));
+    const first = servers.client.logout();
+    await vi.waitFor(() => expect(pending).toHaveLength(1));
+    register();
+    await vi.waitFor(() => expect(spy).toHaveBeenCalledOnce());
+    await challenged;
+    // PKCE 계산 뒤 gate까지는 microtask만 남아 있어서, 한 task를 넘기면 login()이 첫 로그아웃을 기다리고 있다.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    spy.mockRestore();
+    await servers.client.logout({ idp: true });
+
+    pending[0]!();
+    await Promise.all([first, login]);
+
+    expect(servers.redirect).toHaveBeenCalledOnce();
+    expect(new URL(servers.redirect.mock.calls[0]![0]).pathname).toBe('/logout');
+  });
+
+  it('lets the user log in again after coming back from the IdP logout page', async () => {
+    const servers = setup(routes);
+    await servers.client.logout({ idp: true });
+    expect(new URL(servers.redirect.mock.calls[0]![0]).pathname).toBe('/logout');
+
+    window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }));
+    await servers.client.login();
+
+    expect(servers.redirect).toHaveBeenCalledTimes(2);
+    expect(new URL(servers.redirect.mock.calls[1]![0]).pathname).toBe('/authorize');
   });
 
   it('only ends the service session when the IdP does not advertise logout', async () => {
