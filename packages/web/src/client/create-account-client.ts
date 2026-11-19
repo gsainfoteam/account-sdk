@@ -235,6 +235,8 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
 
   const finishCallback = async ({ url, transaction }: Callback): Promise<void> => {
     const started = logouts;
+    // 기다리는 동안 logout했으면 머문다. 떠나면 IdP 로그아웃으로 가는 이동을 덮어쓴다.
+    const leave = () => (logouts === started ? leaveCallback() : undefined);
     try {
       const params = parseCallback(await metadata(), url, { clientId, state: transaction?.state });
       // web은 항상 openid를 요청하므로 nonce가 없는 transaction은 이 탭이 만든 것이 아니다.
@@ -256,7 +258,7 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
       const accountError = toAccountError(error);
       if (transaction?.silent && SILENT_LOGIN_FAILURES.has(accountError.code)) {
         unauthenticate();
-        return leaveCallback();
+        return leave();
       }
 
       callbackError = accountError;
@@ -264,7 +266,7 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
       return;
     }
 
-    return leaveCallback();
+    return leave();
   };
 
   const authorize = async (
@@ -375,7 +377,11 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
       try {
         await startSession({ ticket: rejection.ticket }, body, started);
       } catch (error) {
-        if (logouts === started) unauthenticate(toAccountError(error));
+        if (logouts === started) {
+          // 만료된 ticket을 다시 보내지 않도록 이어 갈 로그인을 버린다. 화면은 retryLogin 대신 login을 보여 준다.
+          if (error instanceof AccountError.Expired) rejection = null;
+          unauthenticate(toAccountError(error));
+        }
         throw error;
       }
 
@@ -394,15 +400,21 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
       rejection = null;
       logouts += 1;
       flags.setItem(STORAGE_KEYS.loggedOut, '1');
-      unauthenticate(null);
 
+      // store 구독자가 바뀐 상태를 받자마자 login()을 불러도 기다리도록 상태를 바꾸기 전에 등록한다. 앞선 로그아웃이
+      // 아직 IdP로 떠나는 중이면 그것까지 기다려야, 뒤의 로그아웃이 먼저 끝나도 그 이동을 덮어쓰지 않는다.
       const ending = endSession(accessToken, idp, returnTo);
+      const previous = pendingLogout;
       const leaving = ending.catch(() => false);
-      pendingLogout = leaving;
-      void leaving.then((left) => {
-        if (!left && pendingLogout === leaving) pendingLogout = undefined;
+      const waiting = previous
+        ? Promise.all([previous, leaving]).then(([before, now]) => before || now)
+        : leaving;
+      pendingLogout = waiting;
+      void waiting.then((left) => {
+        if (!left && pendingLogout === waiting) pendingLogout = undefined;
       });
 
+      unauthenticate(null);
       await ending;
     },
 

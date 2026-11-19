@@ -273,6 +273,32 @@ describe('the callback page', () => {
       expect(returned.isHandlingRedirect()).toBe(false);
       expect(returned.store.getState().status).toBe('unauthenticated');
     });
+
+    it('stays for an IdP logout that started while the login was finishing', async () => {
+      let respond = () => undefined as void;
+      const servers = setup(
+        {
+          [`${API}/auth/login`]: () =>
+            new Promise<Response>((resolve) => {
+              respond = () => resolve(Response.json({ access_token: 'service-token' }));
+            }),
+          [`${API}/auth/logout`]: () => new Response(null, { status: 204 }),
+        },
+        document,
+      );
+      const { returned } = await loginAndReturn(servers);
+      servers.redirect.mockClear();
+
+      const ready = returned.ready();
+      await vi.waitFor(() => expect(servers.callsTo(`${API}/auth/login`)).toHaveLength(1));
+      await returned.logout({ idp: true });
+      respond();
+      await ready;
+
+      expect(servers.redirect).toHaveBeenCalledOnce();
+      expect(new URL(servers.redirect.mock.calls[0]![0]).pathname).toBe('/logout');
+      expect(returned.store.getState().status).toBe('unauthenticated');
+    });
   });
 
   it('stops requireAuth with the reason instead of sending the user back to the IdP', async () => {
@@ -389,6 +415,13 @@ describe('a service that asks for consent before login (house-moving-out)', () =
     await expect(returned.retryLogin({ nickname: 'zig' })).rejects.toMatchObject({
       code: 'invalid_ticket',
       kind: 'expired',
+    });
+    expect(returned.store.getState()).toMatchObject({
+      canRetryLogin: false,
+      error: { kind: 'expired' },
+    });
+    await expect(returned.retryLogin({ nickname: 'zig' })).rejects.toMatchObject({
+      code: 'unauthenticated',
     });
   });
 });
@@ -692,6 +725,59 @@ describe('logout with the IdP', () => {
     respond();
     await logout;
     await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(servers.redirect).toHaveBeenCalledOnce();
+    expect(new URL(servers.redirect.mock.calls[0]![0]).pathname).toBe('/logout');
+  });
+
+  it('makes a login called from a store subscriber wait for the logout', async () => {
+    let respond = () => undefined as void;
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => Response.json({ access_token: 't' }),
+      [`${API}/auth/logout`]: () =>
+        new Promise<Response>((resolve) => {
+          respond = () => resolve(new Response(null, { status: 204 }));
+        }),
+    });
+    await servers.client.ready();
+    servers.client.store.subscribe((state) => {
+      if (state.status === 'unauthenticated') void servers.client.login();
+    });
+
+    const logout = servers.client.logout({ idp: true });
+    await vi.waitFor(() => expect(servers.callsTo(`${API}/auth/logout`)).toHaveLength(1));
+    expect(servers.redirect).not.toHaveBeenCalled();
+
+    respond();
+    await logout;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(servers.redirect).toHaveBeenCalledOnce();
+    expect(new URL(servers.redirect.mock.calls[0]![0]).pathname).toBe('/logout');
+  });
+
+  it('keeps waiting for an IdP logout that a later logout finished before', async () => {
+    const pending: (() => void)[] = [];
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => Response.json({ access_token: 't' }),
+      [`${API}/auth/logout`]: () =>
+        pending.length === 0
+          ? new Promise<Response>((resolve) => {
+              pending.push(() => resolve(new Response(null, { status: 204 })));
+            })
+          : new Response(null, { status: 204 }),
+    });
+    await servers.client.ready();
+
+    const first = servers.client.logout({ idp: true });
+    await vi.waitFor(() => expect(pending).toHaveLength(1));
+    await servers.client.logout();
+    const login = servers.client.login();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(servers.redirect).not.toHaveBeenCalled();
+
+    pending[0]!();
+    await Promise.all([first, login]);
 
     expect(servers.redirect).toHaveBeenCalledOnce();
     expect(new URL(servers.redirect.mock.calls[0]![0]).pathname).toBe('/logout');
