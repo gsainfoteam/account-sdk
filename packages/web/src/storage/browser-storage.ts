@@ -5,7 +5,6 @@ const PROBE = `${STORAGE_NAMESPACE}:probe`;
 
 const MEMORY = new WeakSet<Storage>();
 
-// 사이트 데이터를 막은 브라우저에서는 storage에 접근만 해도 `SecurityError`가 나서 client를 만들 수 없다.
 export function browserStorage(name: 'localStorage' | 'sessionStorage'): Storage {
   const [, storage] = attempt(() => {
     const candidate = globalThis[name];
