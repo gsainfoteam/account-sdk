@@ -13,7 +13,13 @@ import { retryLogin } from '../login/retry-login';
 import { logout } from '../logout/logout';
 import { refreshSession, restoreSession } from '../refresh/refresh-session';
 
-/** 페이지가 callback으로 열렸으면 만드는 즉시 주소를 바꾸므로, 주소를 읽는 라우터보다 먼저 만들어야 한다. */
+/**
+ * **라우터를 만들기 전에, 모듈 최상단에서 한 번 호출한다.** 페이지가 callback으로 열렸으면 호출하는 즉시 주소에서 code를
+ * 지우고 주소를 로그인 전 위치로 바꾼다. 라우터가 먼저 주소를 읽으면 callback 주소를 없는 라우트로 보고, 에러 없이 404
+ * 화면이나 다른 페이지를 그린다.
+ *
+ * `RetryBody`는 `retryLogin(body)`에 넘길 body의 타입이다. 생략하면 `unknown`이다.
+ */
 export function createAccountClient<RetryBody = unknown>(
   input: AccountClientOptions,
 ): AccountClient<RetryBody> {
