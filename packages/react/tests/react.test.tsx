@@ -2,10 +2,17 @@ import { StrictMode } from 'react';
 
 import { clearDiscoveryCache } from '@infoteam/account-core';
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import production from '../../core/tests/fixtures/discovery.production.json' with { type: 'json' };
-import { AccountProvider, createAccountClient, RequireAuth, useAccount } from '../src';
+import {
+  AccountProvider,
+  type AccountProviderProps,
+  createAccountClient,
+  RequireAuth,
+  useAccount,
+  type useAccountClient,
+} from '../src';
 
 const API = 'https://api.ziggle.gistory.me';
 
@@ -65,6 +72,29 @@ describe('AccountProvider', () => {
       </AccountProvider>,
     );
     await screen.findByText('unauthenticated:-:00');
+  });
+});
+
+describe('AccountProvider while the page leaves', () => {
+  it('shows the fallback once a login leaves for the IdP, and the page again if it comes back', async () => {
+    const { client, redirect } = setup({
+      [`${API}/auth/refresh`]: () => new Response(null, { status: 401 }),
+    });
+    const { container } = render(
+      <AccountProvider client={client} fallback={<p>leaving</p>}>
+        <Status />
+      </AccountProvider>,
+    );
+    await waitFor(() => expect(container.textContent).toBe('unauthenticated:-:00'));
+
+    await act(() => client.login());
+    expect(redirect).toHaveBeenCalledOnce();
+    expect(container.textContent).toBe('leaving');
+
+    act(() => {
+      window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }));
+    });
+    expect(container.textContent).toBe('unauthenticated:-:00');
   });
 });
 
@@ -142,5 +172,27 @@ describe('AccountProvider on the callback page', () => {
     expect(window.location.pathname).toBe('/notices/1');
     expect(screen.getByText('signing in')).toBeTruthy();
     await screen.findByText('authenticated:service:01');
+  });
+});
+
+describe('the retry body type', () => {
+  interface Consent {
+    agreedToPrivacy: boolean;
+  }
+
+  it('is named once on the hook that calls retryLogin and stays unknown elsewhere', () => {
+    expectTypeOf<ReturnType<typeof useAccount<Consent>>['retryLogin']>()
+      .parameter(0)
+      .toEqualTypeOf<Consent>();
+    expectTypeOf<ReturnType<typeof useAccountClient<Consent>>['retryLogin']>()
+      .parameter(0)
+      .toEqualTypeOf<Consent>();
+    expectTypeOf<ReturnType<typeof useAccount>['retryLogin']>().parameter(0).toBeUnknown();
+  });
+
+  it('carries the client type through AccountProvider', () => {
+    expectTypeOf<AccountProviderProps<Consent>['client']>().toEqualTypeOf<
+      ReturnType<typeof createAccountClient<Consent>>
+    >();
   });
 });

@@ -7,7 +7,8 @@ import {
 } from '@infoteam/account-core';
 import { Mutex } from 'es-toolkit';
 
-import { type ParsedAccountClientOptions, type Redirect } from './options';
+import { type AppKind, type ParsedAccountClientOptions, type Redirect } from './options';
+import { onRestoredFromBackForwardCache } from '../internal/back-forward-cache';
 import { takeCallback, type Callback } from '../login/callback';
 import { createLogoutGate, type LogoutGate } from '../logout/logout-gate';
 import { sessionFromApi } from '../session/api-session';
@@ -23,7 +24,7 @@ export interface AccountContext {
   readonly flags: Storage;
   readonly canRoundTrip: boolean;
   readonly redirect: Redirect;
-  readonly navigation: 'history' | 'document';
+  readonly app: AppKind;
   readonly account: AccountStore;
   readonly refreshMutex: Mutex;
   readonly callback: Callback | null;
@@ -43,11 +44,23 @@ export function createContext(options: ParsedAccountClientOptions): AccountConte
   const flags = isMemoryStorage(persistent) ? browserStorage('sessionStorage') : persistent;
   const flagsReachOtherTabs = flags === persistent;
   const canRoundTrip = !isMemoryStorage(transactions);
-  const redirect: Redirect =
+
+  const account = createAccountStore();
+  onRestoredFromBackForwardCache(() => account.cancelLeaving());
+  const navigate: Redirect =
     options.redirect ??
     ((url, { replace = false } = {}) =>
       replace ? window.location.replace(url) : window.location.assign(url));
-  const navigation = options.callbackNavigation ?? 'history';
+  const redirect: Redirect = (url, navigateOptions) => {
+    account.leavePage();
+    try {
+      navigate(url, navigateOptions);
+    } catch (error) {
+      account.cancelLeaving();
+      throw error;
+    }
+  };
+  const app = options.app ?? 'spa';
 
   const metadata = () => discover(options.issuer, { fetch });
   const redirectUri = (): string =>
@@ -67,10 +80,9 @@ export function createContext(options: ParsedAccountClientOptions): AccountConte
     });
   };
 
-  const account = createAccountStore();
   const refreshMutex = new Mutex();
 
-  const callback = takeCallback({ redirectUri: redirectUri(), transactions, navigation, redirect });
+  const callback = takeCallback({ redirectUri: redirectUri(), transactions, app, redirect });
   const trySilentLogin =
     options.silentLogin === true &&
     canRoundTrip &&
@@ -78,6 +90,7 @@ export function createContext(options: ParsedAccountClientOptions): AccountConte
     callback === null &&
     transactions.getItem(STORAGE_KEYS.silentLoginTried) === null &&
     flags.getItem(STORAGE_KEYS.loggedOut) === null;
+  if (callback || trySilentLogin) account.expectRedirect();
   const logoutGate = createLogoutGate();
 
   return {
@@ -87,7 +100,7 @@ export function createContext(options: ParsedAccountClientOptions): AccountConte
     flags,
     canRoundTrip,
     redirect,
-    navigation,
+    app,
     account,
     refreshMutex,
     callback,

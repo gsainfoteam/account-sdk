@@ -5,19 +5,19 @@ import { useStore } from 'zustand';
 
 import { useAccountClient } from '../context/account-context';
 
-export interface UseAccountResult extends AccountState {
+export interface UseAccountResult<RetryBody = unknown> extends AccountState {
   isLoading: boolean;
   isAuthenticated: boolean;
 
   login: AccountClient['login'];
   logout: AccountClient['logout'];
-  retryLogin: AccountClient['retryLogin'];
+  retryLogin: AccountClient<RetryBody>['retryLogin'];
   fetch: AccountClient['fetch'];
 }
 
 /** 상태가 바뀔 때만 새 객체를 돌려줘서, effect의 의존성으로 써도 렌더마다 다시 돌지 않는다. */
-export function useAccount(): UseAccountResult {
-  const client = useAccountClient();
+export function useAccount<RetryBody = unknown>(): UseAccountResult<RetryBody> {
+  const client = useAccountClient<RetryBody>();
   const state = useStore(client.store);
 
   return useMemo(

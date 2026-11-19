@@ -1,8 +1,14 @@
 import { clearDiscoveryCache } from '@infoteam/account-core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import production from '../../core/tests/fixtures/discovery.production.json' with { type: 'json' };
-import { createAccountClient, type AccountClientOptions, type Session } from '../src';
+import {
+  AccountError,
+  createAccountClient,
+  type AccountClient,
+  type AccountClientOptions,
+  type Session,
+} from '../src';
 import { fakeServers, type Route } from './fake-servers';
 
 const API = 'api.ziggle.gistory.me';
@@ -52,6 +58,17 @@ describe('createAccountClient', () => {
     expect(() => createAccountClient({ issuer: 'production', clientId: '', api: '/api' })).toThrow(
       expect.objectContaining({ code: 'invalid_request' }),
     );
+  });
+
+  it('names the app kind spa or mpa', () => {
+    expect(() =>
+      createAccountClient({
+        issuer: 'production',
+        clientId: 'ziggle',
+        api: '/api',
+        app: 'document' as 'mpa',
+      }),
+    ).toThrow(expect.objectContaining({ code: 'invalid_request' }));
   });
 
   it.each([
@@ -259,10 +276,10 @@ describe('the callback page', () => {
   });
 
   describe('in an app that loads a document per page', () => {
-    const document = { callbackNavigation: 'document' } as const;
+    const mpa = { app: 'mpa' } as const;
 
     it('stays on the callback page until the login is done, then loads where the user was', async () => {
-      const servers = setup(routes, document);
+      const servers = setup(routes, mpa);
       const { returned } = await loginAndReturn(servers);
 
       expect(window.location.pathname + window.location.search).toBe('/auth/callback');
@@ -276,8 +293,25 @@ describe('the callback page', () => {
       expect(returned.isHandlingRedirect()).toBe(true);
     });
 
+    it('settles ready when the callback page comes back from the back-forward cache', async () => {
+      const servers = setup(routes, mpa);
+      const { returned } = await loginAndReturn(servers);
+      const ready = returned.ready();
+      await vi.waitFor(() =>
+        expect(servers.redirect).toHaveBeenLastCalledWith('/notices/1', { replace: true }),
+      );
+
+      window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }));
+      await ready;
+
+      expect(returned.store.getState()).toMatchObject({
+        status: 'authenticated',
+        redirecting: false,
+      });
+    });
+
     it('stays on the callback page to show a failed login', async () => {
-      const servers = setup(routes, document);
+      const servers = setup(routes, mpa);
       const { returned } = await loginAndReturn(servers, (state) => `code=bad&state=${state}`);
       servers.redirect.mockClear();
       await returned.ready();
@@ -288,7 +322,7 @@ describe('the callback page', () => {
     });
 
     it('keeps a returnTo with a doubled slash on this site', async () => {
-      const servers = setup(routes, document);
+      const servers = setup(routes, mpa);
       await servers.client.login({ returnTo: `${window.location.origin}//evil.example/x?y=1#z` });
       const state = new URL(servers.redirect.mock.calls.at(-1)![0]).searchParams.get('state')!;
       window.history.replaceState(null, '', `/auth/callback?code=code-1&state=${state}`);
@@ -311,7 +345,7 @@ describe('the callback page', () => {
             }),
           [`${API}/auth/logout`]: () => new Response(null, { status: 204 }),
         },
-        document,
+        mpa,
       );
       const { returned } = await loginAndReturn(servers);
       servers.redirect.mockClear();
@@ -373,6 +407,34 @@ describe('a service that asks for consent before login (house-moving-out)', () =
       ticket: 't-1',
       transport: 'cookie',
     });
+  });
+
+  it('types the retry body given to createAccountClient and keeps unknown by default', () => {
+    interface Consent {
+      agreedToPrivacy: boolean;
+    }
+
+    expectTypeOf(createAccountClient<Consent>).returns.toEqualTypeOf<AccountClient<Consent>>();
+    expectTypeOf<AccountClient<Consent>['retryLogin']>().parameter(0).toEqualTypeOf<Consent>();
+    expectTypeOf<AccountClient['retryLogin']>().parameter(0).toBeUnknown();
+  });
+
+  it('rejects the retry with the same AccountError it keeps in the store', async () => {
+    const offline = new TypeError('offline');
+    const session = customSession({
+      start: vi.fn<Session['start']>(async (credential) => {
+        if ('ticket' in credential) throw offline;
+        return { rejected: { error: new AccountError('session_rejected'), ticket: 't-1' } };
+      }),
+    });
+    const servers = setup({}, { api: undefined, session });
+    const { returned } = await loginAndReturn(servers);
+    await returned.ready();
+
+    const failure = await returned.retryLogin({}).catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({ code: 'unknown', cause: offline });
+    expect(returned.store.getState().error).toBe(failure);
   });
 
   it('rejects the retry when a logout happens while it waits', async () => {
@@ -476,6 +538,131 @@ describe('requireAuth', () => {
     expect(redirect).toHaveBeenCalledOnce();
     const state = new URL(redirect.mock.calls[0]![0]).searchParams.get('state')!;
     expect(sessionStorage.getItem(`gsainfoteam-account:tx:${state}`)).toContain('/admin?tab=1');
+  });
+});
+
+describe('redirecting', () => {
+  const signedOut = { [`${API}/auth/refresh`]: () => new Response(null, { status: 401 }) };
+  const restoreFromBackForwardCache = () =>
+    window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }));
+  const redirecting = (client: { store: { getState(): { redirecting: boolean } } }) =>
+    client.store.getState().redirecting;
+
+  it('shows a login leaving for the IdP, which a never-settling requireAuth waits on', async () => {
+    const { client, redirect } = setup(signedOut);
+    await client.ready();
+    expect(redirecting(client)).toBe(false);
+
+    void client.requireAuth();
+    await vi.waitFor(() => expect(redirect).toHaveBeenCalledOnce());
+
+    expect(redirecting(client)).toBe(true);
+    expect(client.isHandlingRedirect()).toBe(true);
+  });
+
+  it('stays false when the login fails before leaving', async () => {
+    const servers = setup({});
+    servers.fetch.mockRejectedValue(new TypeError('offline'));
+
+    await expect(servers.client.login()).rejects.toMatchObject({ kind: 'network' });
+
+    expect(redirecting(servers.client)).toBe(false);
+  });
+
+  it('shows an IdP logout leaving the page', async () => {
+    const servers = setup({ [`${API}/auth/logout`]: () => new Response(null, { status: 204 }) });
+
+    await servers.client.logout({ idp: true });
+
+    expect(redirecting(servers.client)).toBe(true);
+  });
+
+  it('stays true when the session restore settles after a login already left', async () => {
+    let respond = (_: Response) => undefined as void;
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => new Promise<Response>((resolve) => (respond = resolve)),
+    });
+    const restoring = servers.client.ready();
+    await vi.waitFor(() => expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1));
+
+    await servers.client.login();
+    respond(new Response(null, { status: 401 }));
+    await restoring;
+
+    expect(redirecting(servers.client)).toBe(true);
+  });
+
+  it('is true from creation while a silent login may leave, and stays true once it does', async () => {
+    const servers = setup(signedOut, { silentLogin: true });
+    expect(redirecting(servers.client)).toBe(true);
+
+    void servers.client.ready();
+    await vi.waitFor(() => expect(servers.redirect).toHaveBeenCalledOnce());
+
+    expect(redirecting(servers.client)).toBe(true);
+  });
+
+  it('turns false once a silent login finds a session without leaving', async () => {
+    const { client, redirect } = setup(
+      { [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }) },
+      { silentLogin: true },
+    );
+    await client.ready();
+
+    expect(redirect).not.toHaveBeenCalled();
+    expect(redirecting(client)).toBe(false);
+  });
+
+  it('turns false when the page comes back from the back-forward cache', async () => {
+    const servers = setup(signedOut, { silentLogin: true });
+    void servers.client.ready();
+    await vi.waitFor(() => expect(servers.redirect).toHaveBeenCalledOnce());
+
+    restoreFromBackForwardCache();
+
+    expect(redirecting(servers.client)).toBe(false);
+  });
+
+  it('turns false again when a custom redirect throws instead of leaving', async () => {
+    const { client, redirect } = setup(signedOut);
+    await client.ready();
+    redirect.mockImplementation(() => {
+      throw new TypeError('navigation blocked');
+    });
+
+    await expect(client.login()).rejects.toMatchObject({ code: 'unknown' });
+
+    expect(redirecting(client)).toBe(false);
+  });
+
+  it('settles ready by restoring again when a page left for a silent login comes back', async () => {
+    const routes: Record<string, Route> = { ...signedOut };
+    const servers = setup(routes, { silentLogin: true });
+    const ready = servers.client.ready();
+    await vi.waitFor(() => expect(servers.redirect).toHaveBeenCalledOnce());
+    routes[`${API}/auth/refresh`] = () => Response.json({ access_token: 'restored' });
+
+    restoreFromBackForwardCache();
+    await ready;
+
+    expect(servers.client.store.getState()).toMatchObject({
+      status: 'authenticated',
+      accessToken: 'restored',
+      redirecting: false,
+    });
+    expect(servers.redirect).toHaveBeenCalledOnce();
+  });
+
+  it('stays true after a custom redirect that keeps the page, until the page comes back', async () => {
+    const { client, redirect } = setup(signedOut);
+    await client.ready();
+    await client.login();
+
+    expect(redirect).toHaveBeenCalledOnce();
+    expect(redirecting(client)).toBe(true);
+
+    restoreFromBackForwardCache();
+    expect(redirecting(client)).toBe(false);
   });
 });
 

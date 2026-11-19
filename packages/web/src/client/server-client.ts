@@ -3,12 +3,15 @@ import { createStore } from 'zustand/vanilla';
 
 import { type AccountClient, type AccountState } from './types';
 
-export function createServerClient(fetch: Fetch | undefined): AccountClient {
+export function createServerClient<RetryBody = unknown>(
+  fetch: Fetch | undefined,
+): AccountClient<RetryBody> {
   const store = createStore<AccountState>(() => ({
     status: 'loading',
     accessToken: null,
     error: null,
     canRetryLogin: false,
+    redirecting: false,
   }));
 
   const browserOnly = async (): Promise<never> => {

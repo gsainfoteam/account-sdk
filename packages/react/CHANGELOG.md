@@ -5,6 +5,8 @@
 ### Minor Changes
 
 - `RequireAuth`'s `fallback` accepts a function that receives `useAccount()`, so it can tell restoring apart from a failed login. Export `useAccountClient`.
+- `AccountProvider` shows `fallback` while the store's `redirecting` is `true`, so it now also covers the page leaving for the IdP after `login()` or `logout({ idp: true })`, and shows the children again when the page comes back from the back-forward cache.
+- `useAccount<RetryBody>()` and `useAccountClient<RetryBody>()` type the `retryLogin` body, and `AccountProvider` accepts a client made with `createAccountClient<RetryBody>()`. The default stays `unknown`.
 
 ### Patch Changes
 

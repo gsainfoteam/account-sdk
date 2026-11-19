@@ -14,7 +14,9 @@ import { logout } from '../logout/logout';
 import { refreshSession, restoreSession } from '../refresh/refresh-session';
 
 /** 페이지가 callback으로 열렸으면 만드는 즉시 주소를 바꾸므로, 주소를 읽는 라우터보다 먼저 만들어야 한다. */
-export function createAccountClient(input: AccountClientOptions): AccountClient {
+export function createAccountClient<RetryBody = unknown>(
+  input: AccountClientOptions,
+): AccountClient<RetryBody> {
   const parsed = AccountClientOptionsSchema.safeParse(input);
   if (!parsed.success) {
     throw new AccountError('invalid_request', {
@@ -23,15 +25,14 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   }
 
   const options = parsed.data;
-  if (typeof window === 'undefined') return createServerClient(options.fetch);
+  if (typeof window === 'undefined') return createServerClient<RetryBody>(options.fetch);
 
   const context = createContext(options);
   const { store } = context.account;
   const { callback } = context;
   let initializing: Promise<void> | undefined;
-  let settled = false;
 
-  const client: AccountClient = {
+  const client: AccountClient<RetryBody> = {
     store,
 
     getAccessToken() {
@@ -41,15 +42,13 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
     ready() {
       initializing ??= (
         callback ? finishCallback(context, callback) : restoreSession(context)
-      ).finally(() => {
-        settled = true;
-      });
+      ).finally(() => context.account.settleRedirect());
 
       return initializing;
     },
 
     isHandlingRedirect() {
-      return !settled && (callback !== null || context.trySilentLogin);
+      return store.getState().redirecting;
     },
 
     async requireAuth({ returnTo } = {}) {

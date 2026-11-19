@@ -8,7 +8,8 @@ import {
 
 import { startSession } from './start-session';
 import { type AccountContext } from '../client/context';
-import { type Redirect } from '../client/options';
+import { type AppKind, type Redirect } from '../client/options';
+import { untilRestoredFromBackForwardCache } from '../internal/back-forward-cache';
 import { toAccountError } from '../internal/to-account-error';
 import { samePath } from '../internal/urls';
 import { watchLogout } from '../logout/logout';
@@ -30,14 +31,14 @@ export interface Callback {
 interface CallbackContext {
   redirectUri: string;
   transactions: Storage;
-  navigation: 'history' | 'document';
+  app: AppKind;
   redirect: Redirect;
 }
 
 export function takeCallback({
   redirectUri,
   transactions,
-  navigation,
+  app,
   redirect,
 }: CallbackContext): Callback | null {
   const url = window.location.href;
@@ -47,7 +48,7 @@ export function takeCallback({
   const afterLogout = transactions.getItem(logoutKey);
   if (afterLogout !== null && !isCallbackUrl(url)) {
     transactions.removeItem(logoutKey);
-    if (navigation === 'document') redirect(afterLogout, { replace: true });
+    if (app === 'mpa') redirect(afterLogout, { replace: true });
     else window.history.replaceState(null, '', afterLogout);
     return null;
   }
@@ -56,7 +57,7 @@ export function takeCallback({
 
   const transaction = takeTransaction(transactions, readCallbackState(url));
   const returnTo = transaction?.returnTo ?? '/';
-  const addressWithoutCode = navigation === 'document' ? new URL(url).pathname : returnTo;
+  const addressWithoutCode = app === 'mpa' ? new URL(url).pathname : returnTo;
   window.history.replaceState(null, '', addressWithoutCode);
 
   return { url, transaction, returnTo };
@@ -99,12 +100,12 @@ export async function finishCallback(
 }
 
 export function leaveCallback({
-  navigation,
+  app,
   callback,
   redirect,
-}: AccountContext): Promise<never> | undefined {
-  if (navigation !== 'document' || !callback) return undefined;
+}: AccountContext): Promise<void> | undefined {
+  if (app !== 'mpa' || !callback) return undefined;
 
   redirect(callback.returnTo, { replace: true });
-  return new Promise<never>(() => undefined);
+  return untilRestoredFromBackForwardCache();
 }
