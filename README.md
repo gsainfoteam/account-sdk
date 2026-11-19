@@ -203,6 +203,8 @@ Flutter 패키지는 `packages/flutter`에서 `flutter analyze`와 `flutter test
 3. `pnpm build`로 패키지를 빌드합니다. examples는 각 패키지의 `dist`를 읽습니다.
 4. `mise run example:api`와 `mise run example:web`을 각각 실행하고 <http://localhost:5173>을 엽니다.
 
+[`examples/astro`](examples/astro)는 같은 흐름을 [Astro](https://astro.build)와 React island로 만든 MPA 예제입니다. redirect URI로 `http://localhost:5174/auth/callback`을 등록하고 `mise run example:web` 대신 `mise run example:astro`를 실행한 뒤 <http://localhost:5174>를 엽니다. `examples/nest`는 `WEB_ORIGIN`의 origin만 허용하므로 `.env`에 `WEB_ORIGIN=http://localhost:5174`도 넣습니다.
+
 ### 배포
 
 [changesets](https://github.com/changesets/changesets)로 버전을 올립니다. [`account-contract`](packages/contract)를 뺀 모든 패키지가 같은 버전을 씁니다.

@@ -1,0 +1,15 @@
+---
+// 서버는 이 요청이 callback인지 모르므로 서버에서 그리면 브라우저의 첫 렌더와 달라진다. 그래서 브라우저에서만 그린다.
+import { Callback } from '../../components/callback';
+---
+
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>signing in</title>
+  </head>
+  <body>
+    <Callback client:only="react" />
+  </body>
+</html>
