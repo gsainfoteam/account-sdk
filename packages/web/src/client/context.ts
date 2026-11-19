@@ -46,14 +46,19 @@ export function createContext(options: ParsedAccountClientOptions): AccountConte
   const canRoundTrip = !isMemoryStorage(transactions);
 
   const account = createAccountStore();
-  onRestoredFromBackForwardCache(() => account.backOnPage());
+  onRestoredFromBackForwardCache(() => account.cancelLeaving());
   const navigate: Redirect =
     options.redirect ??
     ((url, { replace = false } = {}) =>
       replace ? window.location.replace(url) : window.location.assign(url));
   const redirect: Redirect = (url, navigateOptions) => {
     account.leavePage();
-    navigate(url, navigateOptions);
+    try {
+      navigate(url, navigateOptions);
+    } catch (error) {
+      account.cancelLeaving();
+      throw error;
+    }
   };
   const app = options.app ?? 'spa';
 

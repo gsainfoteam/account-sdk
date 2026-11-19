@@ -99,8 +99,8 @@ account.store.subscribe((state, prev) => state.status !== prev.status && rerende
 
 - callback으로 열린 페이지와 자동 로그인을 시도할 페이지는 client를 만들 때부터 `true`이고, `ready()`가 끝나면 `false`가 됩니다.
 - `login()`, `requireAuth()`, `logout({ idp: true })`가 페이지를 IdP로 보내면 `true`가 됩니다.
-- 뒤로 가기로 페이지가 bfcache에서 돌아오면 `false`가 됩니다.
-- `redirect` 옵션에 페이지를 떠나지 않는 함수를 주면, bfcache에서 돌아오기 전까지 `true`로 남습니다.
+- 뒤로 가기로 페이지가 bfcache에서 돌아오면 `false`가 됩니다. 자동 로그인이나 `app: 'mpa'`의 callback으로 떠났던 페이지는 이때 `ready()`도 끝납니다. 자동 로그인으로 떠났던 페이지는 세션을 한 번 더 복구해서 `status`를 정합니다.
+- `redirect` 옵션에 페이지를 떠나지 않는 함수를 주면, bfcache에서 돌아오기 전까지 `true`로 남습니다. 함수가 예외를 던지면 `false`로 돌아갑니다.
 
 화면에서는 `redirecting`인 동안 페이지를 가리고 로딩 화면을 보여 줍니다. React의 `AccountProvider`는 `fallback`으로 이를 처리합니다. `account.isHandlingRedirect()`도 같은 값을 돌려줍니다.
 

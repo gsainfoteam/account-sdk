@@ -293,6 +293,23 @@ describe('the callback page', () => {
       expect(returned.isHandlingRedirect()).toBe(true);
     });
 
+    it('settles ready when the callback page comes back from the back-forward cache', async () => {
+      const servers = setup(routes, mpa);
+      const { returned } = await loginAndReturn(servers);
+      const ready = returned.ready();
+      await vi.waitFor(() =>
+        expect(servers.redirect).toHaveBeenLastCalledWith('/notices/1', { replace: true }),
+      );
+
+      window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }));
+      await ready;
+
+      expect(returned.store.getState()).toMatchObject({
+        status: 'authenticated',
+        redirecting: false,
+      });
+    });
+
     it('stays on the callback page to show a failed login', async () => {
       const servers = setup(routes, mpa);
       const { returned } = await loginAndReturn(servers, (state) => `code=bad&state=${state}`);
@@ -604,6 +621,36 @@ describe('redirecting', () => {
     restoreFromBackForwardCache();
 
     expect(redirecting(servers.client)).toBe(false);
+  });
+
+  it('turns false again when a custom redirect throws instead of leaving', async () => {
+    const { client, redirect } = setup(signedOut);
+    await client.ready();
+    redirect.mockImplementation(() => {
+      throw new TypeError('navigation blocked');
+    });
+
+    await expect(client.login()).rejects.toMatchObject({ code: 'unknown' });
+
+    expect(redirecting(client)).toBe(false);
+  });
+
+  it('settles ready by restoring again when a page left for a silent login comes back', async () => {
+    const routes: Record<string, Route> = { ...signedOut };
+    const servers = setup(routes, { silentLogin: true });
+    const ready = servers.client.ready();
+    await vi.waitFor(() => expect(servers.redirect).toHaveBeenCalledOnce());
+    routes[`${API}/auth/refresh`] = () => Response.json({ access_token: 'restored' });
+
+    restoreFromBackForwardCache();
+    await ready;
+
+    expect(servers.client.store.getState()).toMatchObject({
+      status: 'authenticated',
+      accessToken: 'restored',
+      redirecting: false,
+    });
+    expect(servers.redirect).toHaveBeenCalledOnce();
   });
 
   it('stays true after a custom redirect that keeps the page, until the page comes back', async () => {

@@ -15,7 +15,7 @@ export interface AccountStore {
   expectRedirect(): void;
   leavePage(): void;
   settleRedirect(): void;
-  backOnPage(): void;
+  cancelLeaving(): void;
 }
 
 export function createAccountStore(): AccountStore {
@@ -72,7 +72,7 @@ export function createAccountStore(): AccountStore {
       setRedirecting(leaving);
     },
 
-    backOnPage() {
+    cancelLeaving() {
       leaving = false;
       setRedirecting(false);
     },

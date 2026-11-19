@@ -9,6 +9,7 @@ import {
 import { startSession } from './start-session';
 import { type AccountContext } from '../client/context';
 import { type AppKind, type Redirect } from '../client/options';
+import { untilRestoredFromBackForwardCache } from '../internal/back-forward-cache';
 import { toAccountError } from '../internal/to-account-error';
 import { samePath } from '../internal/urls';
 import { watchLogout } from '../logout/logout';
@@ -102,9 +103,9 @@ export function leaveCallback({
   app,
   callback,
   redirect,
-}: AccountContext): Promise<never> | undefined {
+}: AccountContext): Promise<void> | undefined {
   if (app !== 'mpa' || !callback) return undefined;
 
   redirect(callback.returnTo, { replace: true });
-  return new Promise<never>(() => undefined);
+  return untilRestoredFromBackForwardCache();
 }

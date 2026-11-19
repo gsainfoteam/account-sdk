@@ -7,6 +7,7 @@ import {
 
 import { type AccountContext } from '../client/context';
 import { type LoginOptions } from '../client/types';
+import { untilRestoredFromBackForwardCache } from '../internal/back-forward-cache';
 import { toAccountError } from '../internal/to-account-error';
 import { sameOriginPath } from '../internal/urls';
 import { isLoggedOut } from '../logout/logout';
@@ -33,10 +34,10 @@ export async function login(
   }
 }
 
-export async function silentLogin(context: AccountContext): Promise<never> {
+export async function silentLogin(context: AccountContext): Promise<void> {
   context.transactions.setItem(STORAGE_KEYS.silentLoginTried, '1');
   await authorize(context, window.location.href, 'none', true);
-  return new Promise<never>(() => undefined);
+  await untilRestoredFromBackForwardCache();
 }
 
 async function authorize(

@@ -3,3 +3,14 @@ export function onRestoredFromBackForwardCache(listener: () => void): void {
     if (event.persisted) listener();
   });
 }
+
+export function untilRestoredFromBackForwardCache(): Promise<void> {
+  return new Promise((resolve) => {
+    const listener = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      window.removeEventListener('pageshow', listener);
+      resolve();
+    };
+    window.addEventListener('pageshow', listener);
+  });
+}
