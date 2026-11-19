@@ -928,6 +928,49 @@ describe('logout with the IdP', () => {
     expect(new URL(servers.redirect.mock.calls[0]![0]).pathname).toBe('/logout');
   });
 
+  it('keeps a login that waited for a logout from overtaking an IdP logout started meanwhile', async () => {
+    const pending: (() => void)[] = [];
+    let register = () => undefined as void;
+    const servers = setup(
+      {
+        [`${API}/auth/refresh`]: () => Response.json({ access_token: 't' }),
+        [`${API}/auth/logout`]: () =>
+          pending.length === 0
+            ? new Promise<Response>((resolve) => {
+                pending.push(() => resolve(new Response(null, { status: 204 })));
+              })
+            : new Response(null, { status: 204 }),
+        [REGISTRATION]: () =>
+          new Promise<Response>((resolve) => {
+            register = () =>
+              resolve(
+                Response.json({
+                  scopes: ['name'],
+                  optionalScopes: [],
+                  tokenEndpointAuthMethod: 'none',
+                }),
+              );
+          }),
+      },
+      { scopes: undefined },
+    );
+    await servers.client.ready();
+
+    const login = servers.client.login();
+    await vi.waitFor(() => expect(servers.callsTo(REGISTRATION)).toHaveLength(1));
+    const first = servers.client.logout();
+    await vi.waitFor(() => expect(pending).toHaveLength(1));
+    register();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await servers.client.logout({ idp: true });
+
+    pending[0]!();
+    await Promise.all([first, login]);
+
+    expect(servers.redirect).toHaveBeenCalledOnce();
+    expect(new URL(servers.redirect.mock.calls[0]![0]).pathname).toBe('/logout');
+  });
+
   it('lets the user log in again after coming back from the IdP logout page', async () => {
     const servers = setup(routes);
     await servers.client.logout({ idp: true });

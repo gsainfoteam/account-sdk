@@ -23,7 +23,13 @@ export function createLogoutGate() {
     },
 
     async isLeaving(): Promise<boolean> {
-      return pending !== undefined && (await pending);
+      // 기다리는 동안 IdP 로그아웃이 새로 시작될 수 있으므로, 더 늘어나지 않을 때까지 따라간다.
+      let waiting = pending;
+      while (waiting) {
+        if (await waiting) return true;
+        waiting = pending === waiting ? undefined : pending;
+      }
+      return false;
     },
   };
 }
