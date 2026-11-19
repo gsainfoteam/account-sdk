@@ -1,7 +1,7 @@
 import { AUTHORIZATION_HEADER, bearer, isUnauthorized, readBearer } from '@infoteam/account-core';
 import { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 
-import { type AccountClient } from '../client/create-account-client';
+import { type AccountClient } from '../client/account-client';
 
 /**
  * axios는 다시 보낼 때 config를 새 객체로 합치므로 객체가 아니라 config 안에 표시한다. 그래야 refresh 뒤에도 401이면

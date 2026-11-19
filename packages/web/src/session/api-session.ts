@@ -7,11 +7,12 @@ import {
   type Fetch,
   type LoginRequestBody,
 } from '@infoteam/account-core';
-import { attemptAsync, isPlainObject, trimEnd } from 'es-toolkit';
+import { attemptAsync, isPlainObject, isString, trimEnd } from 'es-toolkit';
 import * as z from 'zod/mini';
 
 import { createRequester, readTokens } from './request';
 import { type Session, type SessionPaths } from './session-adapter';
+import { type AccountClientOptions } from '../client/options';
 
 const RejectionSchema = z.looseObject({
   ticket: z.optional(z.string()),
@@ -79,4 +80,12 @@ export function apiSession(
 function acrossTabs<T>(name: string, task: () => Promise<T>): Promise<T> {
   const locks = navigator.locks as LockManager | null | undefined;
   return locks ? locks.request(name, task) : task();
+}
+
+export function sessionFromApi(
+  api: NonNullable<AccountClientOptions['api']>,
+  fetch: Fetch | undefined,
+): Session {
+  const { baseUrl, paths = {} } = isString(api) ? { baseUrl: api } : api;
+  return apiSession(baseUrl, paths, fetch);
 }
