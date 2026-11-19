@@ -16,6 +16,7 @@ export const SdkErrorCodeSchema = z.enum([
   'network_error',
   'unauthenticated',
   'session_rejected',
+  'invalid_ticket',
   'missing_claims',
   'insufficient_authentication',
   'unknown',
@@ -32,6 +33,22 @@ export type OAuthErrorCode = z.infer<typeof OAuthErrorCodeSchema>;
 export type SdkErrorCode = z.infer<typeof SdkErrorCodeSchema>;
 export type AccountErrorCode = z.infer<typeof AccountErrorCodeSchema>;
 
+/** 실패 화면을 고를 때 쓴다. 코드가 늘어도 앱의 분기가 그대로 맞도록 SDK가 코드를 묶는다. */
+export type AccountErrorKind =
+  'cancelled' | 'verification' | 'rejected' | 'expired' | 'network' | 'unknown';
+
+const KINDS: Partial<Record<AccountErrorCode, AccountErrorKind>> = {
+  user_cancelled: 'cancelled',
+  access_denied: 'cancelled',
+  verification_required: 'verification',
+  session_rejected: 'rejected',
+  invalid_ticket: 'expired',
+  network_error: 'network',
+  discovery_failed: 'network',
+  temporarily_unavailable: 'network',
+  server_error: 'network',
+};
+
 const AccountErrorShapeSchema = z.object({
   name: z.literal('AccountError'),
   code: AccountErrorCodeSchema,
@@ -40,6 +57,8 @@ const AccountErrorShapeSchema = z.object({
 export interface AccountErrorOptions {
   description?: string;
   status?: number;
+  /** `session_rejected`에서 서비스 백엔드가 보낸 거절 이유다. 예: 약관 동의가 필요하면 `terms_required`. */
+  reason?: string;
   /** 서비스 백엔드가 로그인을 거절하며 보낸 body다. house-moving-out-be의 `403`은 `requiredConsents`를 담는다. */
   details?: unknown;
   cause?: unknown;
@@ -49,8 +68,10 @@ export interface AccountErrorOptions {
 export class AccountError extends Error {
   override readonly name = 'AccountError';
   readonly code: AccountErrorCode;
+  readonly kind: AccountErrorKind;
   readonly description: string | undefined;
   readonly status: number | undefined;
+  readonly reason: string | undefined;
   readonly details: unknown;
 
   constructor(code: AccountErrorCode, options: AccountErrorOptions = {}) {
@@ -58,8 +79,10 @@ export class AccountError extends Error {
       cause: options.cause,
     });
     this.code = code;
+    this.kind = KINDS[code] ?? 'unknown';
     this.description = options.description;
     this.status = options.status;
+    this.reason = options.reason;
     this.details = options.details;
   }
 

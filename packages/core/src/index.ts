@@ -28,6 +28,7 @@ export {
   OAuthErrorCodeSchema,
   SdkErrorCodeSchema,
   type AccountErrorCode,
+  type AccountErrorKind,
   type AccountErrorOptions,
   type DenialReason,
   type OAuthErrorCode,
