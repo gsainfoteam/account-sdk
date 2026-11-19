@@ -955,13 +955,24 @@ describe('logout with the IdP', () => {
       { scopes: undefined },
     );
     await servers.client.ready();
+    const digest = crypto.subtle.digest.bind(crypto.subtle);
+    let challenged: Promise<unknown> = new Promise(() => undefined);
+    const spy = vi.spyOn(crypto.subtle, 'digest').mockImplementation((...args) => {
+      const result = digest(...args);
+      challenged = result;
+      return result;
+    });
 
     const login = servers.client.login();
     await vi.waitFor(() => expect(servers.callsTo(REGISTRATION)).toHaveLength(1));
     const first = servers.client.logout();
     await vi.waitFor(() => expect(pending).toHaveLength(1));
     register();
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await vi.waitFor(() => expect(spy).toHaveBeenCalledOnce());
+    await challenged;
+    // PKCE 계산 뒤 gate까지는 microtask만 남아 있어서, 한 task를 넘기면 login()이 첫 로그아웃을 기다리고 있다.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    spy.mockRestore();
     await servers.client.logout({ idp: true });
 
     pending[0]!();
