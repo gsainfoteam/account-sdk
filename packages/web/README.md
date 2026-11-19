@@ -40,6 +40,47 @@ await account.fetch(`${apiUrl}/me`);
 - 상태는 [zustand](https://github.com/pmndrs/zustand)의 vanilla store(`account.store`)에 있으므로, 어느 프레임워크에서든 구독할 수 있습니다.
 - API 요청에는 `account.fetch`를 씁니다. [openapi-fetch](https://openapi-ts.dev/openapi-fetch/)나 [hey-api](https://heyapi.dev)처럼 `fetch` 옵션이 있는 클라이언트에도 `account.fetch`를 넘깁니다. `fetch` 옵션이 없는 [axios](https://github.com/axios/axios)에만 `@infoteam/account-web/axios`를 씁니다. [예시](https://github.com/gsainfoteam/account-sdk/tree/main/packages/react#5-api-요청)를 참고합니다.
 - 옵션, guard, 에러 코드, 로그아웃은 React와 같습니다. [`account-react` README](https://github.com/gsainfoteam/account-sdk/tree/main/packages/react#사용)를 참고합니다.
+- 브라우저가 `localStorage`나 `sessionStorage`를 막으면(사파리 개인 정보 보호 모드, 쿠키 차단 설정) 메모리에 둡니다. 이때는 로그인 진행 정보와 로그아웃 표시가 페이지를 떠나면 사라집니다.
+
+## 서버 렌더링
+
+`window`가 없는 곳(SSR, 빌드 시 prerender)에서 `createAccountClient`를 호출하면 브라우저 API를 건드리지 않는 client를 돌려줍니다. 그래서 client를 모듈 최상단에서 만들어도 서버에서 import 할 수 있습니다.
+
+- 상태는 계속 `loading`이고 `ready()`는 바로 끝납니다. 서버가 그린 HTML에는 로그인 여부를 넣지 않고, 브라우저에서 hydrate 한 뒤 바뀝니다.
+- `login`, `retryLogin`, `requireAuth`는 `invalid_request`로 reject 합니다. `logout`은 아무것도 하지 않고, `refresh`는 `null`을 돌려줍니다.
+- `fetch`는 토큰을 붙이지 않은 일반 `fetch`입니다.
+
+## MPA
+
+[Astro](https://astro.build)처럼 페이지마다 문서를 새로 받는 앱은 `callbackNavigation: 'document'`를 줍니다.
+
+```ts
+export const account = createAccountClient({
+  issuer: 'production',
+  clientId,
+  api: apiUrl,
+  callbackNavigation: 'document',
+});
+```
+
+- `redirectUri`(기본값 `/auth/callback`)에 페이지를 만들고 client를 import 합니다. 로그인을 마치면 client가 로그인 전 위치를 새로 불러오므로 이 페이지는 잠깐만 보입니다.
+- 로그인이 실패하면 callback 페이지에 머뭅니다. 여기서 `error`를 보여 주고 다시 로그인할 버튼을 둡니다.
+- 기본값 `'history'`는 주소만 바꾸므로 callback 페이지가 그대로 남습니다. SPA 라우터가 있을 때만 씁니다.
+- 정적 호스팅이 `/auth/callback`을 `/auth/callback/`으로 바꿔도 같은 주소로 봅니다.
+
+[`examples/astro`](https://github.com/gsainfoteam/account-sdk/tree/main/examples/astro)에 React island로 만든 예제가 있습니다.
+
+## `account.fetch`가 토큰을 붙이는 주소
+
+`account.fetch`는 `api`의 origin으로 가는 요청에만 access token을 붙이고, 401을 받으면 refresh 합니다. 다른 origin은 토큰 없이 그대로 보내서, 외부 API에 토큰이 새지 않게 합니다. `session` 옵션을 쓰면 페이지 origin이 기준입니다.
+
+토큰을 받아야 하는 백엔드가 더 있으면 `tokenOrigins`에 origin을 더합니다.
+
+```ts
+createAccountClient({ ..., api: 'https://api.ziggle.gistory.me', tokenOrigins: ['https://upload.ziggle.gistory.me'] });
+```
+
+body가 `ReadableStream`인 요청은 한 번 보내면 다시 읽을 수 없으므로 401을 받아도 다시 보내지 않고 그 응답을 돌려줍니다.
 
 ## `session` 옵션
 
@@ -86,6 +127,6 @@ const account = createAccountClient({ issuer: 'production', clientId, session })
 | `refresh()`                | `{ accessToken, expiresIn? }`를 돌려주고, 세션이 없으면 `null`을 돌려줍니다. 다른 실패는 throw 합니다. throw 해도 로그아웃 상태가 되고, 그 에러가 `error`에 남습니다                                                               |
 | `end(accessToken)`         | 백엔드 세션을 끝냅니다. 실패해도 무시합니다                                                                                                                                                                                        |
 
-에러는 `AccountError`로 던져야 `error.code`로 경우를 나눌 수 있습니다. 다른 에러는 `unknown`이 됩니다.
+에러는 `AccountError`로 던져야 `error.code`와 `error.kind`로 경우를 나눌 수 있습니다. 다른 에러는 `unknown`이 됩니다.
 
-로그인 전에 추가 입력을 받으려면 `start`가 `{ rejected: { error, ticket } }`를 돌려줍니다. `error`는 보통 `new AccountError('session_rejected', { details })`이고, `ticket`이 없으면 `canRetryLogin`이 `false`입니다. 그러면 `retryLogin(body)`가 `start({ ticket }, body)`를 호출합니다.
+로그인 전에 추가 입력을 받으려면 `start`가 `{ rejected: { error, ticket } }`를 돌려줍니다. `error`는 보통 `new AccountError('session_rejected', { reason, details })`이고, `ticket`이 없으면 `canRetryLogin`이 `false`입니다. 그러면 `retryLogin(body)`가 `start({ ticket }, body)`를 호출합니다.

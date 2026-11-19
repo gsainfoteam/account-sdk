@@ -133,16 +133,20 @@ ticket으로 온 요청에는 code가 없으므로 `loginWithCode`를 부르지 
 
 #### 거절과 ticket
 
-약관 동의처럼 로그인 전에 사용자 입력이 더 필요하면 `403 { error: 'session_rejected', ticket, details }`로 거절합니다. code는 한 번만 교환할 수 있으므로, `ticket`에는 백엔드가 이미 확인한 사용자를 담습니다.
+약관 동의처럼 로그인 전에 사용자 입력이 더 필요하면 `403 { error: 'session_rejected', ticket, reason?, details? }`로 거절합니다. code는 한 번만 교환할 수 있으므로, `ticket`에는 백엔드가 이미 확인한 사용자를 담습니다.
+
+- `reason`은 프론트가 어떤 입력 화면을 보여 줄지 고르는 짧은 문자열(예: `terms_required`)입니다. 웹에서는 `error.reason`이 됩니다.
+- `details`에는 화면을 그리는 데 필요한 값(예: 동의할 약관 목록)을 담습니다.
 
 1. 백엔드가 짧은 수명의 ticket을 담아 403으로 거절합니다. ticket은 서명이나 MAC, 또는 인증된 암호화(AEAD)로 무결성과 출처를 반드시 확인할 수 있어야 합니다.
 2. 클라이언트가 `{ ticket, ...추가 입력 }`으로 login을 다시 호출합니다.
 3. 백엔드가 다시 403으로 거절할 때는 ticket을 소비하지 않고 응답에 ticket을 다시 담습니다. 클라이언트는 마지막 거절 응답의 ticket으로 재시도합니다.
 4. 백엔드가 세션을 발급할 때 ticket을 원자적으로 소비해서(사용한 ticket을 기록) 다시 쓰지 못하게 합니다.
+5. ticket이 만료됐거나 검증에 실패하면 `401 { error: 'invalid_ticket' }`로 응답합니다. 클라이언트는 IdP 로그인부터 다시 합니다.
 
 ticket이 없는 403도 거절이지만, 클라이언트가 이어서 재시도할 수는 없습니다. 403이 아닌 실패(400, 401, 5xx)를 다루는 방식은 클라이언트마다 다릅니다.
 
-- **웹:** 거절이 아니라 오류(`server_error`, `unknown`)로 처리합니다.
+- **웹:** 거절이 아니라 오류로 처리합니다. body의 `error`가 SDK가 아는 코드(`invalid_ticket`, `invalid_request` 등)이면 그 코드를 쓰고, 아니면 5xx는 `server_error`, 나머지는 `unknown`이 됩니다.
 - **앱:** 모든 실패를 `AccountSessionRejectedException`으로 던지고, ticket이 있는 403일 때만 `canRetryLogin`이 `true`가 됩니다.
 
 #### CORS와 CSRF
