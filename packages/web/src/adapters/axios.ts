@@ -1,7 +1,7 @@
 import { AUTHORIZATION_HEADER, bearer, isUnauthorized, readBearer } from '@infoteam/account-core';
 import { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 
-import { type AccountClient } from '../client/account-client';
+import { type AccountClient } from '../client/types';
 
 // axios는 다시 보낼 때 config를 새 객체로 합치므로, 재시도 표시를 config 속성으로 둬야 401이 반복돼도 한 번만 다시 보낸다.
 const RETRIED = 'accountRetried';

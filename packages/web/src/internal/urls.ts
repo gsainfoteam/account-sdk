@@ -1,6 +1,6 @@
 import { attempt, isString, trimEnd } from 'es-toolkit';
 
-import { type AccountClientOptions } from './options';
+import { type AccountClientOptions } from '../client/options';
 
 export function sameOriginPath(value: string): string | undefined {
   const [, url] = attempt(() => new URL(value, window.location.origin));

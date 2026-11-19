@@ -1,7 +1,14 @@
-import { type Fetch, type Prompt } from '@infoteam/account-core';
+import { type AccountError, type Fetch, type Prompt } from '@infoteam/account-core';
 import { type StoreApi } from 'zustand/vanilla';
 
-import { type AccountState } from './account-state';
+export type AccountStatus = 'loading' | 'authenticated' | 'unauthenticated';
+
+export interface AccountState {
+  status: AccountStatus;
+  accessToken: string | null;
+  error: AccountError | null;
+  canRetryLogin: boolean;
+}
 
 export interface LoginOptions {
   returnTo?: string;

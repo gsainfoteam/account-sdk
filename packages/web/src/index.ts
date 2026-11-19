@@ -1,12 +1,13 @@
-export { type AccountState, type AccountStatus } from './client/account-state';
+export { createAccountClient } from './client/create-account-client';
+export { AccountClientOptionsSchema, type AccountClientOptions } from './client/options';
 export {
-  createAccountClient,
   type AccountClient,
+  type AccountState,
+  type AccountStatus,
   type LoginOptions,
   type LogoutOptions,
   type RequireAuthOptions,
-} from './client/create-account-client';
-export { AccountClientOptionsSchema, type AccountClientOptions } from './client/options';
+} from './client/types';
 export {
   type LoginCredential,
   type Session,

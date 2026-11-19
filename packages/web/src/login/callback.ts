@@ -1,7 +1,7 @@
 import { isCallbackUrl, readCallbackState, type OAuthErrorCode } from '@infoteam/account-core';
 
-import { type Redirect } from './options';
-import { samePath } from './urls';
+import { type Redirect } from '../client/options';
+import { samePath } from '../internal/urls';
 import { STORAGE_KEYS } from '../storage/keys';
 import { takeTransaction, type StoredTransaction } from '../storage/transactions';
 

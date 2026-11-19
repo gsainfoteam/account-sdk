@@ -1,8 +1,7 @@
 import { AccountError, type Fetch } from '@infoteam/account-core';
 import { createStore } from 'zustand/vanilla';
 
-import { type AccountClient } from './account-client';
-import { type AccountState } from './account-state';
+import { type AccountClient, type AccountState } from './types';
 
 // 서버에서 그린 HTML이 브라우저의 첫 렌더와 같아야 hydration이 어긋나지 않으므로 `loading`에 머문다.
 export function createServerClient(fetch: Fetch | undefined): AccountClient {

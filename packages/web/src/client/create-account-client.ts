@@ -14,26 +14,19 @@ import { Mutex } from 'es-toolkit';
 import * as z from 'zod/mini';
 import { createStore } from 'zustand/vanilla';
 
-import { type AccountClient } from './account-client';
-import { sameState, type AccountState } from './account-state';
-import { authorizedFetch } from './authorized-fetch';
-import { SILENT_LOGIN_FAILURES, takeCallback, type Callback } from './callback';
-import { createLogoutGate } from './logout-gate';
 import { AccountClientOptionsSchema, type AccountClientOptions, type Redirect } from './options';
 import { createServerClient } from './server-client';
-import { apiOrigin, sameOriginPath } from './urls';
+import { type AccountClient, type AccountState } from './types';
+import { authorizedFetch } from '../fetch/authorized-fetch';
+import { apiOrigin, sameOriginPath } from '../internal/urls';
+import { SILENT_LOGIN_FAILURES, takeCallback, type Callback } from '../login/callback';
+import { createLogoutGate } from '../logout/logout-gate';
 import { sessionFromApi } from '../session/api-session';
 import { type LoginCredential, type SessionRejection } from '../session/session-adapter';
+import { sameState } from '../state/account-store';
 import { browserStorage, isMemoryStorage } from '../storage/browser-storage';
 import { STORAGE_KEYS } from '../storage/keys';
 import { saveTransaction } from '../storage/transactions';
-
-export type {
-  AccountClient,
-  LoginOptions,
-  LogoutOptions,
-  RequireAuthOptions,
-} from './account-client';
 
 /** 페이지가 callback으로 열렸으면 만드는 즉시 주소를 바꾸므로, 주소를 읽는 라우터보다 먼저 만들어야 한다. */
 export function createAccountClient(input: AccountClientOptions): AccountClient {
