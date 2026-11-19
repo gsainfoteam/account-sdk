@@ -14,6 +14,7 @@ export async function restoreSession(context: AccountContext): Promise<void> {
     if (context.logouts !== started) return;
     if (tokens) return account.authenticate(tokens.accessToken);
 
+    // await를 빼면 IdP로 떠나기 전의 실패가 catch를 지나쳐 store가 `loading`에 남는다.
     if (context.trySilentLogin) return await silentLogin(context);
 
     account.unauthenticate();
