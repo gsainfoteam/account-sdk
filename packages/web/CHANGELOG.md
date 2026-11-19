@@ -4,7 +4,7 @@
 
 ### Minor Changes
 
-- Add `AccountError.kind`, which groups error codes into `cancelled`, `verification`, `rejected`, `expired`, `network` and `unknown` so screens branch on a few cases. A rejected login now carries the top-level `reason` of the 403 body as `error.reason`, a backend failure body with a known `error` code keeps that code, and the new `invalid_ticket` code reports an expired ticket.
+- Seal `AccountError` into six kinds, like a Dart sealed class: `AccountError.Cancelled`, `Verification`, `Rejected`, `Expired`, `Network` and `Unknown`. The `AccountError` type is their union, so `switch (error.kind)` is checked for missing cases, and `instanceof AccountError.Rejected` narrows to the kind and works across duplicate copies of the module. `new AccountError(code, options)` builds the kind that matches the code. `reason` and `details` now live only on `AccountError.Rejected`; a non-rejection failure keeps the response body in `cause`. A rejected login carries the top-level `reason` of the 403 body, a backend failure body with a known `error` code keeps that code, and the new `invalid_ticket` code reports an expired ticket.
 - `account.fetch` now sends the access token only to the `api` origin; add other backends with `tokenOrigins`. `createAccountClient` returns an inert client on the server, `callbackNavigation: 'document'` lets MPAs such as Astro reload the page the user was on after the callback, and the callback path ignores a trailing slash. Blocked `localStorage` or `sessionStorage` falls back to memory, a failed `login()` stays in `error`, stream bodies are not retried, and the axios adapter no longer retries a persistent 401 forever.
 
 ### Patch Changes
