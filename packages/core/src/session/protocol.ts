@@ -33,10 +33,8 @@ export const SESSION_REJECTED = 'session_rejected' satisfies SdkErrorCode;
 export interface SessionRejectedResponse {
   error: typeof SESSION_REJECTED;
   ticket: string;
-  /** 프론트가 어떤 입력을 받을지 고르는 값이다. 예: `terms_required`. */
   reason?: string;
   details?: unknown;
 }
 
-/** ticket이 만료됐거나 검증에 실패했을 때의 401 응답이다. client는 IdP 로그인부터 다시 한다. */
 export const INVALID_TICKET = 'invalid_ticket' satisfies SdkErrorCode;

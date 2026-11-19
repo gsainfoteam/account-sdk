@@ -33,7 +33,6 @@ export type OAuthErrorCode = z.infer<typeof OAuthErrorCodeSchema>;
 export type SdkErrorCode = z.infer<typeof SdkErrorCodeSchema>;
 export type AccountErrorCode = z.infer<typeof AccountErrorCodeSchema>;
 
-/** 실패 화면을 고를 때 쓴다. 코드가 늘어도 앱의 분기가 그대로 맞도록 SDK가 코드를 묶는다. */
 export type AccountErrorKind =
   'cancelled' | 'verification' | 'rejected' | 'expired' | 'network' | 'unknown';
 
@@ -61,15 +60,12 @@ const AccountErrorShapeSchema = z.object({
 export interface AccountErrorOptions {
   description?: string;
   status?: number;
-  /** `session_rejected`에만 남는다. */
   reason?: string;
-  /** `session_rejected`에만 남는다. */
   details?: unknown;
   cause?: unknown;
 }
 
 class AccountErrorBase extends Error {
-  /** 하위 클래스의 `instanceof`가 확인할 kind다. 비어 있으면 모든 AccountError를 받는다. */
   protected static readonly variant: AccountErrorKind | undefined = undefined;
 
   override readonly name = 'AccountError';
@@ -87,7 +83,7 @@ class AccountErrorBase extends Error {
     this.description = options.description;
     this.status = options.status;
 
-    // 공개 생성자는 이것 하나다. 코드에 맞는 하위 클래스를 돌려줘야 모든 AccountError가 여섯 종류 중 하나로 닫힌다.
+    // 코드에 맞는 하위 클래스를 돌려줘야 모든 AccountError가 여섯 종류 중 하나가 된다.
     if (new.target === AccountErrorBase) return new VARIANTS[this.kind](code, options);
   }
 
@@ -99,7 +95,6 @@ class AccountErrorBase extends Error {
     return shape.success && (code === undefined || shape.data.code === code);
   }
 
-  /** `instanceof`도 {@link is}처럼 모양으로 확인해서, 다른 사본이 던진 에러도 알아본다. */
   static [Symbol.hasInstance](value: unknown): boolean {
     if (!AccountErrorBase.is(value)) return false;
 
@@ -123,9 +118,7 @@ class RejectedError extends AccountErrorBase {
   protected static override readonly variant = 'rejected';
   declare readonly kind: 'rejected';
   declare readonly code: CodeOf<'rejected'>;
-  /** 프론트가 어떤 입력 화면을 보여 줄지 고르는 값이다. 예: 약관 동의가 필요하면 `terms_required`. */
   readonly reason: string | undefined;
-  /** 거절 응답의 `details`다. house-moving-out-be의 `403`은 `requiredConsents`를 담는다. */
   readonly details: unknown;
 
   constructor(code: AccountErrorCode, options: AccountErrorOptions = {}) {
@@ -165,14 +158,9 @@ const VARIANTS: Record<
   unknown: UnknownError,
 };
 
-/**
- * Dart의 sealed class처럼 여섯 종류로 닫혀 있다. `switch (error.kind)`에서 빠진 경우를 컴파일러가 잡고,
- * `error instanceof AccountError.Rejected`로 좁히면 그 종류에만 있는 필드를 읽을 수 있다.
- */
 export type AccountError =
   CancelledError | VerificationError | RejectedError | ExpiredError | NetworkError | UnknownError;
 
-// eslint-disable-next-line @typescript-eslint/no-namespace -- AccountError.Rejected 같은 타입 이름은 값과 같은 이름 아래에 둘 방법이 namespace뿐이다
 export declare namespace AccountError {
   export type Cancelled = CancelledError;
   export type Verification = VerificationError;
@@ -182,7 +170,7 @@ export declare namespace AccountError {
   export type Unknown = UnknownError;
 }
 
-/** 하위 클래스는 `instanceof`로만 쓴다. 직접 만들면 코드와 종류가 어긋날 수 있어서 생성자를 감춘다. */
+/** 하위 클래스를 직접 만들면 코드와 종류가 어긋날 수 있어서 생성자를 감춘다. */
 interface AccountErrorVariant<T> {
   readonly prototype: T;
   [Symbol.hasInstance](value: unknown): value is T;

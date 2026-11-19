@@ -68,7 +68,6 @@ export async function readTokens(response: Response, path: string): Promise<Sess
   return parsed.data;
 }
 
-/** 백엔드가 `toHttpException`처럼 `{ error }`에 SDK 코드를 담아 보내면 그 코드를 쓴다. */
 function failureCode(status: number, body: unknown): AccountErrorCode {
   const known = ErrorBodySchema.safeParse(body);
   if (known.success) return known.data.error;
