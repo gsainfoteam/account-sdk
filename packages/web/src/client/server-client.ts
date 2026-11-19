@@ -9,6 +9,7 @@ export function createServerClient(fetch: Fetch | undefined): AccountClient {
     accessToken: null,
     error: null,
     canRetryLogin: false,
+    redirecting: false,
   }));
 
   const browserOnly = async (): Promise<never> => {

@@ -29,7 +29,6 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
   const { store } = context.account;
   const { callback } = context;
   let initializing: Promise<void> | undefined;
-  let settled = false;
 
   const client: AccountClient = {
     store,
@@ -41,15 +40,13 @@ export function createAccountClient(input: AccountClientOptions): AccountClient 
     ready() {
       initializing ??= (
         callback ? finishCallback(context, callback) : restoreSession(context)
-      ).finally(() => {
-        settled = true;
-      });
+      ).finally(() => context.account.settleRedirect());
 
       return initializing;
     },
 
     isHandlingRedirect() {
-      return !settled && (callback !== null || context.trySilentLogin);
+      return store.getState().redirecting;
     },
 
     async requireAuth({ returnTo } = {}) {

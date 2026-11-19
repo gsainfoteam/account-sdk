@@ -4,12 +4,18 @@ import { createStore, type StoreApi } from 'zustand/vanilla';
 import { type AccountState } from '../client/types';
 import { type SessionRejection } from '../session/session-adapter';
 
+type SessionState = Omit<AccountState, 'redirecting'>;
+
 export interface AccountStore {
   readonly store: StoreApi<AccountState>;
   rejection: SessionRejection | null;
   callbackError: AccountError | null;
   authenticate(accessToken: string): void;
   unauthenticate(error?: AccountError | null): void;
+  expectRedirect(): void;
+  leavePage(): void;
+  settleRedirect(): void;
+  backOnPage(): void;
 }
 
 export function createAccountStore(): AccountStore {
@@ -18,7 +24,13 @@ export function createAccountStore(): AccountStore {
     accessToken: null,
     error: null,
     canRetryLogin: false,
+    redirecting: false,
   }));
+
+  let leaving = false;
+  const setRedirecting = (redirecting: boolean) => {
+    if (store.getState().redirecting !== redirecting) store.setState({ redirecting });
+  };
 
   const account: AccountStore = {
     store,
@@ -33,7 +45,7 @@ export function createAccountStore(): AccountStore {
 
     unauthenticate(error) {
       const current = store.getState();
-      const next: AccountState = {
+      const next: SessionState = {
         status: 'unauthenticated',
         accessToken: null,
         error:
@@ -42,16 +54,34 @@ export function createAccountStore(): AccountStore {
             : (error ?? null),
         canRetryLogin: account.rejection?.ticket !== undefined,
       };
-      if (sameState(current, next)) return;
+      if (sameSession(current, next)) return;
 
       store.setState(next);
+    },
+
+    expectRedirect() {
+      setRedirecting(true);
+    },
+
+    leavePage() {
+      leaving = true;
+      setRedirecting(true);
+    },
+
+    settleRedirect() {
+      setRedirecting(leaving);
+    },
+
+    backOnPage() {
+      leaving = false;
+      setRedirecting(false);
     },
   };
 
   return account;
 }
 
-function sameState(a: AccountState, b: AccountState): boolean {
+function sameSession(a: SessionState, b: SessionState): boolean {
   return (
     a.status === b.status &&
     a.accessToken === b.accessToken &&

@@ -8,6 +8,7 @@ import {
 import { Mutex } from 'es-toolkit';
 
 import { type ParsedAccountClientOptions, type Redirect } from './options';
+import { onRestoredFromBackForwardCache } from '../internal/back-forward-cache';
 import { takeCallback, type Callback } from '../login/callback';
 import { createLogoutGate, type LogoutGate } from '../logout/logout-gate';
 import { sessionFromApi } from '../session/api-session';
@@ -43,10 +44,17 @@ export function createContext(options: ParsedAccountClientOptions): AccountConte
   const flags = isMemoryStorage(persistent) ? browserStorage('sessionStorage') : persistent;
   const flagsReachOtherTabs = flags === persistent;
   const canRoundTrip = !isMemoryStorage(transactions);
-  const redirect: Redirect =
+
+  const account = createAccountStore();
+  onRestoredFromBackForwardCache(() => account.backOnPage());
+  const navigate: Redirect =
     options.redirect ??
     ((url, { replace = false } = {}) =>
       replace ? window.location.replace(url) : window.location.assign(url));
+  const redirect: Redirect = (url, navigateOptions) => {
+    account.leavePage();
+    navigate(url, navigateOptions);
+  };
   const navigation = options.callbackNavigation ?? 'history';
 
   const metadata = () => discover(options.issuer, { fetch });
@@ -67,7 +75,6 @@ export function createContext(options: ParsedAccountClientOptions): AccountConte
     });
   };
 
-  const account = createAccountStore();
   const refreshMutex = new Mutex();
 
   const callback = takeCallback({ redirectUri: redirectUri(), transactions, navigation, redirect });
@@ -78,6 +85,7 @@ export function createContext(options: ParsedAccountClientOptions): AccountConte
     callback === null &&
     transactions.getItem(STORAGE_KEYS.silentLoginTried) === null &&
     flags.getItem(STORAGE_KEYS.loggedOut) === null;
+  if (callback || trySilentLogin) account.expectRedirect();
   const logoutGate = createLogoutGate();
 
   return {

@@ -12,7 +12,11 @@ describe('a client created on the server', () => {
 
     await client.ready();
 
-    expect(client.store.getState()).toMatchObject({ status: 'loading', accessToken: null });
+    expect(client.store.getState()).toMatchObject({
+      status: 'loading',
+      accessToken: null,
+      redirecting: false,
+    });
     expect(client.isHandlingRedirect()).toBe(false);
   });
 

@@ -1,9 +1,10 @@
+import { onRestoredFromBackForwardCache } from '../internal/back-forward-cache';
+
 export function createLogoutGate() {
   let pending: Promise<boolean> | undefined;
 
-  window.addEventListener('pageshow', (event) => {
-    const restoredFromBackForwardCache = event.persisted;
-    if (restoredFromBackForwardCache) pending = undefined;
+  onRestoredFromBackForwardCache(() => {
+    pending = undefined;
   });
 
   return {

@@ -68,6 +68,29 @@ describe('AccountProvider', () => {
   });
 });
 
+describe('AccountProvider while the page leaves', () => {
+  it('shows the fallback once a login leaves for the IdP, and the page again if it comes back', async () => {
+    const { client, redirect } = setup({
+      [`${API}/auth/refresh`]: () => new Response(null, { status: 401 }),
+    });
+    const { container } = render(
+      <AccountProvider client={client} fallback={<p>leaving</p>}>
+        <Status />
+      </AccountProvider>,
+    );
+    await waitFor(() => expect(container.textContent).toBe('unauthenticated:-:00'));
+
+    await act(() => client.login());
+    expect(redirect).toHaveBeenCalledOnce();
+    expect(container.textContent).toBe('leaving');
+
+    act(() => {
+      window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }));
+    });
+    expect(container.textContent).toBe('unauthenticated:-:00');
+  });
+});
+
 describe('RequireAuth', () => {
   it('sends a logged-out user to the IdP and remembers where they were', async () => {
     const { client, redirect } = setup({

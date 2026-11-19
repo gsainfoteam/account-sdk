@@ -479,6 +479,101 @@ describe('requireAuth', () => {
   });
 });
 
+describe('redirecting', () => {
+  const signedOut = { [`${API}/auth/refresh`]: () => new Response(null, { status: 401 }) };
+  const restoreFromBackForwardCache = () =>
+    window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }));
+  const redirecting = (client: { store: { getState(): { redirecting: boolean } } }) =>
+    client.store.getState().redirecting;
+
+  it('shows a login leaving for the IdP, which a never-settling requireAuth waits on', async () => {
+    const { client, redirect } = setup(signedOut);
+    await client.ready();
+    expect(redirecting(client)).toBe(false);
+
+    void client.requireAuth();
+    await vi.waitFor(() => expect(redirect).toHaveBeenCalledOnce());
+
+    expect(redirecting(client)).toBe(true);
+    expect(client.isHandlingRedirect()).toBe(true);
+  });
+
+  it('stays false when the login fails before leaving', async () => {
+    const servers = setup({});
+    servers.fetch.mockRejectedValue(new TypeError('offline'));
+
+    await expect(servers.client.login()).rejects.toMatchObject({ kind: 'network' });
+
+    expect(redirecting(servers.client)).toBe(false);
+  });
+
+  it('shows an IdP logout leaving the page', async () => {
+    const servers = setup({ [`${API}/auth/logout`]: () => new Response(null, { status: 204 }) });
+
+    await servers.client.logout({ idp: true });
+
+    expect(redirecting(servers.client)).toBe(true);
+  });
+
+  it('stays true when the session restore settles after a login already left', async () => {
+    let respond = (_: Response) => undefined as void;
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => new Promise<Response>((resolve) => (respond = resolve)),
+    });
+    const restoring = servers.client.ready();
+    await vi.waitFor(() => expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1));
+
+    await servers.client.login();
+    respond(new Response(null, { status: 401 }));
+    await restoring;
+
+    expect(redirecting(servers.client)).toBe(true);
+  });
+
+  it('is true from creation while a silent login may leave, and stays true once it does', async () => {
+    const servers = setup(signedOut, { silentLogin: true });
+    expect(redirecting(servers.client)).toBe(true);
+
+    void servers.client.ready();
+    await vi.waitFor(() => expect(servers.redirect).toHaveBeenCalledOnce());
+
+    expect(redirecting(servers.client)).toBe(true);
+  });
+
+  it('turns false once a silent login finds a session without leaving', async () => {
+    const { client, redirect } = setup(
+      { [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }) },
+      { silentLogin: true },
+    );
+    await client.ready();
+
+    expect(redirect).not.toHaveBeenCalled();
+    expect(redirecting(client)).toBe(false);
+  });
+
+  it('turns false when the page comes back from the back-forward cache', async () => {
+    const servers = setup(signedOut, { silentLogin: true });
+    void servers.client.ready();
+    await vi.waitFor(() => expect(servers.redirect).toHaveBeenCalledOnce());
+
+    restoreFromBackForwardCache();
+
+    expect(redirecting(servers.client)).toBe(false);
+  });
+
+  it('stays true after a custom redirect that keeps the page, until the page comes back', async () => {
+    const { client, redirect } = setup(signedOut);
+    await client.ready();
+    await client.login();
+
+    expect(redirect).toHaveBeenCalledOnce();
+    expect(redirecting(client)).toBe(true);
+
+    restoreFromBackForwardCache();
+    expect(redirecting(client)).toBe(false);
+  });
+});
+
 describe('ready', () => {
   it('restores the session from the refresh cookie', async () => {
     const { client } = setup({
