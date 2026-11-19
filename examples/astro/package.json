@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "PUBLIC_ACCOUNT_CLIENT_ID=$ACCOUNT_TEST_CLIENT_ID astro dev",
+    "dev": "PUBLIC_ACCOUNT_CLIENT_ID=${PUBLIC_ACCOUNT_CLIENT_ID:-$ACCOUNT_TEST_CLIENT_ID} astro dev",
     "build": "astro check && astro build",
     "typecheck": "astro check"
   },
