@@ -234,6 +234,19 @@ describe('the callback page', () => {
     expect(servers.callsTo(`${API}/auth/login`)).toHaveLength(0);
   });
 
+  it('rejects a login progress without a nonce, which this SDK never saves', async () => {
+    const servers = setup(routes);
+    const { state, stored } = await startLogin(servers);
+    const { nonce: _, ...withoutNonce } = JSON.parse(stored!);
+    sessionStorage.setItem(`gsainfoteam-account:tx:${state}`, JSON.stringify(withoutNonce));
+    window.history.replaceState(null, '', `/auth/callback?code=code-1&state=${state}`);
+    const returned = servers.create();
+    await returned.ready();
+
+    expect(returned.store.getState().error).toMatchObject({ code: 'state_mismatch' });
+    expect(servers.callsTo(`${API}/auth/login`)).toHaveLength(0);
+  });
+
   it('finishes a callback that the host redirected to a trailing slash', async () => {
     const servers = setup(routes);
     const { state } = await startLogin(servers);
@@ -720,6 +733,9 @@ describe('fetch', () => {
     await servers.client.ready();
     const request = new Request(`https://${API}/upload`, { method: 'POST', body: 'original' });
     await request.text();
+    vi.spyOn(request, 'clone').mockImplementation(() => {
+      throw new TypeError('a browser cannot clone a Request whose body was read');
+    });
 
     await servers.client.fetch(request, { body: 'replacement' });
 
@@ -1015,6 +1031,16 @@ describe('logout with the IdP', () => {
 
     expect(servers.redirect).toHaveBeenCalledTimes(2);
     expect(new URL(servers.redirect.mock.calls[1]![0]).pathname).toBe('/authorize');
+  });
+
+  it('keeps the logout request going while the page leaves for the IdP', async () => {
+    const servers = setup(routes);
+    await servers.client.logout({ idp: true });
+
+    const [, init] = servers.fetch.mock.calls.find(([input]) =>
+      String(input).endsWith('/auth/logout'),
+    )!;
+    expect(init?.keepalive).toBe(true);
   });
 
   it('only ends the service session when the IdP does not advertise logout', async () => {
