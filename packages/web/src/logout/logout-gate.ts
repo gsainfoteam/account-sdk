@@ -33,3 +33,5 @@ export function createLogoutGate() {
     },
   };
 }
+
+export type LogoutGate = ReturnType<typeof createLogoutGate>;

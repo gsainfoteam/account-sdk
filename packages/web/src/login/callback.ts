@@ -1,11 +1,20 @@
-import { isCallbackUrl, readCallbackState, type OAuthErrorCode } from '@infoteam/account-core';
+import {
+  AccountError,
+  isCallbackUrl,
+  parseCallback,
+  readCallbackState,
+  type OAuthErrorCode,
+} from '@infoteam/account-core';
 
+import { startSession } from './start-session';
+import { type AccountContext } from '../client/context';
 import { type Redirect } from '../client/options';
+import { toAccountError } from '../internal/to-account-error';
 import { samePath } from '../internal/urls';
 import { STORAGE_KEYS } from '../storage/keys';
 import { takeTransaction, type StoredTransaction } from '../storage/transactions';
 
-export const SILENT_LOGIN_FAILURES = new Set<string>([
+const SILENT_LOGIN_FAILURES = new Set<string>([
   'login_required',
   'consent_required',
   'interaction_required',
@@ -55,4 +64,53 @@ export function takeCallback({
   );
 
   return { url, transaction, returnTo };
+}
+
+export async function finishCallback(
+  context: AccountContext,
+  { url, transaction }: Callback,
+): Promise<void> {
+  const { account } = context;
+  const started = context.logouts;
+  // 기다리는 동안 logout했으면 떠나지 않는다. 떠나면 IdP 로그아웃으로 가는 이동을 덮어쓴다.
+  const leave = () => (context.logouts === started ? leaveCallback(context) : undefined);
+  try {
+    const params = parseCallback(await context.metadata(), url, {
+      clientId: context.clientId,
+      state: transaction?.state,
+    });
+    // web은 항상 openid를 요청하므로 nonce가 없는 transaction은 이 탭이 만든 것이 아니다.
+    if (!transaction?.nonce) throw new AccountError('state_mismatch');
+
+    const { codeVerifier, redirectUri: sentRedirectUri, nonce } = transaction;
+    await startSession(
+      context,
+      { code: params.code, codeVerifier, redirectUri: sentRedirectUri, nonce, iss: params.iss },
+      undefined,
+      started,
+    );
+  } catch (error) {
+    const accountError = toAccountError(error);
+    if (transaction?.silent && SILENT_LOGIN_FAILURES.has(accountError.code)) {
+      account.unauthenticate();
+      return leave();
+    }
+
+    account.callbackError = accountError;
+    account.unauthenticate(account.callbackError);
+    return;
+  }
+
+  return leave();
+}
+
+export function leaveCallback({
+  navigation,
+  callback,
+  redirect,
+}: AccountContext): Promise<never> | undefined {
+  if (navigation !== 'document' || !callback) return undefined;
+
+  redirect(callback.returnTo, { replace: true });
+  return new Promise<never>(() => undefined);
 }

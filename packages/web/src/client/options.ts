@@ -61,3 +61,4 @@ export const AccountClientOptionsSchema = z
   );
 
 export type AccountClientOptions = z.input<typeof AccountClientOptionsSchema>;
+export type ParsedAccountClientOptions = z.output<typeof AccountClientOptionsSchema>;
