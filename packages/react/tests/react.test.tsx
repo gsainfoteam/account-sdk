@@ -173,6 +173,26 @@ describe('AccountProvider on the callback page', () => {
     expect(screen.getByText('signing in')).toBeTruthy();
     await screen.findByText('authenticated:service:01');
   });
+
+  it('tells a failed callback screen where the login started', async () => {
+    const { client, create, redirect } = setup({
+      [`${API}/auth/login`]: () => new Response(null, { status: 403 }),
+    });
+    await client.login({ returnTo: '/en/notices/1' });
+    const state = new URL(redirect.mock.calls[0]![0]).searchParams.get('state');
+    window.history.replaceState(null, '', `/auth/callback?code=c-1&state=${state}`);
+
+    function Failed() {
+      const { error, callbackReturnTo } = useAccount();
+      return <p>{`${error?.kind ?? '-'}:${callbackReturnTo}`}</p>;
+    }
+    render(
+      <AccountProvider client={create()}>
+        <Failed />
+      </AccountProvider>,
+    );
+    await screen.findByText('rejected:/en/notices/1');
+  });
 });
 
 describe('the retry body type', () => {
