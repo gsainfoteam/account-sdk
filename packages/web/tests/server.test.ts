@@ -18,6 +18,7 @@ describe('a client created on the server', () => {
       redirecting: false,
     });
     expect(client.isHandlingRedirect()).toBe(false);
+    expect(client.callbackReturnTo).toBeNull();
   });
 
   it('sends requests without a token and refuses to log in', async () => {
