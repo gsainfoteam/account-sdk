@@ -12,8 +12,8 @@ export function Callback() {
 }
 
 function Failed() {
-  const { error, login, callbackReturnTo } = useAccount();
-  const from = callbackReturnTo ?? '/';
+  const { error, login, loginStartedAt } = useAccount();
+  const from = loginStartedAt ?? '/';
 
   return (
     <main>

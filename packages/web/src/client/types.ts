@@ -33,7 +33,7 @@ export interface AccountClient<RetryBody = unknown> {
    * 정할 때 쓴다. callback이 아니거나, 맞는 로그인 진행 정보가 없거나(`state_mismatch`), 로그인의
    * `returnTo`가 다른 origin이었으면 `null`이다.
    */
-  readonly callbackReturnTo: string | null;
+  readonly loginStartedAt: string | null;
   getAccessToken(): string | null;
   ready(): Promise<void>;
   isHandlingRedirect(): boolean;

@@ -183,8 +183,8 @@ describe('AccountProvider on the callback page', () => {
     window.history.replaceState(null, '', `/auth/callback?code=c-1&state=${state}`);
 
     function Failed() {
-      const { error, callbackReturnTo } = useAccount();
-      return <p>{`${error?.kind ?? '-'}:${callbackReturnTo}`}</p>;
+      const { error, loginStartedAt } = useAccount();
+      return <p>{`${error?.kind ?? '-'}:${loginStartedAt}`}</p>;
     }
     render(
       <AccountProvider client={create()}>

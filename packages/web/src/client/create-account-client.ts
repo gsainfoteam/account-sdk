@@ -34,7 +34,7 @@ export function createAccountClient<RetryBody = unknown>(
 
   const client: AccountClient<RetryBody> = {
     store,
-    callbackReturnTo: callback?.returnTo ?? null,
+    loginStartedAt: callback?.returnTo ?? null,
 
     getAccessToken() {
       return store.getState().accessToken;

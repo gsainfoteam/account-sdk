@@ -8,7 +8,7 @@ import { useAccountClient } from '../context/account-context';
 export interface UseAccountResult<RetryBody = unknown> extends AccountState {
   isLoading: boolean;
   isAuthenticated: boolean;
-  callbackReturnTo: AccountClient['callbackReturnTo'];
+  loginStartedAt: AccountClient['loginStartedAt'];
 
   login: AccountClient['login'];
   logout: AccountClient['logout'];
@@ -27,7 +27,7 @@ export function useAccount<RetryBody = unknown>(): UseAccountResult<RetryBody> {
 
       isLoading: state.status === 'loading',
       isAuthenticated: state.status === 'authenticated',
-      callbackReturnTo: client.callbackReturnTo,
+      loginStartedAt: client.loginStartedAt,
 
       login: client.login,
       logout: client.logout,
