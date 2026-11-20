@@ -12,12 +12,14 @@ export function Callback() {
 }
 
 function Failed() {
-  const { error, login } = useAccount();
+  const { error, login, callbackReturnTo } = useAccount();
+  const from = callbackReturnTo ?? '/';
 
   return (
     <main>
       <p>{error ? `sign-in failed: ${error.kind}` : 'no sign-in in progress'}</p>
-      <button onClick={() => void login({ returnTo: '/' })}>try again</button>
+      <button onClick={() => void login({ returnTo: from })}>try again</button>
+      <a href={from}>go back</a>
     </main>
   );
 }
