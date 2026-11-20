@@ -289,7 +289,7 @@ export const account = createAccountClient({
 
 ```ts
 const from = account.loginStartedAt ?? '/';
-retryButton.onclick = () => account.login({ returnTo: from }); // 다시 로그인해도 원래 페이지로 돌아온다
+retryButton.onclick = () => account.login({ returnTo: from });
 backLink.href = from;
 ```
 
