@@ -129,11 +129,12 @@ if (!isAuthenticated) return <button onClick={() => login()}>로그인</button>;
 
 `useAccount()`는 store의 [상태](https://github.com/gsainfoteam/account-sdk/tree/main/packages/web#2-상태)(`status`, `accessToken`, `error`, `canRetryLogin`, `redirecting`)에 다음 값을 더해 돌려줍니다. 상태가 바뀔 때만 새 객체를 돌려주므로 effect의 의존성으로 써도 됩니다.
 
-| 값                                       | 뜻                                        |
-| ---------------------------------------- | ----------------------------------------- |
-| `isLoading`                              | `status`가 `loading`인지 나타냅니다       |
-| `isAuthenticated`                        | `status`가 `authenticated`인지 나타냅니다 |
-| `login`, `logout`, `retryLogin`, `fetch` | client의 같은 이름 메서드                 |
+| 값                                       | 뜻                                                                                                   |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `isLoading`                              | `status`가 `loading`인지 나타냅니다                                                                  |
+| `isAuthenticated`                        | `status`가 `authenticated`인지 나타냅니다                                                            |
+| `callbackReturnTo`                       | client의 [`callbackReturnTo`](https://github.com/gsainfoteam/account-sdk/tree/main/packages/web#mpa) |
+| `login`, `logout`, `retryLogin`, `fetch` | client의 같은 이름 메서드                                                                            |
 
 세션을 복구하는 동안에는 `isAuthenticated`도 `false`이므로, 비로그인 화면은 `isLoading`을 먼저 확인한 뒤 보여 줍니다.
 
