@@ -237,12 +237,12 @@ describe('the callback page', () => {
     expect(servers.callsTo('api.account.gistory.me/oauth/token')).toHaveLength(0);
   });
 
-  it('tells the page where the login started, only when it was opened as a callback', async () => {
+  it('tells the page where the login returns to, only when it was opened as a callback', async () => {
     const servers = setup(routes);
     const { returned } = await loginAndReturn(servers);
 
-    expect(servers.client.loginStartedAt).toBeNull();
-    expect(returned.loginStartedAt).toBe('/notices/1');
+    expect(servers.client.loginReturnTo).toBeNull();
+    expect(returned.loginReturnTo).toBe('/notices/1');
   });
 
   it('rejects a callback whose state this browser did not start, without calling the backend', async () => {
@@ -252,7 +252,7 @@ describe('the callback page', () => {
     await returned.ready();
 
     expect(window.location.pathname).toBe('/');
-    expect(returned.loginStartedAt).toBeNull();
+    expect(returned.loginReturnTo).toBeNull();
     expect(returned.store.getState()).toMatchObject({
       status: 'unauthenticated',
       error: { code: 'state_mismatch' },
@@ -329,7 +329,7 @@ describe('the callback page', () => {
       expect(returned.isHandlingRedirect()).toBe(false);
       expect(returned.store.getState().status).toBe('unauthenticated');
       expect(window.location.pathname).toBe('/auth/callback');
-      expect(returned.loginStartedAt).toBe('/notices/1');
+      expect(returned.loginReturnTo).toBe('/notices/1');
     });
 
     it('does not name a page on another origin that the login was asked to return to', async () => {
@@ -339,7 +339,7 @@ describe('the callback page', () => {
       window.history.replaceState(null, '', `/auth/callback?code=code-1&state=${state}`);
       const returned = servers.create();
 
-      expect(returned.loginStartedAt).toBeNull();
+      expect(returned.loginReturnTo).toBeNull();
       void returned.ready();
       await vi.waitFor(() =>
         expect(servers.redirect).toHaveBeenLastCalledWith('/', { replace: true }),

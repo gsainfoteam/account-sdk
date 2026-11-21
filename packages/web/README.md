@@ -120,7 +120,7 @@ router.beforeEach((to) =>
 
 - `returnTo`에는 라우터가 주는 이동 대상을 넘깁니다. 생략하면 현재 주소를 쓰는데, 페이지를 이동하는 중에는 현재 주소가 아직 이전 페이지를 가리킵니다.
 - 로그아웃이나 세션 만료 뒤에 guard를 다시 돌리려면 `account.store`를 구독하고 `status`가 바뀔 때 라우터에 다시 검사하게 합니다. 토큰만 바뀐 갱신에는 돌리지 않습니다.
-- 이 페이지를 연 callback의 로그인이 실패했으면(사용자가 취소했거나 백엔드가 거절했으면) 다시 IdP로 보내지 않고 그 에러를 던집니다. 다시 보내면 취소한 사용자가 IdP 화면으로 계속 되돌아가기 때문입니다. 에러 화면에서 `error.kind`로 경우를 나누고, 다시 시도하는 버튼에서 `login()`을 호출합니다. 로그인이 끝나면 돌아갈 경로는 [`loginStartedAt`](#mpa)에 있습니다.
+- 이 페이지를 연 callback의 로그인이 실패했으면(사용자가 취소했거나 백엔드가 거절했으면) 다시 IdP로 보내지 않고 그 에러를 던집니다. 다시 보내면 취소한 사용자가 IdP 화면으로 계속 되돌아가기 때문입니다. 에러 화면에서 `error.kind`로 경우를 나누고, 다시 시도하는 버튼에서 `login()`을 호출합니다. 로그인이 끝나면 돌아갈 경로는 [`loginReturnTo`](#mpa)에 있습니다.
 - 다른 origin의 `returnTo`는 무시하고, 로그인한 뒤 `/`로 돌아옵니다.
 
 ### 4. 에러
@@ -266,7 +266,7 @@ await account.logout({ idp: true, returnTo: '/' }); // IdP 로그인 세션까�
 
 `window`가 없는 곳(SSR, 빌드 시 prerender)에서 `createAccountClient`를 호출하면 브라우저 API를 건드리지 않는 client를 돌려줍니다. 그래서 client를 모듈 최상단에서 만들어도 서버에서 import 할 수 있습니다.
 
-- 상태는 계속 `loading`이고 `redirecting`은 `false`이며, `loginStartedAt`은 `null`이고, `ready()`는 바로 끝납니다. 서버가 그린 HTML에는 로그인 여부를 넣지 않고, 브라우저에서 hydrate 한 뒤 바뀝니다.
+- 상태는 계속 `loading`이고 `redirecting`은 `false`이며, `loginReturnTo`는 `null`이고, `ready()`는 바로 끝납니다. 서버가 그린 HTML에는 로그인 여부를 넣지 않고, 브라우저에서 hydrate 한 뒤 바뀝니다.
 - `login`, `retryLogin`, `requireAuth`는 `invalid_request`로 reject 합니다. `logout`은 아무것도 하지 않고, `refresh`는 `null`을 돌려줍니다.
 - `fetch`는 토큰을 붙이지 않은 일반 `fetch`입니다.
 
@@ -284,16 +284,16 @@ export const account = createAccountClient({
 ```
 
 - `redirectUri`(기본값 `/auth/callback`)에 페이지를 만들고, client를 import 한 뒤 `account.ready()`를 호출합니다. client를 만들기만 하면 주소만 정리되고, 백엔드 로그인과 로그인 전 위치로의 이동은 `ready()`가 시작합니다. React island에서는 `AccountProvider`가 `ready()`를 호출하므로 따로 부르지 않습니다. 로그인을 마치면 client가 로그인 전 위치를 새로 불러오므로 이 페이지는 잠깐만 보입니다. 그동안 `redirecting`은 `true`입니다.
-- 로그인이 실패하면 callback 페이지에 머뭅니다. 여기서 `error`를 보여 주고 다시 로그인할 버튼을 둡니다. 로그인이 끝나면 돌아갈 경로는 `account.loginStartedAt`에 있습니다. 아래 설명을 참고합니다.
+- 로그인이 실패하면 callback 페이지에 머뭅니다. 여기서 `error`를 보여 주고 다시 로그인할 버튼을 둡니다. 로그인이 끝나면 돌아갈 경로는 `account.loginReturnTo`에 있습니다. 아래 설명을 참고합니다.
 - 정적 호스팅이 `/auth/callback`을 `/auth/callback/`으로 바꿔도 같은 주소로 봅니다.
 
 ```ts
-const from = account.loginStartedAt ?? '/';
+const from = account.loginReturnTo ?? '/';
 retryButton.onclick = () => account.login({ returnTo: from });
 backLink.href = from;
 ```
 
-- `loginStartedAt`은 이 페이지를 연 callback의 로그인이 끝나면 돌아갈 경로(`/en/notices/1?tab=2`처럼 path, query, hash)입니다. `login()`이나 `requireAuth()`에 준 `returnTo`이고, 생략했으면 로그인을 시작한 주소입니다. 라우터 guard처럼 `returnTo`를 따로 주면 로그인을 시작한 주소와 다를 수 있습니다. 실패 화면의 언어나 돌아갈 링크를 정할 때 씁니다. 로그인 전에 따로 저장해 둘 필요가 없습니다.
+- `loginReturnTo`는 이 페이지를 연 callback의 로그인이 끝나면 돌아갈 경로(`/en/notices/1?tab=2`처럼 path, query, hash)입니다. `login()`이나 `requireAuth()`에 준 `returnTo`이고, 생략했으면 로그인을 시작한 주소입니다. 라우터 guard처럼 `returnTo`를 따로 주면 로그인을 시작한 주소와 다를 수 있습니다. 실패 화면의 언어나 돌아갈 링크를 정할 때 씁니다. 로그인 전에 따로 저장해 둘 필요가 없습니다.
 - `login()`의 `returnTo`가 다른 origin이었거나, callback에 맞는 로그인 진행 정보가 없거나(`state_mismatch`), 이 페이지가 callback이 아니면 `null`입니다.
 - client를 만들 때 정해지고 바뀌지 않으므로 `ready()`를 기다리지 않고 읽어도 됩니다. `app: 'spa'`에서도 같은 값을 주는데, 이때는 주소가 이미 이 경로로 바뀌어 있습니다.
 
