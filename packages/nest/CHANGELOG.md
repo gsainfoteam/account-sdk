@@ -1,5 +1,16 @@
 # @infoteam/account-nest
 
+## 0.10.0
+
+### Minor Changes
+
+- 32b07ee: Re-export `INVALID_TICKET` from `@infoteam/account-server`, so `@infoteam/account-nest` also exports it next to `SESSION_REJECTED`. A backend that answers an expired ticket with `401 { error: 'invalid_ticket' }` no longer needs `@infoteam/account-core` as a direct dependency.
+
+### Patch Changes
+
+- @infoteam/account-core@0.10.0
+  - @infoteam/account-server@0.10.0
+
 ## 0.9.0
 
 ### Patch Changes

@@ -16,6 +16,7 @@ export {
   type Environment,
   type ExchangeCodeParams,
   type IdTokenClaims,
+  INVALID_TICKET,
   type IssuerInput,
   type RevokeParams,
   type Scope,

@@ -4,7 +4,7 @@ import { HttpException } from '@nestjs/common';
 import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
 
-import { AccountError, toHttpException } from '../src';
+import { AccountError, INVALID_TICKET, toHttpException } from '../src';
 import { LoginBody, LoginCodeBody } from '../src/dto';
 
 function statusOf(error: unknown): number {
@@ -35,6 +35,15 @@ describe('toHttpException', () => {
       expect.objectContaining({
         status: 401,
         response: expect.objectContaining({ error: 'session_rejected' }),
+      }),
+    );
+  });
+
+  it('answers an expired ticket with the code the web SDK reads as expired', () => {
+    expect(() => toHttpException(new AccountError(INVALID_TICKET))).toThrow(
+      expect.objectContaining({
+        status: 401,
+        response: expect.objectContaining({ error: 'invalid_ticket' }),
       }),
     );
   });

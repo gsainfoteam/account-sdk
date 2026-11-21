@@ -20,6 +20,7 @@ export function createServerClient<RetryBody = unknown>(
 
   return {
     store,
+    loginReturnTo: null,
     getAccessToken: () => null,
     ready: async () => undefined,
     isHandlingRedirect: () => false,

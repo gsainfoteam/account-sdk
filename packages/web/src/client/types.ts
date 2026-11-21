@@ -28,6 +28,7 @@ export interface RequireAuthOptions {
 
 export interface AccountClient<RetryBody = unknown> {
   readonly store: StoreApi<AccountState>;
+  readonly loginReturnTo: string | null;
   getAccessToken(): string | null;
   ready(): Promise<void>;
   isHandlingRedirect(): boolean;

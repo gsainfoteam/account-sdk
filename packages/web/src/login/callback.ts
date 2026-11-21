@@ -25,7 +25,7 @@ const SILENT_LOGIN_FAILURES = new Set<string>([
 export interface Callback {
   url: string;
   transaction: StoredTransaction | null;
-  returnTo: string;
+  returnTo: string | null;
 }
 
 interface CallbackContext {
@@ -56,8 +56,8 @@ export function takeCallback({
   if (!isCallbackUrl(url)) return null;
 
   const transaction = takeTransaction(transactions, readCallbackState(url));
-  const returnTo = transaction?.returnTo ?? '/';
-  const addressWithoutCode = app === 'mpa' ? new URL(url).pathname : returnTo;
+  const returnTo = transaction?.returnTo ?? null;
+  const addressWithoutCode = app === 'mpa' ? new URL(url).pathname : (returnTo ?? '/');
   window.history.replaceState(null, '', addressWithoutCode);
 
   return { url, transaction, returnTo };
@@ -106,6 +106,6 @@ export function leaveCallback({
 }: AccountContext): Promise<void> | undefined {
   if (app !== 'mpa' || !callback) return undefined;
 
-  redirect(callback.returnTo, { replace: true });
+  redirect(callback.returnTo ?? '/', { replace: true });
   return untilRestoredFromBackForwardCache();
 }
