@@ -29,3 +29,6 @@ pubspec.lock
 .env.*
 !.env.example
 *.tsbuildinfo
+
+# claude-review-plugin request logs
+.claude-review/
