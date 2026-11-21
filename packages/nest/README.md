@@ -133,6 +133,7 @@ class SignupBody extends LoginBody {
 
 - 에러 타입: `AccountError`
 - 거절 응답의 형식: `SessionRejectedResponse` 타입, `SESSION_REJECTED` 상수
+- 만료된 ticket의 에러 코드: `INVALID_TICKET` 상수
 - wire 형식의 [zod](https://zod.dev) 스키마: `LoginCodeBodySchema`, `LoginTicketBodySchema`, `SessionTokensResponseSchema`
 
 ## scope와 필드 타입
