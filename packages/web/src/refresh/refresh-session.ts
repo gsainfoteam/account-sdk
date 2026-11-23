@@ -8,7 +8,10 @@ export async function restoreSession(
   trySilentLogin = context.trySilentLogin,
 ): Promise<void> {
   const { account } = context;
-  if (isLoggedOut(context)) return account.unauthenticate();
+  if (isLoggedOut(context)) {
+    void context.serverLogout.retry();
+    return account.unauthenticate();
+  }
 
   try {
     const loggedOutMeanwhile = watchLogout(context);

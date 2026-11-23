@@ -37,7 +37,7 @@ async function endSession(
   idp: boolean,
   returnTo: string,
 ): Promise<boolean> {
-  await context.session.end(accessToken).catch(() => undefined);
+  await context.serverLogout.end(accessToken);
   if (!idp || !context.canRoundTrip) return false;
 
   const logout = createLogoutUrl(await context.metadata(), {

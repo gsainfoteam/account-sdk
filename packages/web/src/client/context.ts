@@ -11,6 +11,7 @@ import { type AppKind, type ParsedAccountClientOptions, type Redirect } from './
 import { onRestoredFromBackForwardCache } from '../internal/back-forward-cache';
 import { takeCallback, type Callback } from '../login/callback';
 import { createLogoutGate, type LogoutGate } from '../logout/logout-gate';
+import { createServerLogout, type ServerLogout } from '../logout/server-logout';
 import { sessionFromApi } from '../session/api-session';
 import { type Session } from '../session/session-adapter';
 import { createAccountStore, type AccountStore } from '../state/account-store';
@@ -30,6 +31,7 @@ export interface AccountContext {
   readonly callback: Callback | null;
   readonly trySilentLogin: boolean;
   readonly logoutGate: LogoutGate;
+  readonly serverLogout: ServerLogout;
   logouts: number;
   metadata(): Promise<AccountMetadata>;
   redirectUri(): string;
@@ -92,6 +94,7 @@ export function createContext(options: ParsedAccountClientOptions): AccountConte
     flags.getItem(STORAGE_KEYS.loggedOut) === null;
   if (callback || trySilentLogin) account.expectRedirect();
   const logoutGate = createLogoutGate();
+  const serverLogout = createServerLogout(session, flags);
 
   return {
     clientId,
@@ -106,6 +109,7 @@ export function createContext(options: ParsedAccountClientOptions): AccountConte
     callback,
     trySilentLogin,
     logoutGate,
+    serverLogout,
     logouts: 0,
     metadata,
     redirectUri,

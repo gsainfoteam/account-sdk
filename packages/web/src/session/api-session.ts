@@ -72,7 +72,17 @@ export function apiSession(
     },
 
     async end(accessToken) {
-      await request({ path: logout, accessToken: accessToken ?? undefined, keepalive: true });
+      const response = await request({
+        path: logout,
+        accessToken: accessToken ?? undefined,
+        keepalive: true,
+      });
+      if (response.ok || isAuthFailure(response.status)) return;
+
+      throw new AccountError(response.status >= 500 ? 'server_error' : 'unknown', {
+        description: `POST ${logout}`,
+        status: response.status,
+      });
     },
   };
 }
