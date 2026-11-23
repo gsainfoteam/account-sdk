@@ -1,4 +1,5 @@
 import { createLogoutUrl } from '@infoteam/account-core';
+import { attempt } from 'es-toolkit';
 
 import { type AccountContext } from '../client/context';
 import { type LogoutOptions } from '../client/types';
@@ -23,7 +24,7 @@ export async function logout(
 
   account.rejection = null;
   context.logouts += 1;
-  context.flags.setItem(STORAGE_KEYS.loggedOut, '1');
+  attempt(() => context.flags.setItem(STORAGE_KEYS.loggedOut, '1'));
 
   const ending = endSession(context, accessToken, idp, returnTo);
   context.logoutGate.track(ending);

@@ -991,7 +991,7 @@ describe('a logout the server did not confirm', () => {
     await vi.waitFor(() => expect(servers.callsTo(`${API}/auth/logout`)).toHaveLength(3));
   });
 
-  it('still sends the logout when storage refuses to remember it', async () => {
+  it('still logs out when storage refuses to remember it', async () => {
     const items = new Map<string, string>();
     const full: Storage = {
       get length() {
@@ -1000,7 +1000,7 @@ describe('a logout the server did not confirm', () => {
       key: (index) => [...items.keys()][index] ?? null,
       getItem: (key) => items.get(key) ?? null,
       setItem: (key, value) => {
-        if (key.endsWith(':logout-unconfirmed')) {
+        if (key.endsWith(':logged-out') || key.endsWith(':logout-unconfirmed')) {
           throw new DOMException('The quota has been exceeded.', 'QuotaExceededError');
         }
         items.set(key, value);
@@ -1009,9 +1009,14 @@ describe('a logout the server did not confirm', () => {
       clear: () => items.clear(),
     };
     vi.spyOn(window, 'localStorage', 'get').mockReturnValue(full);
-    const servers = setup({ [`${API}/auth/logout`]: () => new Response(null, { status: 204 }) });
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }),
+      [`${API}/auth/logout`]: () => new Response(null, { status: 204 }),
+    });
+    await servers.client.ready();
 
     await expect(servers.client.logout()).resolves.toBeUndefined();
+    expect(servers.client.store.getState().status).toBe('unauthenticated');
     expect(servers.callsTo(`${API}/auth/logout`)).toHaveLength(1);
   });
 
