@@ -970,6 +970,51 @@ describe('a logout the server did not confirm', () => {
     expect(servers.callsTo(`${API}/auth/logout`)).toHaveLength(2);
   });
 
+  it('keeps a later logout unconfirmed when an earlier one is confirmed after it', async () => {
+    let confirmEarlier = (_: Response) => undefined as void;
+    const replies: Route[] = [
+      () => new Promise<Response>((resolve) => (confirmEarlier = resolve)),
+      offline,
+    ];
+    const servers = setup({
+      [`${API}/auth/logout`]: (call) =>
+        (replies.shift() ?? (() => new Response(null, { status: 204 })))(call),
+    });
+    const earlier = servers.client.logout();
+    await vi.waitFor(() => expect(servers.callsTo(`${API}/auth/logout`)).toHaveLength(1));
+
+    await servers.create().logout();
+    confirmEarlier(new Response(null, { status: 204 }));
+    await earlier;
+
+    await servers.create().ready();
+    await vi.waitFor(() => expect(servers.callsTo(`${API}/auth/logout`)).toHaveLength(3));
+  });
+
+  it('still sends the logout when storage refuses to remember it', async () => {
+    const items = new Map<string, string>();
+    const full: Storage = {
+      get length() {
+        return items.size;
+      },
+      key: (index) => [...items.keys()][index] ?? null,
+      getItem: (key) => items.get(key) ?? null,
+      setItem: (key, value) => {
+        if (key.endsWith(':logout-unconfirmed')) {
+          throw new DOMException('The quota has been exceeded.', 'QuotaExceededError');
+        }
+        items.set(key, value);
+      },
+      removeItem: (key) => void items.delete(key),
+      clear: () => items.clear(),
+    };
+    vi.spyOn(window, 'localStorage', 'get').mockReturnValue(full);
+    const servers = setup({ [`${API}/auth/logout`]: () => new Response(null, { status: 204 }) });
+
+    await expect(servers.client.logout()).resolves.toBeUndefined();
+    expect(servers.callsTo(`${API}/auth/logout`)).toHaveLength(1);
+  });
+
   it('calls end() of a custom session again after it throws', async () => {
     const end = vi
       .fn<Session['end']>()
