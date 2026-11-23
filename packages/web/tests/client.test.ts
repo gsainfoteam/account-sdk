@@ -905,6 +905,8 @@ describe('a logout the server did not confirm', () => {
     ['a server error', 503, 2],
     ['no session', 401, 1],
     ['no session', 403, 1],
+    ['no logout endpoint', 404, 1],
+    ['no logout endpoint', 405, 1],
   ])(
     'sends it again after %s (%i) only if the session may still be there',
     async (_, status, sent) => {
