@@ -340,7 +340,10 @@ const session: Session = {
     return { accessToken: (await res.json()).token };
   },
   async end() {
-    await fetch(`${apiUrl}/signout`, { method: 'POST', credentials: 'include' });
+    const res = await fetch(`${apiUrl}/signout`, { method: 'POST', credentials: 'include' });
+    if (!res.ok && res.status !== 401 && res.status !== 403) {
+      throw new Error(`signout failed: ${res.status}`);
+    }
   },
 };
 
