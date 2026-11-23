@@ -1,5 +1,12 @@
 # @infoteam/account-nest
 
+## 0.10.1
+
+### Patch Changes
+
+- @infoteam/account-core@0.10.1
+  - @infoteam/account-server@0.10.1
+
 ## 0.10.0
 
 ### Minor Changes

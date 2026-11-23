@@ -14,6 +14,8 @@ import { createRequester, readTokens } from './request';
 import { type Session, type SessionPaths } from './session-adapter';
 import { type AccountClientOptions } from '../client/options';
 
+const NO_LOGOUT_ENDPOINT_STATUSES = [404, 405];
+
 const RejectionSchema = z.looseObject({
   ticket: z.optional(z.string()),
   reason: z.optional(z.string()),
@@ -72,7 +74,21 @@ export function apiSession(
     },
 
     async end(accessToken) {
-      await request({ path: logout, accessToken: accessToken ?? undefined, keepalive: true });
+      const response = await request({
+        path: logout,
+        accessToken: accessToken ?? undefined,
+        keepalive: true,
+      });
+      const nothingLeftToEnd =
+        response.ok ||
+        isAuthFailure(response.status) ||
+        NO_LOGOUT_ENDPOINT_STATUSES.includes(response.status);
+      if (nothingLeftToEnd) return;
+
+      throw new AccountError(response.status >= 500 ? 'server_error' : 'unknown', {
+        description: `POST ${logout}`,
+        status: response.status,
+      });
     },
   };
 }

@@ -261,6 +261,7 @@ await account.logout({ idp: true, returnTo: '/' }); // IdP 로그인 세션까�
 - `idp: true`이면 IdP의 로그아웃 페이지를 거칩니다. 돌아올 때는 IdP에 등록한 callback URL을 거치므로 따로 등록할 URL은 없습니다. `returnTo`는 이때만 쓰고, 다른 origin이면 `/`로 돌아옵니다.
 - 로그아웃한 뒤의 첫 `login()`은 IdP 로그인 화면을 다시 띄웁니다(`prompt=login`). 자동 로그인도 다음 로그인 전까지 시도하지 않습니다.
 - IdP가 아직 로그아웃 endpoint를 제공하지 않으면 서비스 세션만 끝냅니다.
+- 백엔드의 로그아웃 요청이 네트워크 오류로 닿지 않거나 `2xx`, `401`, `403`, `404`, `405`가 아닌 응답을 받아도 `logout()`은 화면을 로그아웃 상태로 바꾸고 resolve 합니다. 이 요청은 다음에 client가 시작할 때와 브라우저가 다시 온라인이 될 때 다시 보내고, 백엔드가 그중 하나로 답하거나 다음 로그인에 성공하면 그만 보냅니다.
 
 ## 서버 렌더링
 
@@ -305,6 +306,7 @@ backLink.href = from;
 
 - `sessionStorage`가 막히면 IdP에 다녀오는 동안 로그인 진행 정보를 잃습니다. 그래서 `login()`과 `requireAuth()`는 IdP로 보내지 않고 `unknown`으로 reject 하고, 자동 로그인과 IdP 로그아웃은 건너뜁니다.
 - `localStorage`만 막히면 로그아웃 표시를 `sessionStorage`에 둡니다. 같은 탭은 새로고침해도 로그아웃 상태가 유지되지만, 새 탭은 이 표시를 모릅니다. 그래서 서버 로그아웃 요청이 실패해 refresh 쿠키가 남았다면 새 탭에서 세션이 복구될 수 있습니다. 자동 로그인은 건너뜁니다.
+- 둘 다 막히면 실패한 로그아웃 요청을 페이지가 열려 있는 동안만 기억합니다. 브라우저가 다시 온라인이 되면 다시 보내지만, 그 전에 새로고침하면 refresh 쿠키로 세션이 복구될 수 있습니다.
 
 ## `session` 옵션
 
@@ -338,7 +340,10 @@ const session: Session = {
     return { accessToken: (await res.json()).token };
   },
   async end() {
-    await fetch(`${apiUrl}/signout`, { method: 'POST', credentials: 'include' });
+    const res = await fetch(`${apiUrl}/signout`, { method: 'POST', credentials: 'include' });
+    if (!res.ok && res.status !== 401 && res.status !== 403) {
+      throw new Error(`signout failed: ${res.status}`);
+    }
   },
 };
 
@@ -349,7 +354,7 @@ const account = createAccountClient({ issuer: 'production', clientId, session })
 | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `start(credential, body?)` | callback으로 받은 `code`, `codeVerifier`, `redirectUri`, `nonce`, `iss`를 받습니다. 백엔드는 code를 교환할 때 이 `redirectUri`를 그대로 쓰고, id_token의 `nonce`를 확인해야 합니다. 재시도할 때는 `{ ticket }`과 `body`를 받습니다 |
 | `refresh()`                | `{ accessToken, expiresIn? }`를 돌려주고, 세션이 없으면 `null`을 돌려줍니다. 다른 실패는 throw 합니다. throw 해도 로그아웃 상태가 되고, 그 에러가 `error`에 남습니다                                                               |
-| `end(accessToken)`         | 백엔드 세션을 끝냅니다. 실패해도 무시합니다                                                                                                                                                                                        |
+| `end(accessToken)`         | 백엔드 세션을 끝냅니다. 세션이 끝났거나 이미 없으면 resolve 하고, 끝났는지 모르면 throw 합니다. throw 해도 `logout()`은 resolve 하고, 다음에 client가 시작할 때 `end(null)`을 다시 호출합니다                                      |
 
 에러는 `AccountError`로 던져야 `error.code`와 `error.kind`로 경우를 나눌 수 있습니다. 다른 에러는 `unknown`이 됩니다.
 

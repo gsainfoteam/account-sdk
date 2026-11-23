@@ -866,6 +866,177 @@ describe('ready', () => {
   });
 });
 
+describe('a logout the server did not confirm', () => {
+  const offline = () => {
+    throw new TypeError('offline');
+  };
+  const logoutReplying =
+    (...replies: Array<() => Response>): Route =>
+    () =>
+      (replies.shift() ?? (() => new Response(null, { status: 204 })))();
+  const settle = () => new Promise((resolve) => setTimeout(resolve));
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('sends the logout again on the next start until the server confirms it', async () => {
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }),
+      [`${API}/auth/logout`]: logoutReplying(offline, offline),
+    });
+    await servers.client.ready();
+    await servers.client.logout();
+
+    await servers.create().ready();
+    await vi.waitFor(() => expect(servers.callsTo(`${API}/auth/logout`)).toHaveLength(2));
+
+    const confirmed = servers.create();
+    await confirmed.ready();
+    await vi.waitFor(() => expect(servers.callsTo(`${API}/auth/logout`)).toHaveLength(3));
+    expect(confirmed.store.getState().status).toBe('unauthenticated');
+    await settle();
+
+    await servers.create().ready();
+    await settle();
+    expect(servers.callsTo(`${API}/auth/logout`)).toHaveLength(3);
+    expect(servers.callsTo(`${API}/auth/refresh`)).toHaveLength(1);
+  });
+
+  it.each([
+    ['a server error', 503, 2],
+    ['no session', 401, 1],
+    ['no session', 403, 1],
+    ['no logout endpoint', 404, 1],
+    ['no logout endpoint', 405, 1],
+  ])(
+    'sends it again after %s (%i) only if the session may still be there',
+    async (_, status, sent) => {
+      const servers = setup({
+        [`${API}/auth/logout`]: logoutReplying(() => new Response(null, { status })),
+      });
+      await servers.client.logout();
+
+      await servers.create().ready();
+      await settle();
+
+      expect(servers.callsTo(`${API}/auth/logout`)).toHaveLength(sent);
+    },
+  );
+
+  it('still resolves logout() and signs out the screen while offline', async () => {
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }),
+      [`${API}/auth/logout`]: offline,
+    });
+    await servers.client.ready();
+
+    await expect(servers.client.logout()).resolves.toBeUndefined();
+    expect(servers.client.store.getState()).toMatchObject({
+      status: 'unauthenticated',
+      error: null,
+    });
+  });
+
+  it('drops it after a new login, so the retry does not end the new session', async () => {
+    const servers = setup({
+      [`${API}/auth/login`]: () => Response.json({ access_token: 'service-token' }),
+      [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }),
+      [`${API}/auth/logout`]: logoutReplying(offline),
+    });
+    await servers.client.logout();
+    const { returned } = await loginAndReturn(servers);
+    await returned.ready();
+
+    window.history.replaceState(null, '', '/');
+    const reloaded = servers.create();
+    await reloaded.ready();
+    await settle();
+
+    expect(reloaded.getAccessToken()).toBe('restored');
+    expect(servers.callsTo(`${API}/auth/logout`)).toHaveLength(1);
+  });
+
+  it('sends it again once the browser is back online, even with storage blocked', async () => {
+    const blocked = () => {
+      throw new DOMException('The operation is insecure.', 'SecurityError');
+    };
+    vi.spyOn(window, 'localStorage', 'get').mockImplementation(blocked);
+    vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(blocked);
+    const servers = setup({ [`${API}/auth/logout`]: logoutReplying(offline) });
+    await servers.client.logout();
+
+    window.dispatchEvent(new Event('online'));
+    await vi.waitFor(() => expect(servers.callsTo(`${API}/auth/logout`)).toHaveLength(2));
+
+    window.dispatchEvent(new Event('online'));
+    await settle();
+    expect(servers.callsTo(`${API}/auth/logout`)).toHaveLength(2);
+  });
+
+  it('keeps a later logout unconfirmed when an earlier one is confirmed after it', async () => {
+    let confirmEarlier = (_: Response) => undefined as void;
+    const replies: Route[] = [
+      () => new Promise<Response>((resolve) => (confirmEarlier = resolve)),
+      offline,
+    ];
+    const servers = setup({
+      [`${API}/auth/logout`]: (call) =>
+        (replies.shift() ?? (() => new Response(null, { status: 204 })))(call),
+    });
+    const earlier = servers.client.logout();
+    await vi.waitFor(() => expect(servers.callsTo(`${API}/auth/logout`)).toHaveLength(1));
+
+    await servers.create().logout();
+    confirmEarlier(new Response(null, { status: 204 }));
+    await earlier;
+
+    await servers.create().ready();
+    await vi.waitFor(() => expect(servers.callsTo(`${API}/auth/logout`)).toHaveLength(3));
+  });
+
+  it('still logs out when storage refuses to remember it', async () => {
+    const items = new Map<string, string>();
+    const full: Storage = {
+      get length() {
+        return items.size;
+      },
+      key: (index) => [...items.keys()][index] ?? null,
+      getItem: (key) => items.get(key) ?? null,
+      setItem: (key, value) => {
+        if (key.endsWith(':logged-out') || key.endsWith(':logout-unconfirmed')) {
+          throw new DOMException('The quota has been exceeded.', 'QuotaExceededError');
+        }
+        items.set(key, value);
+      },
+      removeItem: (key) => void items.delete(key),
+      clear: () => items.clear(),
+    };
+    vi.spyOn(window, 'localStorage', 'get').mockReturnValue(full);
+    const servers = setup({
+      [`${API}/auth/refresh`]: () => Response.json({ access_token: 'restored' }),
+      [`${API}/auth/logout`]: () => new Response(null, { status: 204 }),
+    });
+    await servers.client.ready();
+
+    await expect(servers.client.logout()).resolves.toBeUndefined();
+    expect(servers.client.store.getState().status).toBe('unauthenticated');
+    expect(servers.callsTo(`${API}/auth/logout`)).toHaveLength(1);
+  });
+
+  it('calls end() of a custom session again after it throws', async () => {
+    const end = vi
+      .fn<Session['end']>()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValue(undefined);
+    const servers = setup({}, { api: undefined, session: customSession({ end }) });
+    await servers.client.logout();
+
+    await servers.create().ready();
+
+    await vi.waitFor(() => expect(end).toHaveBeenCalledTimes(2));
+    expect(end).toHaveBeenLastCalledWith(null);
+  });
+});
+
 describe('fetch', () => {
   it('refreshes once for concurrent 401s and retries each request', async () => {
     let refreshes = 0;

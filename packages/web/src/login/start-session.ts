@@ -18,5 +18,6 @@ export async function startSession(
   }
 
   context.flags.removeItem(STORAGE_KEYS.loggedOut);
+  context.flags.removeItem(STORAGE_KEYS.logoutUnconfirmed);
   context.account.authenticate(result.tokens.accessToken);
 }
